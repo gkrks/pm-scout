@@ -11,9 +11,14 @@ import { matchRequirements } from "./matcher";
 import { generateReport } from "./reporter";
 
 // ── Server mode ───────────────────────────────────────────────────────────────
-// `node dist/index.js serve`  →  starts the web UI on localhost:8080
+// Starts when: `node dist/index.js serve`, `node dist/index.js`, or NODE_ENV=production
+// This ensures Render's default `node dist/index.js` (no args) starts the web UI.
 
-if (process.argv[2] === "serve") {
+const firstArg = process.argv[2];
+const isServerMode =
+  !firstArg || firstArg === "serve" || process.env.NODE_ENV === "production";
+
+if (isServerMode) {
   // Dynamic require keeps the server module out of the CLI hot path
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { startServer } = require("./server") as { startServer: () => Promise<void> };
