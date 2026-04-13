@@ -4,10 +4,10 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm ci --include=dev && npm run build
+    buildCommand: NODE_ENV=development npm ci && npm run build
     startCommand: node dist/index.js serve
     envVars:
       - key: NODE_ENV
         value: production
       - key: ANTHROPIC_API_KEY
-        sync: false   # you set this manually in the Render dashboard
+        sync: false   # set this manually in the Render dashboard
