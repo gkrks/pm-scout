@@ -3,3 +3,4 @@ dist/
 .env
 match-report.json
 *.pdf
+.claude/

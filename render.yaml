@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: pm-scout
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.js serve
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false   # you set this manually in the Render dashboard

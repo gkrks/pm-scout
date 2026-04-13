@@ -13,10 +13,8 @@ import { extract_text_from_bytes } from "./pdfUtil";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const PORT = 8080;
-export const GENERIC_RESUME_PATH =
-  process.env.GENERIC_RESUME_PATH ||
-  "/Users/rashmicagopinath/Downloads/KRITHIK-SAI-SREENISH-GOPINATH-FlowCV-Resume-20260212 (2).pdf";
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+export const GENERIC_RESUME_PATH = process.env.GENERIC_RESUME_PATH || "";
 
 // ── Semaphore for concurrent job scoring ──────────────────────────────────────
 
