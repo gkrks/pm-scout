@@ -833,7 +833,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     var email = angleMatch ? angleMatch[1].trim() : raw;
     emailInput.value = email;
     var errorEl = document.getElementById('applyEmailError');
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
       errorEl.textContent = 'Please enter a valid email address.';
       return;
     }
