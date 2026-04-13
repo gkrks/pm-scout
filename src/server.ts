@@ -298,6 +298,58 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .applied-section-header h2 { font-size: 0.9rem; font-weight: 700; color: #0f172a; letter-spacing: -0.1px; margin: 0; }
     .applied-count-badge { font-size: 0.7rem; font-weight: 700; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 9999px; padding: 2px 8px; }
 
+    /* Status badges */
+    .status-badge { display:inline-block; font-size:0.72rem; font-weight:600; border-radius:5px; padding:2px 9px; white-space:nowrap; }
+    .status-applied           { background:#eff6ff; color:#2563eb;  border:1px solid #bfdbfe; }
+    .status-recruiter         { background:#faf5ff; color:#7e22ce;  border:1px solid #e9d5ff; }
+    .status-interview-sched   { background:#fef9c3; color:#854d0e;  border:1px solid #fde68a; }
+    .status-interview-done    { background:#f0fdfa; color:#0f766e;  border:1px solid #99f6e4; }
+    .status-offer             { background:#dcfce7; color:#15803d;  border:1px solid #bbf7d0; }
+    .status-rejected          { background:#fee2e2; color:#b91c1c;  border:1px solid #fecdd3; }
+    .status-withdrawn         { background:#f1f5f9; color:#64748b;  border:1px solid #e2e8f0; }
+    .status-select-inline { font-size:0.72rem; font-weight:600; border-radius:5px; padding:2px 6px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; color:#1e293b; }
+    tr.row-overdue td { background:#fefce8 !important; }
+    .followup-overdue { color:#b45309; font-weight:700; font-size:0.72rem; }
+    .followup-soon    { color:#0369a1; font-weight:600; font-size:0.72rem; }
+    .followup-ok      { color:#64748b; font-size:0.72rem; }
+    .btn-details { font-size:0.65rem; padding:2px 7px; border-radius:4px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; cursor:pointer; font-weight:600; }
+    .btn-details:hover { background:#dbeafe; }
+
+    /* Application Details Modal */
+    #appDetailsModal { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:300; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+    #appDetailsModal.open { display:flex; }
+    .app-details-box { background:#fff; border-radius:14px; width:100%; max-width:680px; box-shadow:0 20px 60px rgba(0,0,0,0.2); flex-shrink:0; overflow:hidden; }
+    .app-details-header { padding:22px 28px 14px; border-bottom:1px solid #f1f5f9; position:sticky; top:0; background:#fff; z-index:1; }
+    .app-details-company { font-size:0.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; }
+    .app-details-title { font-size:1.1rem; font-weight:700; color:#0f172a; }
+    .app-details-meta { display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap; }
+    .app-details-body { padding:20px 28px 32px; max-height:calc(90vh - 110px); overflow-y:auto; }
+    .detail-section { margin-bottom:24px; border-bottom:1px solid #f1f5f9; padding-bottom:24px; }
+    .detail-section:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+    .detail-section > .section-label { margin-bottom:10px; }
+    .detail-status-select { font-size:0.85rem; padding:7px 12px; border:1px solid #e2e8f0; border-radius:7px; color:#1e293b; background:#fff; cursor:pointer; width:100%; }
+    .detail-notes-area { width:100%; min-height:90px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:7px; font-size:0.84rem; color:#1e293b; resize:vertical; font-family:inherit; line-height:1.5; box-sizing:border-box; }
+    .detail-notes-area:focus { outline:none; border-color:#93c5fd; }
+    .detail-save-btn { margin-top:8px; font-size:0.78rem; padding:5px 14px; border-radius:6px; background:#2563eb; color:#fff; border:none; cursor:pointer; font-weight:600; transition:background 0.15s; }
+    .detail-save-btn:hover { background:#1d4ed8; }
+    .detail-save-ok { background:#15803d !important; }
+    .dates-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .date-field { display:flex; flex-direction:column; gap:4px; }
+    .date-field label { font-size:0.75rem; font-weight:600; color:#475569; }
+    .date-field input[type=date] { padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:0.82rem; color:#1e293b; width:100%; box-sizing:border-box; }
+    .date-field input[type=date]:focus { outline:none; border-color:#93c5fd; }
+    .interviews-list { display:flex; flex-direction:column; gap:6px; margin-bottom:6px; }
+    .interview-row { display:flex; align-items:center; gap:6px; }
+    .interview-row input[type=date] { padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:0.82rem; color:#1e293b; flex:1; box-sizing:border-box; }
+    .btn-remove-interview { font-size:0.68rem; padding:2px 7px; border-radius:4px; background:#fee2e2; color:#b91c1c; border:1px solid #fecdd3; cursor:pointer; font-weight:600; flex-shrink:0; }
+    .btn-add-interview { font-size:0.72rem; padding:3px 10px; border-radius:5px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; cursor:pointer; font-weight:600; }
+    .timeline { position:relative; padding-left:22px; }
+    .timeline::before { content:''; position:absolute; left:7px; top:8px; bottom:0; width:2px; background:#e2e8f0; border-radius:1px; }
+    .tl-entry { position:relative; margin-bottom:14px; }
+    .tl-entry::before { content:''; position:absolute; left:-18px; top:5px; width:8px; height:8px; border-radius:50%; background:#94a3b8; border:2px solid #fff; box-shadow:0 0 0 2px #cbd5e1; }
+    .tl-action { font-size:0.82rem; color:#0f172a; font-weight:500; line-height:1.4; }
+    .tl-ts { font-size:0.72rem; color:#94a3b8; margin-top:1px; }
+
     /* Apply modal */
     #applyModal { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:200; align-items:center; justify-content:center; }
     #applyModal.open { display:flex; }
@@ -394,10 +446,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
           <tr>
             <th>Company</th>
             <th>Title</th>
-            <th>Location</th>
-            <th>Type</th>
-            <th>Applied With</th>
-            <th>Date Applied</th>
+            <th>Status</th>
+            <th>Applied</th>
+            <th>Follow-up</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -449,6 +500,81 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   </div>
 </div>
 
+<!-- Application Details Modal -->
+<div id="appDetailsModal">
+  <div class="app-details-box">
+    <div class="app-details-header">
+      <button class="modal-close" id="appDetailsClose">✕</button>
+      <div class="app-details-company" id="adCompany"></div>
+      <div class="app-details-title" id="adTitle"></div>
+      <div class="app-details-meta">
+        <span style="font-size:0.8rem;color:#64748b" id="adLocation"></span>
+        <span id="adWorkType"></span>
+        <a id="adApplyLink" href="#" target="_blank" rel="noopener" style="font-size:0.8rem;font-weight:600;color:#2563eb;margin-left:auto;text-decoration:none" hidden>Apply ↗</a>
+      </div>
+    </div>
+    <div class="app-details-body">
+
+      <!-- Status -->
+      <div class="detail-section">
+        <div class="section-label">Application Status</div>
+        <select class="detail-status-select" id="adStatusSelect">
+          <option value="applied">Applied</option>
+          <option value="recruiter_reached_out">Recruiter Reached Out</option>
+          <option value="interview_scheduled">Interview Scheduled</option>
+          <option value="interview_completed">Interview Completed</option>
+          <option value="offer_received">Offer Received</option>
+          <option value="rejected">Rejected</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+      </div>
+
+      <!-- Notes -->
+      <div class="detail-section">
+        <div class="section-label">Notes</div>
+        <textarea class="detail-notes-area" id="adNotes" placeholder="Add notes about this application..."></textarea>
+        <button class="detail-save-btn" id="adSaveNotes">Save Notes</button>
+      </div>
+
+      <!-- Key Dates -->
+      <div class="detail-section">
+        <div class="section-label">Key Dates</div>
+        <div class="dates-grid">
+          <div class="date-field">
+            <label>Date Applied</label>
+            <input type="date" id="adDateApplied">
+          </div>
+          <div class="date-field">
+            <label>Recruiter Contact</label>
+            <input type="date" id="adDateRecruiter">
+          </div>
+          <div class="date-field" style="grid-column:1/-1">
+            <label>Interview Date(s)</label>
+            <div class="interviews-list" id="adInterviewsList"></div>
+            <button class="btn-add-interview" id="adAddInterview">+ Add Interview Date</button>
+          </div>
+          <div class="date-field">
+            <label>Offer Date</label>
+            <input type="date" id="adDateOffer">
+          </div>
+          <div class="date-field">
+            <label>Follow-up Reminder</label>
+            <input type="date" id="adDateFollowUp">
+          </div>
+        </div>
+        <button class="detail-save-btn" id="adSaveDates" style="margin-top:14px">Save Dates</button>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="detail-section">
+        <div class="section-label">Activity Timeline</div>
+        <div class="timeline" id="adTimeline"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- Apply modal -->
 <div id="applyModal">
   <div class="apply-modal-box">
@@ -486,6 +612,52 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   var appliedJobs = {};
   try { appliedJobs = JSON.parse(localStorage.getItem('pmScoutApplied_' + userId) || '{}'); } catch(e) {}
   var pendingApplyJobId = null;
+  var currentDetailsJobId = null;
+
+  var STATUSES = [
+    { value: 'applied',               label: 'Applied',               cls: 'status-applied' },
+    { value: 'recruiter_reached_out', label: 'Recruiter Reached Out', cls: 'status-recruiter' },
+    { value: 'interview_scheduled',   label: 'Interview Scheduled',   cls: 'status-interview-sched' },
+    { value: 'interview_completed',   label: 'Interview Completed',   cls: 'status-interview-done' },
+    { value: 'offer_received',        label: 'Offer Received',        cls: 'status-offer' },
+    { value: 'rejected',              label: 'Rejected',              cls: 'status-rejected' },
+    { value: 'withdrawn',             label: 'Withdrawn',             cls: 'status-withdrawn' }
+  ];
+
+  function statusInfo(val) {
+    return STATUSES.find(function(s) { return s.value === val; }) || STATUSES[0];
+  }
+
+  function isOverdue(dateStr) {
+    if (!dateStr) return false;
+    var today = new Date(); today.setHours(0,0,0,0);
+    return new Date(dateStr) < today;
+  }
+
+  function isSoon(dateStr) {
+    if (!dateStr) return false;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var soon = new Date(); soon.setDate(soon.getDate() + 3); soon.setHours(23,59,59,999);
+    var d = new Date(dateStr);
+    return d >= today && d <= soon;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function persistApplied() {
+    localStorage.setItem('pmScoutApplied_' + userId, JSON.stringify(appliedJobs));
+  }
+
+  function appendLog(jobId, action) {
+    var r = appliedJobs[jobId];
+    if (!r) return;
+    if (!r.log) r.log = [];
+    r.log.push({ action: action, ts: new Date().toISOString() });
+    persistApplied();
+  }
 
   // ── Polling ────────────────────────────────────────────────────────────────
 
@@ -665,30 +837,40 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   function renderAppliedSection() {
     var keys = Object.keys(appliedJobs);
     var section = document.getElementById('appliedSection');
-    var tbody = document.getElementById('appliedBody');
-    var badge = document.getElementById('appliedCountBadge');
-    if (keys.length === 0) {
-      section.style.display = 'none';
-      return;
-    }
+    var tbody   = document.getElementById('appliedBody');
+    var badge   = document.getElementById('appliedCountBadge');
+    if (keys.length === 0) { section.style.display = 'none'; return; }
     section.style.display = '';
     badge.textContent = String(keys.length);
     tbody.innerHTML = keys.map(function(jobId) {
-      var r = appliedJobs[jobId];
-      var dateStr = r.appliedAt ? new Date(r.appliedAt).toLocaleDateString() : '—';
-      var wt = r.workType || '—';
-      var wtCls = wt === 'Remote' ? 'wt-remote' : wt === 'Hybrid' ? 'wt-hybrid' : wt === 'Onsite' ? 'wt-onsite' : 'wt-na';
+      var r   = appliedJobs[jobId];
+      var si  = statusInfo(r.status || 'applied');
+      var followUp = (r.dates && r.dates.followUp) ? r.dates.followUp : '';
+      var fuHtml = '';
+      if (followUp) {
+        if (isOverdue(followUp))     fuHtml = '<span class="followup-overdue">&#9888; ' + esc(fmtDate(followUp)) + '</span>';
+        else if (isSoon(followUp))   fuHtml = '<span class="followup-soon">Soon: ' + esc(fmtDate(followUp)) + '</span>';
+        else                         fuHtml = '<span class="followup-ok">' + esc(fmtDate(followUp)) + '</span>';
+      } else {
+        fuHtml = '<span style="color:#cbd5e1;font-size:0.72rem">—</span>';
+      }
+      var rowCls = (followUp && isOverdue(followUp)) ? ' class="row-overdue"' : '';
       var titleCell = r.applyUrl
-        ? '<a href="' + esc(r.applyUrl) + '" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;">' + esc(r.title || '—') + '</a>'
+        ? '<a href="' + esc(r.applyUrl) + '" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;text-decoration:none;">' + esc(r.title || '—') + '</a>'
         : esc(r.title || '—');
-      return '<tr>' +
+      var statusOpts = STATUSES.map(function(s) {
+        return '<option value="' + s.value + '"' + (s.value === (r.status || 'applied') ? ' selected' : '') + '>' + s.label + '</option>';
+      }).join('');
+      return '<tr' + rowCls + ' data-applied-id="' + esc(jobId) + '">' +
         '<td><strong>' + esc(r.company || '—') + '</strong></td>' +
         '<td>' + titleCell + '</td>' +
-        '<td>' + esc(r.location || '—') + '</td>' +
-        '<td><span class="wtype ' + wtCls + '">' + esc(wt) + '</span></td>' +
-        '<td>' + esc(r.email) + '</td>' +
-        '<td>' + esc(dateStr) + '</td>' +
-        '<td><button class="btn-edit-apply" data-action="edit-applied" data-id="' + esc(jobId) + '">Edit Email</button></td>' +
+        '<td><select class="status-select-inline" data-action="status-change" data-id="' + esc(jobId) + '">' + statusOpts + '</select></td>' +
+        '<td style="font-size:0.78rem;color:#475569">' + esc(fmtDate(r.appliedAt) || '—') + '</td>' +
+        '<td>' + fuHtml + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn-edit-apply" data-action="edit-applied" data-id="' + esc(jobId) + '">Email</button> ' +
+          '<button class="btn-details" data-action="open-details" data-id="' + esc(jobId) + '">Details</button>' +
+        '</td>' +
         '</tr>';
     }).join('');
   }
@@ -696,7 +878,183 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   // Applied section click handler
   document.getElementById('appliedBody').addEventListener('click', function(e) {
     var editBtn = e.target.closest('[data-action="edit-applied"]');
-    if (editBtn) { openApplyModal(editBtn.dataset.id, true); }
+    if (editBtn) { openApplyModal(editBtn.dataset.id, true); return; }
+
+    var detailsBtn = e.target.closest('[data-action="open-details"]');
+    if (detailsBtn) { openDetailsModal(detailsBtn.dataset.id); return; }
+  });
+
+  // Applied section change handler — inline status dropdown
+  document.getElementById('appliedBody').addEventListener('change', function(e) {
+    var sel = e.target.closest('[data-action="status-change"]');
+    if (!sel) return;
+    var jobId  = sel.dataset.id;
+    var r      = appliedJobs[jobId];
+    if (!r) return;
+    var newStatus = sel.value;
+    var si        = statusInfo(newStatus);
+    r.status      = newStatus;
+    appendLog(jobId, 'Status changed to \u201c' + si.label + '\u201d');
+    persistApplied();
+    renderAppliedSection();
+  });
+
+  // ── Application Details Modal ──────────────────────────────────────────────
+
+  function renderInterviewsList(interviews) {
+    var list = document.getElementById('adInterviewsList');
+    list.innerHTML = (interviews || []).map(function(d, i) {
+      return '<div class="interview-row">' +
+        '<input type="date" value="' + esc(d) + '" data-interview-idx="' + i + '">' +
+        '<button class="btn-remove-interview" data-remove-interview="' + i + '">Remove</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  function renderTimeline(log) {
+    var el = document.getElementById('adTimeline');
+    if (!log || log.length === 0) {
+      el.innerHTML = '<span style="font-size:0.82rem;color:#94a3b8;font-style:italic">No activity recorded yet.</span>';
+      return;
+    }
+    el.innerHTML = log.slice().reverse().map(function(entry) {
+      var when = entry.ts ? new Date(entry.ts).toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+      return '<div class="tl-entry">' +
+        '<div class="tl-action">' + esc(entry.action) + '</div>' +
+        '<div class="tl-ts">' + esc(when) + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function openDetailsModal(jobId) {
+    var r = appliedJobs[jobId];
+    if (!r) return;
+    currentDetailsJobId = jobId;
+
+    document.getElementById('adCompany').textContent = r.company || '';
+    var titleEl = document.getElementById('adTitle');
+    titleEl.textContent = r.title || '';
+    document.getElementById('adLocation').textContent = [r.location, r.workType].filter(Boolean).join(' · ');
+    var linkEl = document.getElementById('adApplyLink');
+    if (r.applyUrl) { linkEl.href = r.applyUrl; linkEl.hidden = false; }
+    else            { linkEl.hidden = true; }
+
+    document.getElementById('adStatusSelect').value = r.status || 'applied';
+    document.getElementById('adNotes').value = r.notes || '';
+
+    var dates = r.dates || {};
+    document.getElementById('adDateApplied').value   = dates.applied           || (r.appliedAt ? r.appliedAt.slice(0,10) : '');
+    document.getElementById('adDateRecruiter').value = dates.recruiterContact  || '';
+    document.getElementById('adDateOffer').value     = dates.offer             || '';
+    document.getElementById('adDateFollowUp').value  = dates.followUp          || '';
+    renderInterviewsList(dates.interviews || []);
+    renderTimeline(r.log);
+
+    document.getElementById('appDetailsModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDetailsModal() {
+    document.getElementById('appDetailsModal').classList.remove('open');
+    document.body.style.overflow = '';
+    currentDetailsJobId = null;
+  }
+
+  document.getElementById('appDetailsClose').addEventListener('click', closeDetailsModal);
+  document.getElementById('appDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetailsModal();
+  });
+
+  // Status change inside details modal — auto-saves immediately
+  document.getElementById('adStatusSelect').addEventListener('change', function() {
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+    var newStatus = this.value;
+    var si = statusInfo(newStatus);
+    appliedJobs[jobId].status = newStatus;
+    appendLog(jobId, 'Status changed to \u201c' + si.label + '\u201d');
+    persistApplied();
+    renderAppliedSection();
+    renderTimeline(appliedJobs[jobId].log);
+  });
+
+  // Save Notes
+  document.getElementById('adSaveNotes').addEventListener('click', function() {
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+    var notes = document.getElementById('adNotes').value.trim();
+    appliedJobs[jobId].notes = notes;
+    appendLog(jobId, 'Notes updated');
+    persistApplied();
+    renderTimeline(appliedJobs[jobId].log);
+    var btn = this;
+    btn.textContent = 'Saved \u2713';
+    btn.classList.add('detail-save-ok');
+    setTimeout(function() { btn.textContent = 'Save Notes'; btn.classList.remove('detail-save-ok'); }, 1500);
+  });
+
+  // Add interview date row
+  document.getElementById('adAddInterview').addEventListener('click', function() {
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+    var r = appliedJobs[jobId];
+    if (!r.dates) r.dates = {};
+    if (!r.dates.interviews) r.dates.interviews = [];
+    r.dates.interviews.push('');
+    renderInterviewsList(r.dates.interviews);
+  });
+
+  // Remove interview row (delegated on the list)
+  document.getElementById('adInterviewsList').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-remove-interview]');
+    if (!btn) return;
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+    var idx = parseInt(btn.dataset.removeInterview, 10);
+    appliedJobs[jobId].dates.interviews.splice(idx, 1);
+    renderInterviewsList(appliedJobs[jobId].dates.interviews);
+  });
+
+  // Save Dates
+  document.getElementById('adSaveDates').addEventListener('click', function() {
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+    var r = appliedJobs[jobId];
+    if (!r.dates) r.dates = {};
+
+    var applied    = document.getElementById('adDateApplied').value;
+    var recruiter  = document.getElementById('adDateRecruiter').value;
+    var offer      = document.getElementById('adDateOffer').value;
+    var followUp   = document.getElementById('adDateFollowUp').value;
+
+    // Collect interview dates from live inputs
+    var interviewInputs = document.querySelectorAll('#adInterviewsList input[type=date]');
+    var interviews = [];
+    interviewInputs.forEach(function(inp) { if (inp.value) interviews.push(inp.value); });
+
+    var changed = [];
+    if (applied   !== (r.dates.applied          || '')) changed.push('Date Applied');
+    if (recruiter !== (r.dates.recruiterContact  || '')) changed.push('Recruiter Contact');
+    if (offer     !== (r.dates.offer             || '')) changed.push('Offer Date');
+    if (followUp  !== (r.dates.followUp          || '')) changed.push('Follow-up Date');
+    var prevInterviews = JSON.stringify(r.dates.interviews || []);
+    if (JSON.stringify(interviews) !== prevInterviews)   changed.push('Interview Date(s)');
+
+    r.dates.applied          = applied;
+    r.dates.recruiterContact = recruiter;
+    r.dates.offer            = offer;
+    r.dates.followUp         = followUp;
+    r.dates.interviews       = interviews;
+
+    if (changed.length) appendLog(jobId, 'Updated dates: ' + changed.join(', '));
+    persistApplied();
+    renderAppliedSection();
+    renderTimeline(r.log);
+
+    var btn = this;
+    btn.textContent = 'Saved \u2713';
+    btn.classList.add('detail-save-ok');
+    setTimeout(function() { btn.textContent = 'Save Dates'; btn.classList.remove('detail-save-ok'); }, 1500);
   });
 
   // Row click → open modal (delegated)
@@ -846,19 +1204,30 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) { alert(d.error); return; }
-      var job = allJobs.find(function(j) { return j.id === pendingApplyJobId; });
+      var job      = allJobs.find(function(j) { return j.id === pendingApplyJobId; });
       var existing = appliedJobs[pendingApplyJobId] || {};
+      var isNew    = !existing.appliedAt;
+      var nowIso   = d.record.appliedAt || new Date().toISOString();
+      var log      = existing.log ? existing.log.slice() : [];
+      if (isNew) {
+        log.push({ action: 'Marked as applied with ' + email, ts: nowIso });
+      } else if (existing.email !== email) {
+        log.push({ action: 'Email updated to ' + email, ts: new Date().toISOString() });
+      }
       appliedJobs[pendingApplyJobId] = {
-        email: email,
-        appliedAt: d.record.appliedAt,
+        email:    email,
+        appliedAt: nowIso,
         company:  job ? job.company  : (existing.company  || ''),
         title:    job ? job.title    : (existing.title    || ''),
         location: job ? job.location : (existing.location || ''),
         workType: job ? job.workType : (existing.workType || ''),
-        applyUrl: job ? job.applyUrl : (existing.applyUrl || '')
+        applyUrl: job ? job.applyUrl : (existing.applyUrl || ''),
+        status:   existing.status || 'applied',
+        notes:    existing.notes  || '',
+        dates:    existing.dates  || { applied: nowIso.slice(0,10), recruiterContact: '', interviews: [], offer: '', followUp: '' },
+        log:      log
       };
-      // Persist locally so data survives server restarts
-      localStorage.setItem('pmScoutApplied_' + userId, JSON.stringify(appliedJobs));
+      persistApplied();
       closeApplyModal();
       renderTable();
       renderAppliedSection();
@@ -966,7 +1335,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     if (e.target === this) closeModal();
   });
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Escape') { closeModal(); closeDetailsModal(); }
   });
 
   // ── Actions ────────────────────────────────────────────────────────────────
