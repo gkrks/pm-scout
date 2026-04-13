@@ -1,0 +1,979 @@
+import "dotenv/config";
+import express, { Request, Response } from "express";
+import * as path from "path";
+import * as fs from "fs";
+
+import { appState } from "./state";
+import { scrapeAll } from "./jobScraper";
+import { allCompanies } from "./companies";
+import { extractRequirements } from "./extractor";
+import { parseResume, ResumeData } from "./parser";
+import { matchRequirements, MatchResult } from "./matcher";
+import { extract_text_from_bytes } from "./pdfUtil";
+
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const PORT = 8080;
+export const GENERIC_RESUME_PATH =
+  process.env.GENERIC_RESUME_PATH ||
+  "/Users/rashmicagopinath/Downloads/KRITHIK-SAI-SREENISH-GOPINATH-FlowCV-Resume-20260212 (2).pdf";
+
+// ── Semaphore for concurrent job scoring ──────────────────────────────────────
+
+class Semaphore {
+  private count: number;
+  private readonly queue: Array<() => void> = [];
+  constructor(n: number) { this.count = n; }
+  acquire(): Promise<void> {
+    if (this.count > 0) { this.count--; return Promise.resolve(); }
+    return new Promise((r) => this.queue.push(r));
+  }
+  release(): void {
+    if (this.queue.length > 0) this.queue.shift()!();
+    else this.count++;
+  }
+}
+
+// ── Scoring helpers ───────────────────────────────────────────────────────────
+
+function resumeAction(score: number): string {
+  if (score >= 70) return "apply_as_is";
+  if (score >= 40) return "tailor_then_apply";
+  return "skip";
+}
+
+async function scoreOneJob(
+  jobId: string,
+  resumeData: ResumeData,
+  label: string
+): Promise<void> {
+  const job = appState.jobs.find((j) => j.id === jobId);
+  if (!job) return;
+
+  // Strip HTML tags before sending to Claude — Greenhouse descriptions are raw HTML
+  // and the extractor prompt expects plain requirement text, not markup.
+  const plainDesc = job.description
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  let requirements: string[];
+  try {
+    requirements = await extractRequirements(plainDesc.slice(0, 6000));
+  } catch (err) {
+    console.error(`[scorer] ${jobId}: extractRequirements failed — ${err}`);
+    requirements = [];
+  }
+
+  if (requirements.length === 0) {
+    console.warn(`[scorer] ${jobId}: no requirements extracted — scoring skipped`);
+    job.matchScore    = 0;
+    job.requirements  = [];
+    job.summary       = { met: 0, partial: 0, missing: 0, score: 0 };
+    job.resumeAction  = "skip";
+    job.scoredWith    = label;
+    return;
+  }
+
+  const results = await matchRequirements(requirements, resumeData);
+
+  const met     = results.filter((r) => r.status === "met").length;
+  const partial = results.filter((r) => r.status === "partial").length;
+  const missing = results.filter((r) => r.status === "missing").length;
+  const score   = Math.round(((met + partial * 0.5) / results.length) * 100);
+
+  job.matchScore   = score;
+  job.requirements = results;
+  job.summary      = { met, partial, missing, score };
+  job.resumeAction = resumeAction(score);
+  job.scoredWith   = label;
+}
+
+async function scoreAllJobs(label: string): Promise<void> {
+  const resumeText = appState.activeResumeText();
+  if (!resumeText) {
+    appState.status.state = "done";
+    return;
+  }
+
+  const jobs = [...appState.jobs];
+  appState.status.state         = "scoring";
+  appState.status.scoreTotal    = jobs.length;
+  appState.status.scoreProgress = 0;
+  appState.status.scoreLabel    = label;
+
+  // Write resume to a temp file so parseResume can read it
+  const tmpPath = path.join("/tmp", "active-resume.txt");
+  fs.writeFileSync(tmpPath, resumeText, "utf-8");
+  const resumeData = await parseResume(tmpPath);
+
+  // Score one job at a time — matchRequirements already fans out up to 10
+  // Claude calls in parallel per job, so this keeps total concurrency at ~10.
+  const sem = new Semaphore(1);
+
+  await Promise.all(
+    jobs.map(async (job) => {
+      await sem.acquire();
+      try {
+        appState.status.scoreCurrent = `${job.company} — ${job.title}`;
+        await scoreOneJob(job.id, resumeData, label);
+      } catch (err) {
+        console.error(`[scorer] ${job.id}: ${err}`);
+      } finally {
+        appState.status.scoreProgress += 1;
+        sem.release();
+      }
+    })
+  );
+
+  appState.status.state        = "done";
+  appState.status.scoreCurrent = "";
+  appState.status.completedAt  = new Date().toUTCString();
+}
+
+// ── Inline HTML ───────────────────────────────────────────────────────────────
+
+const INDEX_HTML = /* html */ `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Search Pipeline</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    /* Header */
+    header { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 32px; height: 52px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 10; }
+    header h1 { font-size: 1rem; font-weight: 700; color: #0f172a; letter-spacing: -0.2px; }
+    .phase-badge { font-size: 0.7rem; font-weight: 600; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 9999px; padding: 2px 9px; }
+
+    /* Layout */
+    .container { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; }
+
+    /* Toolbar */
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .btn { border: none; padding: 7px 16px; border-radius: 7px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+    .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .filter-input { padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 7px; font-size: 0.85rem; color: #1e293b; background: #fff; outline: none; }
+    .filter-input:focus { border-color: #93c5fd; }
+    .resume-label { font-size: 0.78rem; color: #64748b; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Status bar */
+    .status-bar { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 16px; margin-bottom: 14px; font-size: 0.82rem; color: #475569; display: flex; align-items: center; gap: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-idle    { background: #94a3b8; }
+    .dot-active  { background: #3b82f6; animation: pulse 1.2s infinite; }
+    .dot-done    { background: #22c55e; }
+    .progress-bar { flex: 1; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    thead { background: #f8fafc; }
+    th { padding: 10px 14px; text-align: left; font-weight: 600; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0; white-space: nowrap; cursor: pointer; user-select: none; }
+    th:hover { color: #334155; }
+    th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+    th.sorted .sort-arrow { opacity: 1; color: #2563eb; }
+    td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; cursor: pointer; }
+
+    /* Pills */
+    .score-pill { display: inline-block; font-size: 0.75rem; font-weight: 700; border-radius: 9999px; padding: 2px 9px; }
+    .pill-high   { background: #dcfce7; color: #15803d; }
+    .pill-mid    { background: #fef9c3; color: #854d0e; }
+    .pill-low    { background: #fee2e2; color: #b91c1c; }
+    .pill-none   { background: #f1f5f9; color: #94a3b8; }
+
+    /* Action badges */
+    .action-badge { display: inline-block; font-size: 0.72rem; font-weight: 600; border-radius: 5px; padding: 2px 8px; }
+    .badge-apply   { background: #dcfce7; color: #15803d; }
+    .badge-tailor  { background: #fef9c3; color: #854d0e; }
+    .badge-skip    { background: #fee2e2; color: #b91c1c; }
+    .badge-pending { background: #f1f5f9; color: #94a3b8; }
+
+    /* Work type */
+    .wtype { font-size: 0.75rem; padding: 2px 8px; border-radius: 5px; font-weight: 500; }
+    .wt-remote { background: #eff6ff; color: #1d4ed8; }
+    .wt-hybrid { background: #faf5ff; color: #7e22ce; }
+    .wt-onsite { background: #f0fdf4; color: #15803d; }
+    .wt-na     { background: #f1f5f9; color: #94a3b8; }
+
+    /* Score button */
+    .btn-score { font-size: 0.72rem; padding: 3px 9px; border-radius: 5px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; cursor: pointer; font-weight: 600; }
+    .btn-score:hover { background: #dbeafe; }
+    .scoring-spinner { font-size: 0.72rem; color: #94a3b8; }
+
+    /* Per-job resume & match */
+    .cell-resume { display: flex; flex-direction: column; gap: 3px; min-width: 110px; }
+    .btn-job-upload { font-size: 0.7rem; padding: 3px 8px; border-radius: 5px; background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    .btn-job-upload:hover { background: #e2e8f0; }
+    .job-resume-name { font-size: 0.68rem; color: #15803d; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-job-match { font-size: 0.7rem; padding: 3px 8px; border-radius: 5px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    .btn-job-match:hover:not(:disabled) { background: #dbeafe; }
+    .btn-job-match:disabled { opacity: 0.45; cursor: not-allowed; }
+    .job-scoring { font-size: 0.7rem; color: #94a3b8; white-space: nowrap; }
+
+    /* Modal */
+    #jobModal { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 100; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+    #jobModal.open { display: flex; }
+    .modal-box { background: #fff; border-radius: 14px; width: 100%; max-width: 760px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.18); flex-shrink: 0; }
+    .modal-header { padding: 24px 28px 18px; border-bottom: 1px solid #f1f5f9; position: sticky; top: 0; background: #fff; z-index: 1; border-radius: 14px 14px 0 0; }
+    .modal-company { font-size: 0.78rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .modal-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
+    .modal-meta { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .modal-loc { font-size: 0.82rem; color: #64748b; }
+    .modal-apply { margin-left: auto; font-size: 0.82rem; font-weight: 600; color: #fff; background: #2563eb; padding: 6px 16px; border-radius: 7px; text-decoration: none; }
+    .modal-apply:hover { background: #1d4ed8; }
+    .modal-close { position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 1.2rem; color: #94a3b8; cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: #475569; }
+    .modal-body { padding: 24px 28px; }
+
+    /* Score row inside modal */
+    .modal-scores { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .score-block { display: flex; flex-direction: column; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 20px; }
+    .score-block .score-num { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .score-block .score-lbl { font-size: 0.72rem; color: #64748b; margin-top: 3px; font-weight: 500; }
+    .score-high { color: #15803d; }
+    .score-mid  { color: #854d0e; }
+    .score-low  { color: #b91c1c; }
+    .score-none { color: #94a3b8; }
+
+    /* Req map */
+    .section-label { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+    .req-summary { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .req-summary-pill { font-size: 0.78rem; font-weight: 600; border-radius: 9999px; padding: 3px 12px; }
+    .rsp-met     { background: #dcfce7; color: #15803d; }
+    .rsp-partial { background: #fef9c3; color: #854d0e; }
+    .rsp-missing { background: #fee2e2; color: #b91c1c; }
+
+    .req-row { border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+    .req-met     { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .req-partial { background: #fefce8; border: 1px solid #fde68a; }
+    .req-missing { background: #fff1f2; border: 1px solid #fecdd3; }
+
+    .req-top { display: flex; align-items: flex-start; gap: 10px; }
+    .req-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .req-text { font-size: 0.85rem; font-weight: 600; color: #0f172a; line-height: 1.4; flex: 1; }
+    .req-conf { font-size: 0.72rem; color: #94a3b8; margin-left: auto; flex-shrink: 0; }
+    .req-proof { margin-top: 6px; margin-left: 26px; font-size: 0.8rem; color: #475569; font-style: italic; line-height: 1.5; }
+    .req-proof::before { content: '"'; }
+    .req-proof::after  { content: '"'; }
+    .req-location { margin-top: 4px; margin-left: 26px; font-size: 0.75rem; color: #94a3b8; }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid #f1f5f9; margin: 20px 0; }
+
+    /* Empty state */
+    .empty { padding: 60px 0; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+    .empty h3 { font-size: 1rem; color: #475569; margin-bottom: 8px; }
+
+    /* Companies grid */
+    .companies-section { margin-top: 36px; }
+    .companies-section h2 { font-size: 0.9rem; font-weight: 700; color: #0f172a; margin-bottom: 14px; letter-spacing: -0.1px; }
+    .companies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .company-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 9px; padding: 12px 14px; text-decoration: none; color: #1e293b; font-size: 0.82rem; font-weight: 600; transition: border-color 0.15s, box-shadow 0.15s; display: flex; align-items: center; gap: 8px; }
+    .company-card:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(37,99,235,0.08); color: #1d4ed8; }
+    .company-card-icon { width: 28px; height: 28px; border-radius: 6px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: #475569; flex-shrink: 0; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Job Search Pipeline</h1>
+  <span class="phase-badge">Phase 2</span>
+</header>
+
+<div class="container">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btnScan">Scan Jobs</button>
+
+    <label class="btn btn-secondary" style="cursor:pointer">
+      Upload Resume
+      <input type="file" id="resumeFile" accept=".pdf" style="display:none">
+    </label>
+    <button class="btn btn-secondary" id="btnUseGeneric">Use Generic</button>
+    <button class="btn btn-primary" id="btnRunAts" disabled>Run ATS</button>
+
+    <span class="resume-label" id="resumeLabel">No resume loaded</span>
+
+    <input class="filter-input" id="filterText" placeholder="Filter jobs..." style="width:180px">
+    <select class="filter-input" id="filterAction" style="width:150px">
+      <option value="">All actions</option>
+      <option value="apply_as_is">Apply as-is</option>
+      <option value="tailor_then_apply">Tailor first</option>
+      <option value="skip">Skip</option>
+    </select>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot dot-idle" id="statusDot"></div>
+    <span id="statusText">Ready — click Scan Jobs to fetch job listings.</span>
+    <div class="progress-bar" id="progressBarWrap" style="display:none">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Hidden file input reused for all per-job resume uploads -->
+  <input type="file" id="jobResumeFile" accept=".pdf" style="display:none">
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="jobTable">
+      <thead>
+        <tr>
+          <th data-col="company">Company <span class="sort-arrow">↕</span></th>
+          <th data-col="title">Title <span class="sort-arrow">↕</span></th>
+          <th data-col="location">Location <span class="sort-arrow">↕</span></th>
+          <th data-col="workType">Type <span class="sort-arrow">↕</span></th>
+          <th data-col="datePosted">Posted <span class="sort-arrow">↕</span></th>
+          <th data-col="matchScore">Match % <span class="sort-arrow">↕</span></th>
+          <th data-col="resumeAction">Action <span class="sort-arrow">↕</span></th>
+          <th>Resume</th>
+          <th>Match</th>
+          <th>Apply</th>
+        </tr>
+      </thead>
+      <tbody id="jobBody">
+        <tr><td colspan="10" class="empty">No jobs yet — click Scan Jobs.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Companies grid -->
+  <div class="companies-section">
+    <h2>All Companies</h2>
+    <div class="companies-grid" id="companiesGrid"></div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div id="jobModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div class="modal-company" id="mCompany"></div>
+      <div class="modal-title" id="mTitle"></div>
+      <div class="modal-meta">
+        <span class="modal-loc" id="mLocation"></span>
+        <span id="mWorkType"></span>
+        <a class="modal-apply" id="mApply" href="#" target="_blank" rel="noopener">Apply</a>
+      </div>
+    </div>
+    <div class="modal-body">
+
+      <!-- Scores -->
+      <div class="modal-scores" id="mScores">
+        <div class="score-block">
+          <span class="score-num score-none" id="mScoreNum">—</span>
+          <span class="score-lbl">Match Score</span>
+        </div>
+        <div id="mActionBlock"></div>
+      </div>
+
+      <!-- Requirements Map -->
+      <div id="mReqSection">
+        <div class="section-label">Requirements Map</div>
+        <div class="req-summary" id="mReqSummary"></div>
+        <div id="mReqList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  var allJobs = [];
+  var sortCol = 'datePosted';
+  var sortDir = -1; // -1 = desc (newest first)
+  var currentJobId = null;
+
+  // Per-job resumes persisted in localStorage: { [jobId]: { name, base64 } }
+  var jobResumes = JSON.parse(localStorage.getItem('jobResumes') || '{}');
+  // Which jobs the server is currently scoring (from poll)
+  var serverScoringJobIds = new Set();
+  // Job currently awaiting file picker
+  var pendingUploadJobId = null;
+
+  // ── Polling ────────────────────────────────────────────────────────────────
+
+  function poll() {
+    fetch('/api/status')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        allJobs = d.jobs || [];
+        serverScoringJobIds = new Set(d.scoringJobIds || []);
+        updateStatus(d);
+        renderTable();
+        if (d.hasUploadedResume) {
+          document.getElementById('resumeLabel').textContent =
+            d.uploadedResumeName || 'Resume loaded';
+          document.getElementById('btnRunAts').disabled = false;
+        }
+        // Reload modal if open
+        if (currentJobId) {
+          var j = allJobs.find(function(x){ return x.id === currentJobId; });
+          if (j) populateModal(j);
+        }
+      })
+      .catch(function(){});
+  }
+
+  setInterval(poll, 2000);
+  poll();
+
+  // ── Status bar ─────────────────────────────────────────────────────────────
+
+  function updateStatus(d) {
+    var dot  = document.getElementById('statusDot');
+    var text = document.getElementById('statusText');
+    var barW = document.getElementById('progressBarWrap');
+    var fill = document.getElementById('progressFill');
+
+    dot.className = 'status-dot';
+    if (d.scanState === 'idle') {
+      dot.classList.add('dot-idle');
+      text.textContent = 'Ready.';
+      barW.style.display = 'none';
+    } else if (d.scanState === 'scanning') {
+      dot.classList.add('dot-active');
+      text.textContent = 'Scanning ' + (d.currentCompany || '...') +
+        ' (' + d.progress + '/' + d.total + ' companies, ' + d.jobCount + ' jobs found)';
+      barW.style.display = '';
+      fill.style.width = (d.total ? Math.round(d.progress/d.total*100) : 0) + '%';
+    } else if (d.scanState === 'scoring') {
+      dot.classList.add('dot-active');
+      text.textContent = 'Scoring (' + d.scoreProgress + '/' + d.scoreTotal + '): ' +
+        (d.scoreCurrent || '...');
+      barW.style.display = '';
+      fill.style.width = (d.scoreTotal ? Math.round(d.scoreProgress/d.scoreTotal*100) : 0) + '%';
+    } else if (d.scanState === 'done') {
+      dot.classList.add('dot-done');
+      text.textContent = d.jobCount + ' jobs — completed ' + (d.completedAt || '');
+      barW.style.display = 'none';
+    }
+  }
+
+  // ── Table rendering ─────────────────────────────────────────────────────────
+
+  function workTypeClass(t) {
+    if (t === 'Remote') return 'wt-remote';
+    if (t === 'Hybrid') return 'wt-hybrid';
+    if (t === 'Onsite') return 'wt-onsite';
+    return 'wt-na';
+  }
+
+  function scoreClass(s) {
+    if (s == null) return 'pill-none';
+    if (s >= 70)   return 'pill-high';
+    if (s >= 40)   return 'pill-mid';
+    return 'pill-low';
+  }
+
+  function actionBadge(a) {
+    if (a === 'apply_as_is')     return '<span class="action-badge badge-apply">Apply as-is</span>';
+    if (a === 'tailor_then_apply') return '<span class="action-badge badge-tailor">Tailor first</span>';
+    if (a === 'skip')            return '<span class="action-badge badge-skip">Skip</span>';
+    return '<span class="action-badge badge-pending">—</span>';
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function filteredSortedJobs() {
+    var text   = document.getElementById('filterText').value.toLowerCase();
+    var action = document.getElementById('filterAction').value;
+    var list = allJobs.filter(function(j) {
+      if (text && !(j.company+j.title+j.location).toLowerCase().includes(text)) return false;
+      if (action && j.resumeAction !== action) return false;
+      return true;
+    });
+    list.sort(function(a, b) {
+      var av = a[sortCol], bv = b[sortCol];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (av < bv) return sortDir;
+      if (av > bv) return -sortDir;
+      return 0;
+    });
+    return list;
+  }
+
+  function renderTable() {
+    var jobs = filteredSortedJobs();
+    var tbody = document.getElementById('jobBody');
+    if (jobs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="empty">' +
+        (allJobs.length === 0 ? 'No jobs yet — click Scan Jobs.' : 'No jobs match the current filter.') +
+        '</td></tr>';
+      return;
+    }
+    tbody.innerHTML = jobs.map(function(j) {
+      var sc = j.matchScore != null ? j.matchScore + '%' : '—';
+      var ecBadge = j.earlyCareer
+        ? ' <span style="font-size:0.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New Grad</span>'
+        : '';
+      var jr = jobResumes[j.id];
+      var resumeCell = '<div class="cell-resume">' +
+        '<button class="btn-job-upload" data-action="upload" data-id="' + esc(j.id) + '">' +
+          (jr ? 'Change' : 'Upload') +
+        '</button>' +
+        (jr ? '<span class="job-resume-name" title="' + esc(jr.name) + '">' + esc(jr.name) + '</span>' : '') +
+        '</div>';
+      var isScoring = serverScoringJobIds.has(j.id);
+      var matchCell = isScoring
+        ? '<span class="job-scoring">&#8987; Scoring...</span>'
+        : '<button class="btn-job-match" data-action="score" data-id="' + esc(j.id) + '">' +
+            (j.matchScore != null ? 'Re-match' : 'Run Match') +
+          '</button>';
+      return '<tr data-id="' + esc(j.id) + '">' +
+        '<td><strong>' + esc(j.company) + '</strong></td>' +
+        '<td>' + esc(j.title) + ecBadge + '</td>' +
+        '<td>' + esc(j.location || '—') + '</td>' +
+        '<td><span class="wtype ' + workTypeClass(j.workType) + '">' + esc(j.workType) + '</span></td>' +
+        '<td>' + esc(j.datePosted || '—') + '</td>' +
+        '<td><span class="score-pill ' + scoreClass(j.matchScore) + '">' + sc + '</span></td>' +
+        '<td>' + actionBadge(j.resumeAction) + '</td>' +
+        '<td>' + resumeCell + '</td>' +
+        '<td>' + matchCell + '</td>' +
+        '<td><a href="' + esc(j.applyUrl) + '" target="_blank" rel="noopener" style="font-size:0.8rem;color:#2563eb;font-weight:600;">Apply</a></td>' +
+        '</tr>';
+    }).join('');
+
+    // Update sort arrow highlights
+    document.querySelectorAll('th[data-col]').forEach(function(th) {
+      th.classList.toggle('sorted', th.dataset.col === sortCol);
+    });
+  }
+
+  // Row click → open modal (delegated)
+  // Upload / score buttons handle their own actions; <a> clicks pass through
+  document.getElementById('jobBody').addEventListener('click', function(e) {
+    if (e.target.closest('a')) return;
+
+    // Per-job upload button
+    var uploadBtn = e.target.closest('[data-action="upload"]');
+    if (uploadBtn) {
+      pendingUploadJobId = uploadBtn.dataset.id;
+      document.getElementById('jobResumeFile').value = '';
+      document.getElementById('jobResumeFile').click();
+      return;
+    }
+
+    // Per-job score button
+    var scoreBtn = e.target.closest('[data-action="score"]');
+    if (scoreBtn) {
+      var jobId = scoreBtn.dataset.id;
+      scoreBtn.disabled = true;
+      fetch('/api/jobs/' + jobId + '/score', { method: 'POST' })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d.error) { alert(d.error); renderTable(); } })
+        .catch(function(){ renderTable(); });
+      return;
+    }
+
+    var tr = e.target.closest('tr[data-id]');
+    if (tr) openModal(tr.dataset.id);
+  });
+
+  // Per-job file picker → upload to server + persist in localStorage
+  document.getElementById('jobResumeFile').addEventListener('change', function(e) {
+    var jobId = pendingUploadJobId;
+    if (!jobId) return;
+    pendingUploadJobId = null;
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var b64 = ev.target.result.split(',')[1];
+      // Persist so resume survives page reload
+      jobResumes[jobId] = { name: file.name, base64: b64 };
+      localStorage.setItem('jobResumes', JSON.stringify(jobResumes));
+      fetch('/api/jobs/' + jobId + '/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdf_base64: b64, file_name: file.name })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.error) { alert(d.error); return; }
+        renderTable();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // On page load: silently re-upload any per-job resumes stored in localStorage
+  // so the server has the text ready without the user needing to re-upload.
+  (function restoreJobResumes() {
+    Object.keys(jobResumes).forEach(function(jobId) {
+      var r = jobResumes[jobId];
+      fetch('/api/jobs/' + jobId + '/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdf_base64: r.base64, file_name: r.name })
+      }).catch(function(){});
+    });
+  })();
+
+  // Column sort
+  document.querySelectorAll('th[data-col]').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = th.dataset.col;
+      if (sortCol === col) { sortDir *= -1; }
+      else { sortCol = col; sortDir = -1; }
+      renderTable();
+    });
+  });
+
+  document.getElementById('filterText').addEventListener('input', renderTable);
+  document.getElementById('filterAction').addEventListener('change', renderTable);
+
+  // ── Modal ──────────────────────────────────────────────────────────────────
+
+  function scoreColor(s) {
+    if (s == null) return 'score-none';
+    if (s >= 70) return 'score-high';
+    if (s >= 40) return 'score-mid';
+    return 'score-low';
+  }
+
+  function populateModal(j) {
+    document.getElementById('mCompany').textContent = j.company;
+    var titleHtml = esc(j.title);
+    if (j.earlyCareer) titleHtml += ' <span style="font-size:0.7rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New Grad</span>';
+    document.getElementById('mTitle').innerHTML = titleHtml;
+    document.getElementById('mLocation').textContent  = j.location || '—';
+
+    var wt = document.getElementById('mWorkType');
+    wt.innerHTML = '<span class="wtype ' + workTypeClass(j.workType) + '">' + esc(j.workType) + '</span>';
+
+    var applyBtn = document.getElementById('mApply');
+    if (j.applyUrl) { applyBtn.href = j.applyUrl; applyBtn.style.display = ''; }
+    else            { applyBtn.style.display = 'none'; }
+
+    // Score block
+    var num = document.getElementById('mScoreNum');
+    num.textContent = j.matchScore != null ? j.matchScore + '%' : '—';
+    num.className = 'score-num ' + scoreColor(j.matchScore);
+
+    var ab = document.getElementById('mActionBlock');
+    ab.innerHTML = j.resumeAction ? actionBadge(j.resumeAction) : '';
+
+    // Requirements map
+    var reqSection = document.getElementById('mReqSection');
+    var summary = j.summary;
+    var reqs = j.requirements || [];
+
+    if (!summary && reqs.length === 0) {
+      reqSection.style.display = 'none';
+      return;
+    }
+    reqSection.style.display = '';
+
+    if (summary) {
+      document.getElementById('mReqSummary').innerHTML =
+        '<span class="req-summary-pill rsp-met">Met: ' + summary.met + '</span>' +
+        '<span class="req-summary-pill rsp-partial">Partial: ' + summary.partial + '</span>' +
+        '<span class="req-summary-pill rsp-missing">Missing: ' + summary.missing + '</span>';
+    }
+
+    document.getElementById('mReqList').innerHTML = reqs.map(function(r) {
+      var cls  = r.status === 'met' ? 'req-met' : r.status === 'partial' ? 'req-partial' : 'req-missing';
+      var icon = r.status === 'met' ? '&#10003;' : r.status === 'partial' ? '&#9651;' : '&#10007;';
+      var conf = r.confidence != null ? Math.round(r.confidence * 100) + '%' : '';
+      var proof = r.proof
+        ? '<div class="req-proof">' + esc(r.proof) + '</div>' : '';
+      var loc = r.location
+        ? '<div class="req-location">' + esc(r.location) + '</div>' : '';
+      return '<div class="req-row ' + cls + '">' +
+        '<div class="req-top">' +
+          '<span class="req-icon">' + icon + '</span>' +
+          '<span class="req-text">' + esc(r.requirement) + '</span>' +
+          (conf ? '<span class="req-conf">' + conf + '</span>' : '') +
+        '</div>' +
+        proof + loc +
+        '</div>';
+    }).join('');
+  }
+
+  function openModal(jobId) {
+    var j = allJobs.find(function(x){ return x.id === jobId; });
+    if (!j) return;
+    currentJobId = jobId;
+    populateModal(j);
+    document.getElementById('jobModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('jobModal').classList.remove('open');
+    document.body.style.overflow = '';
+    currentJobId = null;
+  }
+
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('jobModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  document.getElementById('btnScan').addEventListener('click', function() {
+    fetch('/api/scan', { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.error) alert(d.error);
+      });
+  });
+
+  document.getElementById('resumeFile').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var b64 = ev.target.result.split(',')[1];
+      fetch('/api/resume/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdf_base64: b64, file_name: file.name })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.error) alert(d.error);
+        else {
+          document.getElementById('resumeLabel').textContent = file.name;
+          document.getElementById('btnRunAts').disabled = false;
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.getElementById('btnUseGeneric').addEventListener('click', function() {
+    fetch('/api/resume/use-generic', { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.error) alert(d.error);
+        else {
+          document.getElementById('resumeLabel').textContent = 'Generic resume';
+          document.getElementById('btnRunAts').disabled = false;
+        }
+      });
+  });
+
+  document.getElementById('btnRunAts').addEventListener('click', function() {
+    fetch('/api/run-ats', { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if (d.error) alert(d.error); });
+  });
+
+  // ── Companies grid ────────────────────────────────────────────────────────
+  fetch('/api/companies')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var grid = document.getElementById('companiesGrid');
+      grid.innerHTML = (d.companies || []).map(function(c) {
+        var initials = c.name.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+        return '<a class="company-card" href="' + esc(c.careersUrl) + '" target="_blank" rel="noopener">' +
+          '<div class="company-card-icon">' + initials + '</div>' +
+          esc(c.name) +
+          '</a>';
+      }).join('');
+    });
+</script>
+
+</body>
+</html>`;
+
+// ── Express app ───────────────────────────────────────────────────────────────
+
+const app = express();
+app.use(express.json({ limit: "50mb" }));
+
+// GET /
+app.get("/", (_req: Request, res: Response) => {
+  res.setHeader("Content-Type", "text/html");
+  res.send(INDEX_HTML);
+});
+
+// GET /api/status
+app.get("/api/status", (_req: Request, res: Response) => {
+  res.json(appState.statusForClient());
+});
+
+// GET /api/companies
+app.get("/api/companies", (_req: Request, res: Response) => {
+  res.json({ companies: allCompanies() });
+});
+
+// POST /api/scan
+app.post("/api/scan", (req: Request, res: Response) => {
+  if (appState.status.state === "scanning") {
+    return res.status(409).json({ error: "Scan already in progress." });
+  }
+  appState.jobs = [];
+  scrapeAll().catch((err) => console.error("[scan]", err));
+  res.json({ status: "started" });
+});
+
+// POST /api/resume/upload — base64 PDF
+app.post("/api/resume/upload", async (req: Request, res: Response) => {
+  const { pdf_base64, file_name } = req.body as {
+    pdf_base64: string;
+    file_name?: string;
+  };
+  if (!pdf_base64) return res.status(400).json({ error: "No PDF data" });
+
+  try {
+    const bytes = Buffer.from(pdf_base64, "base64");
+    const text = await extract_text_from_bytes(bytes);
+    if (!text.trim()) {
+      return res
+        .status(400)
+        .json({ error: "PDF appears to be empty or image-only" });
+    }
+    appState.resume.uploadedText = text;
+    appState.resume.uploadedName = file_name || "resume.pdf";
+    res.json({ status: "uploaded" });
+  } catch (err) {
+    res.status(500).json({ error: `Could not read PDF: ${err}` });
+  }
+});
+
+// POST /api/resume/use-generic
+app.post("/api/resume/use-generic", (_req: Request, res: Response) => {
+  if (!appState.resume.genericText) {
+    return res
+      .status(400)
+      .json({ error: "Generic resume not loaded on server" });
+  }
+  // Clear uploaded so generic takes effect
+  appState.resume.uploadedText = "";
+  appState.resume.uploadedName = "";
+  res.json({ status: "ok" });
+});
+
+// POST /api/run-ats
+app.post("/api/run-ats", (req: Request, res: Response) => {
+  if (!appState.hasResume()) {
+    return res
+      .status(400)
+      .json({ error: "No resume loaded — upload a resume first" });
+  }
+  if (appState.status.state === "scanning") {
+    return res
+      .status(409)
+      .json({ error: "Scan in progress — run ATS after scan completes" });
+  }
+  if (appState.status.state === "scoring") {
+    return res.status(409).json({ error: "ATS scoring already in progress" });
+  }
+  const label = appState.resume.uploadedText ? "uploaded" : "generic";
+  scoreAllJobs(label).catch((err) => console.error("[ats]", err));
+  res.json({ status: "scoring" });
+});
+
+// POST /api/jobs/:id/resume — upload a per-job resume (base64 PDF)
+app.post("/api/jobs/:id/resume", async (req: Request, res: Response) => {
+  const jobId = String(req.params.id);
+  const job = appState.jobs.find((j) => j.id === jobId);
+  if (!job) return res.status(404).json({ error: "Job not found" });
+
+  const { pdf_base64, file_name } = req.body as {
+    pdf_base64: string;
+    file_name?: string;
+  };
+  if (!pdf_base64) return res.status(400).json({ error: "No PDF data" });
+
+  try {
+    const bytes = Buffer.from(pdf_base64, "base64");
+    const text = await extract_text_from_bytes(bytes);
+    if (!text.trim())
+      return res.status(400).json({ error: "PDF appears to be empty or image-only" });
+    appState.jobResumes[jobId] = { text, name: file_name || "resume.pdf" };
+    res.json({ status: "uploaded" });
+  } catch (err) {
+    res.status(500).json({ error: `Could not read PDF: ${err}` });
+  }
+});
+
+// POST /api/jobs/:id/score — score a single job with its per-job (or global) resume
+app.post("/api/jobs/:id/score", (req: Request, res: Response) => {
+  const jobId = String(req.params.id);
+  const job = appState.jobs.find((j) => j.id === jobId);
+  if (!job) return res.status(404).json({ error: "Job not found" });
+  if (appState.scoringJobIds.has(jobId))
+    return res.status(409).json({ error: "Already scoring this job" });
+
+  const jobResume = appState.jobResumes[jobId];
+  const resumeText = jobResume?.text || appState.activeResumeText();
+  if (!resumeText)
+    return res.status(400).json({ error: "No resume available — upload one first" });
+
+  appState.scoringJobIds.add(jobId);
+  res.json({ status: "scoring" });
+
+  const label = jobResume
+    ? "job-specific"
+    : appState.resume.uploadedText
+    ? "uploaded"
+    : "generic";
+
+  const tmpPath = path.join("/tmp", `resume-job-${jobId}.txt`);
+  fs.writeFileSync(tmpPath, resumeText, "utf-8");
+
+  parseResume(tmpPath)
+    .then((resumeData) => scoreOneJob(jobId, resumeData, label))
+    .catch((err) => console.error(`[scorer] ${jobId}: ${err}`))
+    .finally(() => appState.scoringJobIds.delete(jobId));
+});
+
+// ── Start ──────────────────────────────────────────────────────────────────────
+
+export async function startServer(): Promise<void> {
+  // Load generic resume at startup
+  if (fs.existsSync(GENERIC_RESUME_PATH)) {
+    try {
+      const buf = fs.readFileSync(GENERIC_RESUME_PATH);
+      const text = await extract_text_from_bytes(buf);
+      if (text.trim()) {
+        appState.resume.genericText = text;
+        console.log(
+          `[resume] Generic resume loaded (${text.length} chars)`
+        );
+      }
+    } catch (err) {
+      console.error("[resume] Could not load generic resume:", err);
+    }
+  } else {
+    console.warn(
+      `[resume] Generic resume not found at ${GENERIC_RESUME_PATH} — upload via UI`
+    );
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Listening on http://localhost:${PORT}`);
+  });
+}
