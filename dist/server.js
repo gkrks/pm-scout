@@ -478,7 +478,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   <div class="apply-modal-box">
     <div class="apply-modal-title" id="applyModalTitle">Mark as Applied</div>
     <div class="apply-modal-sub" id="applyModalSub">Enter the email address you used to apply for this role.</div>
-    <input type="email" class="apply-email-input" id="applyEmailInput" placeholder="you@example.com" autocomplete="email">
+    <input type="text" class="apply-email-input" id="applyEmailInput" placeholder="you@example.com" autocomplete="email" inputmode="email">
     <div class="apply-email-error" id="applyEmailError"></div>
     <div class="apply-modal-actions">
       <button class="btn btn-secondary" id="applyModalCancel">Cancel</button>
@@ -851,10 +851,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 
   document.getElementById('applyModalSave').addEventListener('click', function() {
     var emailInput = document.getElementById('applyEmailInput');
-    var email = emailInput.value.trim();
-    emailInput.value = email; // write back trimmed value before checkValidity
+    var raw = emailInput.value.trim();
+    // Handle browser autofill "Name <email@example.com>" format
+    var angleMatch = raw.match(/<([^\s>@]+@[^\s>]+)>/);
+    var email = angleMatch ? angleMatch[1].trim() : raw;
+    emailInput.value = email;
     var errorEl = document.getElementById('applyEmailError');
-    if (!email || !emailInput.checkValidity()) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errorEl.textContent = 'Please enter a valid email address.';
       return;
     }
