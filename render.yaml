@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: NODE_ENV=development npm ci && npm run build
+    buildCommand: npm ci --omit=dev
     startCommand: node dist/index.js serve
     envVars:
       - key: NODE_ENV
