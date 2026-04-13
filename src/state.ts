@@ -1,5 +1,12 @@
 import { MatchResult } from "./matcher";
 
+export interface ApplicationRecord {
+  userId: string;
+  jobId: string;
+  email: string;
+  appliedAt: string; // ISO timestamp
+}
+
 // ── Job ───────────────────────────────────────────────────────────────────────
 
 export interface RequirementsSummary {
@@ -60,6 +67,8 @@ class AppState {
   jobs: Job[] = [];
   jobResumes: Record<string, { text: string; name: string }> = {};
   scoringJobIds: Set<string> = new Set();
+  // key: `${userId}::${jobId}`
+  applications: Record<string, ApplicationRecord> = {};
   status: ScanStatus = {
     state: "idle",
     progress: 0,

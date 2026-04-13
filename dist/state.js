@@ -7,6 +7,8 @@ class AppState {
         this.jobs = [];
         this.jobResumes = {};
         this.scoringJobIds = new Set();
+        // key: `${userId}::${jobId}`
+        this.applications = {};
         this.status = {
             state: "idle",
             progress: 0,

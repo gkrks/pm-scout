@@ -305,6 +305,28 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .company-card:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(37,99,235,0.08); color: #1d4ed8; }
     .company-card-icon { width: 28px; height: 28px; border-radius: 6px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: #475569; flex-shrink: 0; }
 
+    /* Applied status */
+    tr.row-applied td { background: #f0fdf4; }
+    .applied-cell { white-space: nowrap; }
+    .apply-check-wrap { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; padding: 2px 0; }
+    .apply-checkbox { width: 13px; height: 13px; accent-color: #16a34a; cursor: pointer; flex-shrink: 0; }
+    .apply-checkbox:disabled { cursor: default; }
+    .apply-label-text { font-size: 0.72rem; font-weight: 600; color: #94a3b8; }
+    .apply-label-done { color: #15803d; }
+    .btn-edit-apply { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; cursor: pointer; font-weight: 600; margin-left: 6px; }
+    .btn-edit-apply:hover { background: #dcfce7; }
+
+    /* Apply modal */
+    #applyModal { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:200; align-items:center; justify-content:center; }
+    #applyModal.open { display:flex; }
+    .apply-modal-box { background:#fff; border-radius:12px; width:100%; max-width:420px; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+    .apply-modal-title { font-size:1rem; font-weight:700; color:#0f172a; margin-bottom:4px; }
+    .apply-modal-sub { font-size:0.82rem; color:#64748b; margin-bottom:16px; line-height:1.5; }
+    .apply-email-input { width:100%; padding:8px 12px; border:1px solid #e2e8f0; border-radius:7px; font-size:0.85rem; color:#1e293b; outline:none; box-sizing:border-box; }
+    .apply-email-input:focus { border-color:#93c5fd; box-shadow:0 0 0 3px rgba(147,197,253,0.2); }
+    .apply-email-error { font-size:0.75rem; color:#b91c1c; margin-top:5px; min-height:18px; }
+    .apply-modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -368,11 +390,12 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
           <th data-col="resumeAction">Action <span class="sort-arrow">↕</span></th>
           <th>Resume</th>
           <th>Match</th>
+          <th>Applied</th>
           <th>Apply</th>
         </tr>
       </thead>
       <tbody id="jobBody">
-        <tr><td colspan="10" class="empty">No jobs yet — click Scan Jobs.</td></tr>
+        <tr><td colspan="11" class="empty">No jobs yet — click Scan Jobs.</td></tr>
       </tbody>
     </table>
   </div>
@@ -420,6 +443,20 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   </div>
 </div>
 
+<!-- Apply modal -->
+<div id="applyModal">
+  <div class="apply-modal-box">
+    <div class="apply-modal-title" id="applyModalTitle">Mark as Applied</div>
+    <div class="apply-modal-sub" id="applyModalSub">Enter the email address you used to apply for this role.</div>
+    <input type="email" class="apply-email-input" id="applyEmailInput" placeholder="you@example.com" autocomplete="email">
+    <div class="apply-email-error" id="applyEmailError"></div>
+    <div class="apply-modal-actions">
+      <button class="btn btn-secondary" id="applyModalCancel">Cancel</button>
+      <button class="btn btn-primary" id="applyModalSave">Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
   var allJobs = [];
   var sortCol = 'datePosted';
@@ -432,6 +469,17 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   var serverScoringJobIds = new Set();
   // Job currently awaiting file picker
   var pendingUploadJobId = null;
+
+  // ── User identity + applied status ────────────────────────────────────────
+  var userId = localStorage.getItem('pmScoutUserId');
+  if (!userId) {
+    userId = 'u-' + Math.random().toString(36).slice(2, 11) + '-' + Date.now().toString(36);
+    localStorage.setItem('pmScoutUserId', userId);
+  }
+  // { [jobId]: { email, appliedAt } } — loaded from localStorage immediately
+  var appliedJobs = {};
+  try { appliedJobs = JSON.parse(localStorage.getItem('pmScoutApplied_' + userId) || '{}'); } catch(e) {}
+  var pendingApplyJobId = null;
 
   // ── Polling ────────────────────────────────────────────────────────────────
 
@@ -543,7 +591,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     var jobs = filteredSortedJobs();
     var tbody = document.getElementById('jobBody');
     if (jobs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="empty">' +
+      tbody.innerHTML = '<tr><td colspan="11" class="empty">' +
         (allJobs.length === 0 ? 'No jobs yet — click Scan Jobs.' : 'No jobs match the current filter.') +
         '</td></tr>';
       return;
@@ -566,7 +614,24 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         : '<button class="btn-job-match" data-action="score" data-id="' + esc(j.id) + '">' +
             (j.matchScore != null ? 'Re-match' : 'Run Match') +
           '</button>';
-      return '<tr data-id="' + esc(j.id) + '">' +
+      var appRecord = appliedJobs[j.id];
+      var appliedCell = '<td class="applied-cell">';
+      if (appRecord) {
+        appliedCell +=
+          '<div class="apply-check-wrap">' +
+            '<input type="checkbox" class="apply-checkbox" checked disabled>' +
+            '<span class="apply-label-text apply-label-done">Applied</span>' +
+          '</div>' +
+          '<button class="btn-edit-apply" data-action="edit-apply" data-id="' + esc(j.id) + '">Edit</button>';
+      } else {
+        appliedCell +=
+          '<div class="apply-check-wrap" data-action="apply" data-id="' + esc(j.id) + '">' +
+            '<input type="checkbox" class="apply-checkbox" style="pointer-events:none">' +
+            '<span class="apply-label-text">Applied</span>' +
+          '</div>';
+      }
+      appliedCell += '</td>';
+      return '<tr data-id="' + esc(j.id) + '"' + (appRecord ? ' class="row-applied"' : '') + '>' +
         '<td><strong>' + esc(j.company) + '</strong></td>' +
         '<td>' + esc(j.title) + ecBadge + '</td>' +
         '<td>' + esc(j.location || '—') + '</td>' +
@@ -576,6 +641,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         '<td>' + actionBadge(j.resumeAction) + '</td>' +
         '<td>' + resumeCell + '</td>' +
         '<td>' + matchCell + '</td>' +
+        appliedCell +
         '<td><a href="' + esc(j.applyUrl) + '" target="_blank" rel="noopener" style="font-size:0.8rem;color:#2563eb;font-weight:600;">Apply</a></td>' +
         '</tr>';
     }).join('');
@@ -590,6 +656,14 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   // Upload / score buttons handle their own actions; <a> clicks pass through
   document.getElementById('jobBody').addEventListener('click', function(e) {
     if (e.target.closest('a')) return;
+
+    // Applied checkbox (unchecked → open email modal)
+    var applyWrap = e.target.closest('[data-action="apply"]');
+    if (applyWrap) { openApplyModal(applyWrap.dataset.id, false); return; }
+
+    // Edit applied record
+    var editApplyBtn = e.target.closest('[data-action="edit-apply"]');
+    if (editApplyBtn) { openApplyModal(editApplyBtn.dataset.id, true); return; }
 
     // Per-job upload button
     var uploadBtn = e.target.closest('[data-action="upload"]');
@@ -655,6 +729,75 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       }).catch(function(){});
     });
   })();
+
+  // On page load: push locally-stored applied records back to server.
+  // This re-populates in-memory state after a server restart so the data
+  // is always consistent regardless of server uptime.
+  (function restoreApplied() {
+    Object.keys(appliedJobs).forEach(function(jobId) {
+      var r = appliedJobs[jobId];
+      fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId, jobId: jobId, email: r.email, appliedAt: r.appliedAt })
+      }).catch(function(){});
+    });
+  })();
+
+  // ── Apply modal ────────────────────────────────────────────────────────────
+
+  function openApplyModal(jobId, editMode) {
+    pendingApplyJobId = jobId;
+    var existing = appliedJobs[jobId];
+    document.getElementById('applyModalTitle').textContent =
+      editMode ? 'Update Application' : 'Mark as Applied';
+    document.getElementById('applyModalSub').textContent =
+      editMode
+        ? 'Update the email address you used to apply for this role.'
+        : 'Enter the email address you used to apply for this role.';
+    document.getElementById('applyEmailInput').value = existing ? existing.email : '';
+    document.getElementById('applyEmailError').textContent = '';
+    document.getElementById('applyModal').classList.add('open');
+    setTimeout(function() { document.getElementById('applyEmailInput').focus(); }, 50);
+  }
+
+  function closeApplyModal() {
+    document.getElementById('applyModal').classList.remove('open');
+    pendingApplyJobId = null;
+  }
+
+  document.getElementById('applyModalCancel').addEventListener('click', closeApplyModal);
+  document.getElementById('applyModal').addEventListener('click', function(e) {
+    if (e.target === this) closeApplyModal();
+  });
+  document.getElementById('applyEmailInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('applyModalSave').click();
+    if (e.key === 'Escape') closeApplyModal();
+  });
+
+  document.getElementById('applyModalSave').addEventListener('click', function() {
+    var email = document.getElementById('applyEmailInput').value.trim();
+    var errorEl = document.getElementById('applyEmailError');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errorEl.textContent = 'Please enter a valid email address.';
+      return;
+    }
+    errorEl.textContent = '';
+    fetch('/api/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userId, jobId: pendingApplyJobId, email: email })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { alert(d.error); return; }
+      appliedJobs[pendingApplyJobId] = { email: email, appliedAt: d.record.appliedAt };
+      // Persist locally so data survives server restarts
+      localStorage.setItem('pmScoutApplied_' + userId, JSON.stringify(appliedJobs));
+      closeApplyModal();
+      renderTable();
+    });
+  });
 
   // Column sort
   document.querySelectorAll('th[data-col]').forEach(function(th) {
@@ -904,6 +1047,30 @@ app.post("/api/run-ats", (req, res) => {
     const label = state_1.appState.resume.uploadedText ? "uploaded" : "generic";
     scoreAllJobs(label).catch((err) => console.error("[ats]", err));
     res.json({ status: "scoring" });
+});
+// POST /api/apply — save or update an application record
+app.post("/api/apply", (req, res) => {
+    const { userId, jobId, email, appliedAt } = req.body;
+    if (!userId || !jobId || !email) {
+        return res.status(400).json({ error: "userId, jobId, and email are required" });
+    }
+    const key = `${userId}::${jobId}`;
+    const record = {
+        userId,
+        jobId,
+        email,
+        appliedAt: appliedAt || new Date().toISOString(),
+    };
+    state_1.appState.applications[key] = record;
+    res.json({ status: "saved", record });
+});
+// GET /api/applications?userId=xxx — fetch all applications for a user
+app.get("/api/applications", (req, res) => {
+    const userId = String(req.query.userId || "");
+    if (!userId)
+        return res.status(400).json({ error: "userId query param required" });
+    const records = Object.values(state_1.appState.applications).filter((r) => r.userId === userId);
+    res.json({ applications: records });
 });
 // POST /api/jobs/:id/resume — upload a per-job resume (base64 PDF)
 app.post("/api/jobs/:id/resume", async (req, res) => {

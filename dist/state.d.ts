@@ -1,4 +1,10 @@
 import { MatchResult } from "./matcher";
+export interface ApplicationRecord {
+    userId: string;
+    jobId: string;
+    email: string;
+    appliedAt: string;
+}
 export interface RequirementsSummary {
     met: number;
     partial: number;
@@ -47,6 +53,7 @@ declare class AppState {
         name: string;
     }>;
     scoringJobIds: Set<string>;
+    applications: Record<string, ApplicationRecord>;
     status: ScanStatus;
     resume: ResumeState;
     activeResumeText(): string;
