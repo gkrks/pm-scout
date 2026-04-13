@@ -776,9 +776,11 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   });
 
   document.getElementById('applyModalSave').addEventListener('click', function() {
-    var email = document.getElementById('applyEmailInput').value.trim();
+    var emailInput = document.getElementById('applyEmailInput');
+    var email = emailInput.value.trim();
+    emailInput.value = email; // write back trimmed value before checkValidity
     var errorEl = document.getElementById('applyEmailError');
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !emailInput.checkValidity()) {
       errorEl.textContent = 'Please enter a valid email address.';
       return;
     }
