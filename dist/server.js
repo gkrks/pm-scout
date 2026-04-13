@@ -316,6 +316,12 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .btn-edit-apply { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; cursor: pointer; font-weight: 600; margin-left: 6px; }
     .btn-edit-apply:hover { background: #dcfce7; }
 
+    /* Applied jobs section */
+    .applied-section { margin-top: 32px; }
+    .applied-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .applied-section-header h2 { font-size: 0.9rem; font-weight: 700; color: #0f172a; letter-spacing: -0.1px; margin: 0; }
+    .applied-count-badge { font-size: 0.7rem; font-weight: 700; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 9999px; padding: 2px 8px; }
+
     /* Apply modal */
     #applyModal { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:200; align-items:center; justify-content:center; }
     #applyModal.open { display:flex; }
@@ -398,6 +404,30 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         <tr><td colspan="11" class="empty">No jobs yet — click Scan Jobs.</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- Applied Jobs section -->
+  <div class="applied-section" id="appliedSection" style="display:none">
+    <div class="applied-section-header">
+      <h2>Applied Jobs</h2>
+      <span class="applied-count-badge" id="appliedCountBadge">0</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Type</th>
+            <th>Applied With</th>
+            <th>Date Applied</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="appliedBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Companies grid -->
@@ -491,6 +521,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         serverScoringJobIds = new Set(d.scoringJobIds || []);
         updateStatus(d);
         renderTable();
+        renderAppliedSection();
         if (d.hasUploadedResume) {
           document.getElementById('resumeLabel').textContent =
             d.uploadedResumeName || 'Resume loaded';
@@ -571,6 +602,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     var text   = document.getElementById('filterText').value.toLowerCase();
     var action = document.getElementById('filterAction').value;
     var list = allJobs.filter(function(j) {
+      if (appliedJobs[j.id]) return false; // applied jobs move to their own section
       if (text && !(j.company+j.title+j.location).toLowerCase().includes(text)) return false;
       if (action && j.resumeAction !== action) return false;
       return true;
@@ -651,6 +683,45 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       th.classList.toggle('sorted', th.dataset.col === sortCol);
     });
   }
+
+  // ── Applied jobs section rendering ──────────────────────────────────────────
+
+  function renderAppliedSection() {
+    var keys = Object.keys(appliedJobs);
+    var section = document.getElementById('appliedSection');
+    var tbody = document.getElementById('appliedBody');
+    var badge = document.getElementById('appliedCountBadge');
+    if (keys.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = '';
+    badge.textContent = String(keys.length);
+    tbody.innerHTML = keys.map(function(jobId) {
+      var r = appliedJobs[jobId];
+      var dateStr = r.appliedAt ? new Date(r.appliedAt).toLocaleDateString() : '—';
+      var wt = r.workType || '—';
+      var wtCls = wt === 'Remote' ? 'wt-remote' : wt === 'Hybrid' ? 'wt-hybrid' : wt === 'Onsite' ? 'wt-onsite' : 'wt-na';
+      var titleCell = r.applyUrl
+        ? '<a href="' + esc(r.applyUrl) + '" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;">' + esc(r.title || '—') + '</a>'
+        : esc(r.title || '—');
+      return '<tr>' +
+        '<td><strong>' + esc(r.company || '—') + '</strong></td>' +
+        '<td>' + titleCell + '</td>' +
+        '<td>' + esc(r.location || '—') + '</td>' +
+        '<td><span class="wtype ' + wtCls + '">' + esc(wt) + '</span></td>' +
+        '<td>' + esc(r.email) + '</td>' +
+        '<td>' + esc(dateStr) + '</td>' +
+        '<td><button class="btn-edit-apply" data-action="edit-applied" data-id="' + esc(jobId) + '">Edit Email</button></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  // Applied section click handler
+  document.getElementById('appliedBody').addEventListener('click', function(e) {
+    var editBtn = e.target.closest('[data-action="edit-applied"]');
+    if (editBtn) { openApplyModal(editBtn.dataset.id, true); }
+  });
 
   // Row click → open modal (delegated)
   // Upload / score buttons handle their own actions; <a> clicks pass through
@@ -744,6 +815,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     });
   })();
 
+  // Render applied section immediately from localStorage (before first poll returns)
+  renderAppliedSection();
+
   // ── Apply modal ────────────────────────────────────────────────────────────
 
   function openApplyModal(jobId, editMode) {
@@ -793,11 +867,22 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.error) { alert(d.error); return; }
-      appliedJobs[pendingApplyJobId] = { email: email, appliedAt: d.record.appliedAt };
+      var job = allJobs.find(function(j) { return j.id === pendingApplyJobId; });
+      var existing = appliedJobs[pendingApplyJobId] || {};
+      appliedJobs[pendingApplyJobId] = {
+        email: email,
+        appliedAt: d.record.appliedAt,
+        company:  job ? job.company  : (existing.company  || ''),
+        title:    job ? job.title    : (existing.title    || ''),
+        location: job ? job.location : (existing.location || ''),
+        workType: job ? job.workType : (existing.workType || ''),
+        applyUrl: job ? job.applyUrl : (existing.applyUrl || '')
+      };
       // Persist locally so data survives server restarts
       localStorage.setItem('pmScoutApplied_' + userId, JSON.stringify(appliedJobs));
       closeApplyModal();
       renderTable();
+      renderAppliedSection();
     });
   });
 
