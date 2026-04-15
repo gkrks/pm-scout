@@ -921,7 +921,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       var jobId = unapplyBtn.dataset.id;
       var r = appliedJobs[jobId];
       var name = (r && r.title) ? r.company + ' — ' + r.title : 'this job';
-      if (!confirm('Move "' + name + '" back to Scanned Jobs?\n\nAll tracking data (notes, dates, status) will be removed.')) return;
+      if (!confirm('Move "' + name + '" back to Scanned Jobs?\\n\\nAll tracking data (notes, dates, status) will be removed.')) return;
       delete appliedJobs[jobId];
       persistApplied();
       // Also remove from server
