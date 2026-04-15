@@ -298,7 +298,8 @@ interface AshbyJob {
   isRemote: boolean;
   location?: string;
   locationName?: string;
-  publishedDate?: string;   // ISO timestamp
+  publishedDate?: string;   // ISO timestamp (some Ashby boards)
+  publishedAt?: string;     // ISO timestamp (most Ashby boards use this)
   applyUrl?: string;
   jobUrl?: string;
   descriptionPlain?: string;
@@ -327,7 +328,11 @@ async function scrapeAshby(companyName: string, slug: string, careersUrl: string
     const loc = j.locationName ?? j.location ?? (j.isRemote ? "Remote" : "");
     if (!isUsLocation(loc)) continue;
 
-    const datePosted = j.publishedDate ? formatDate(j.publishedDate) : "—";
+    const datePosted = j.publishedAt
+      ? formatDate(j.publishedAt)
+      : j.publishedDate
+        ? formatDate(j.publishedDate)
+        : "—";
     if (datePosted !== "—" && datePosted < cutoff) continue;
 
     // Build description from sections if available, else fall back to plain/html
