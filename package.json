@@ -13,7 +13,8 @@
     "serve": "node dist/index.js serve",
     "dev": "ts-node src/index.ts",
     "dev:serve": "ts-node src/index.ts serve",
-    "match": "ts-node src/index.ts match"
+    "match": "ts-node src/index.ts match",
+    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium --with-deps || true"
   },
   "bin": {
     "resume-matcher": "dist/index.js"
