@@ -17,7 +17,15 @@ export function allCompanies(): Company[] {
   const lv = (name: string, slug: string, url: string): Company =>
     ({ name, slug, platform: "lever", careersUrl: url });
 
-  return [
+  // Merge static list with user-added companies (loaded lazily to avoid
+  // circular deps at module load time — imported inline here).
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { loadCustomCompanies } = require("./customCompanies") as {
+    loadCustomCompanies: () => Company[];
+  };
+  const custom = loadCustomCompanies();
+
+  const staticList: Company[] = [
     // ── Greenhouse ─────────────────────────────────────────────────────────── (83)
     gh("Airbnb",              "airbnb",           "https://careers.airbnb.com"),
     gh("Stripe",              "stripe",            "https://stripe.com/jobs"),
@@ -146,4 +154,9 @@ export function allCompanies(): Company[] {
     { name: "BlackRock",         slug: "blackrock", platform: "linkedin" as const, careersUrl: "https://careers.blackrock.com",                                linkedInId: "162479" },
     { name: "Zebra Technologies",slug: "zebra",     platform: "linkedin" as const, careersUrl: "https://www.zebra.com/us/en/about-zebra/careers.html",         linkedInId: "1038"   },
   ];
+
+  // Merge: custom companies override static entries with same slug
+  const staticSlugs = new Set(staticList.map((c) => c.slug));
+  const newCustom = custom.filter((c) => !staticSlugs.has(c.slug));
+  return [...staticList, ...newCustom];
 }

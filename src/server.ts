@@ -4,12 +4,14 @@ import * as path from "path";
 import * as fs from "fs";
 
 import { appState } from "./state";
-import { scrapeAll } from "./jobScraper";
+import { scrapeAll, scrapeCompany, scrapeLinkedInByKeyword } from "./jobScraper";
 import { allCompanies } from "./companies";
 import { extractRequirements } from "./extractor";
 import { parseResume, ResumeData } from "./parser";
 import { matchRequirements, MatchResult } from "./matcher";
 import { extract_text_from_bytes } from "./pdfUtil";
+import { detectCompany } from "./companyDetector";
+import { saveCustomCompany, loadCustomCompanies, removeCustomCompany } from "./customCompanies";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -409,6 +411,16 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       <option value="tailor_then_apply">Tailor first</option>
       <option value="skip">Skip</option>
     </select>
+  </div>
+
+  <!-- Add Company panel -->
+  <div id="addCompanyPanel" style="margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <input id="addCompanyName" type="text" placeholder="Company name (e.g. Notion, Ramp...)"
+      style="flex:1;min-width:200px;max-width:280px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.875rem;outline:none;">
+    <input id="addCompanyUrl" type="text" placeholder="Careers URL (optional)"
+      style="flex:1;min-width:200px;max-width:280px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.875rem;outline:none;">
+    <button class="btn btn-secondary" id="btnAddCompany" style="white-space:nowrap;">+ Add Company</button>
+    <span id="addCompanyStatus" style="font-size:0.82rem;color:#64748b;"></span>
   </div>
 
   <!-- Status bar -->
@@ -1560,6 +1572,56 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       .then(function(d){ if (d.error) alert(d.error); });
   });
 
+  // ── Add Company ───────────────────────────────────────────────────────────
+  function setAddStatus(msg, color) {
+    var el = document.getElementById('addCompanyStatus');
+    el.textContent = msg;
+    el.style.color = color || '#64748b';
+  }
+
+  document.getElementById('btnAddCompany').addEventListener('click', function() {
+    var nameEl = document.getElementById('addCompanyName');
+    var urlEl  = document.getElementById('addCompanyUrl');
+    var name   = nameEl.value.trim();
+    var url    = urlEl.value.trim();
+
+    if (!name) { setAddStatus('Enter a company name.', '#dc2626'); return; }
+
+    var btn = document.getElementById('btnAddCompany');
+    btn.disabled = true;
+    btn.textContent = 'Detecting\u2026';
+    setAddStatus('Searching for ' + name + '\\u2019s job feed\u2026', '#2563eb');
+
+    fetch('/api/companies/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, careersUrl: url || undefined }),
+    })
+    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+    .then(function(res) {
+      btn.disabled = false;
+      btn.textContent = '+ Add Company';
+      if (!res.ok) {
+        setAddStatus(res.d.error || 'Failed.', '#dc2626');
+        return;
+      }
+      setAddStatus(res.d.message, '#15803d');
+      nameEl.value = '';
+      urlEl.value  = '';
+      renderTable();
+    })
+    .catch(function(e) {
+      btn.disabled = false;
+      btn.textContent = '+ Add Company';
+      setAddStatus('Network error: ' + e.message, '#dc2626');
+    });
+  });
+
+  // Allow pressing Enter in the name field to submit
+  document.getElementById('addCompanyName').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('btnAddCompany').click();
+  });
+
   // ── Companies grid ────────────────────────────────────────────────────────
   fetch('/api/companies')
     .then(function(r){ return r.json(); })
@@ -1757,6 +1819,99 @@ app.post("/api/jobs/:id/score", (req: Request, res: Response) => {
     .then((resumeData) => scoreOneJob(jobId, resumeData, label))
     .catch((err) => console.error(`[scorer] ${jobId}: ${err}`))
     .finally(() => appState.scoringJobIds.delete(jobId));
+});
+
+// ── Add company endpoint ──────────────────────────────────────────────────────
+
+// POST /api/companies/add
+// Body: { name: string, careersUrl?: string }
+// Detects ATS, runs an initial scrape, persists the company, returns results.
+app.post("/api/companies/add", async (req: Request, res: Response) => {
+  const { name, careersUrl } = req.body as { name?: string; careersUrl?: string };
+
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({ error: "Company name is required." });
+  }
+
+  const trimmedName = name.trim();
+
+  // Reject obviously invalid input
+  if (trimmedName.length < 2 || trimmedName.length > 120) {
+    return res.status(400).json({ error: "Company name must be between 2 and 120 characters." });
+  }
+
+  // Check if already tracked
+  const existing = allCompanies().find(
+    (c) => c.name.toLowerCase() === trimmedName.toLowerCase()
+  );
+  if (existing) {
+    return res.status(409).json({
+      error: `"${trimmedName}" is already being tracked (${existing.platform}).`,
+    });
+  }
+
+  try {
+    // Step 1: detect ATS
+    const detection = await detectCompany(trimmedName, careersUrl?.trim() || undefined);
+
+    // Step 2: scrape initial jobs
+    let initialJobs: typeof appState.jobs = [];
+    try {
+      initialJobs = await scrapeCompany(
+        detection.platform,
+        detection.slug,
+        trimmedName,
+        detection.careersUrl,
+        detection.linkedInId,
+      );
+    } catch (scrapeErr) {
+      console.warn(`[add-company] Initial scrape failed for ${trimmedName}: ${scrapeErr}`);
+      // Non-fatal — company is still saved, jobs will appear on next full scan
+    }
+
+    // Step 3: persist
+    const saved = saveCustomCompany({
+      name:        trimmedName,
+      slug:        detection.slug,
+      platform:    detection.platform,
+      careersUrl:  detection.careersUrl,
+      linkedInId:  detection.linkedInId,
+    });
+
+    // Step 4: merge initial jobs into live state (deduped by id)
+    const existingIds = new Set(appState.jobs.map((j) => j.id));
+    const newJobs = initialJobs.filter((j) => !existingIds.has(j.id));
+    appState.jobs.push(...newJobs);
+    appState.status.jobCount = appState.jobs.length;
+
+    res.json({
+      status:     "added",
+      company:    saved,
+      platform:   detection.platform,
+      source:     detection.source,
+      jobsFound:  newJobs.length,
+      message:    newJobs.length > 0
+        ? `Found ${newJobs.length} PM role(s) at ${trimmedName} via ${detection.source}.`
+        : `${trimmedName} added — no current PM openings found. Will check on next scan.`,
+    });
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(422).json({ error: msg });
+  }
+});
+
+// GET /api/companies/custom — list user-added companies
+app.get("/api/companies/custom", (_req: Request, res: Response) => {
+  res.json({ companies: loadCustomCompanies() });
+});
+
+// DELETE /api/companies/custom/:slug — remove a user-added company
+app.delete("/api/companies/custom/:slug", (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const removed = removeCustomCompany(slug);
+  if (!removed) return res.status(404).json({ error: "Company not found in custom list." });
+  res.json({ status: "removed" });
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────────

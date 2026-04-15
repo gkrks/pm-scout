@@ -569,6 +569,76 @@ async function scrapeLinkedIn(
 // Google Careers is a JS-rendered SPA with no public API.
 // Falls back to LinkedIn guest API using Google's LinkedIn company ID.
 
+// ── LinkedIn keyword scraper ──────────────────────────────────────────────────
+// Used for user-added companies where we don't have a LinkedIn company ID.
+// Searches "product manager {companyName}" and filters results by company name.
+
+export async function scrapeLinkedInByKeyword(
+  companyName: string,
+  careersUrl: string,
+): Promise<Job[]> {
+  const base = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search";
+  const jobs: Job[] = [];
+  const seen = new Set<string>();
+  const cutoff = getDateCutoff();
+  const nameLower = companyName.toLowerCase();
+
+  const params = new URLSearchParams({
+    keywords: `product manager ${companyName}`,
+    location: "United States",
+    start:    "0",
+    count:    "25",
+  });
+
+  const resp = await (fetch as any)(`${base}?${params}`, {
+    headers: { "User-Agent": LI_UA },
+    timeout: FETCH_TIMEOUT_MS,
+  });
+
+  if (resp.status === 429) throw new Error(`LinkedIn rate-limited for ${companyName}`);
+  if (!resp.ok) throw new Error(`LinkedIn keyword search (${companyName}): HTTP ${resp.status}`);
+
+  const html: string = await resp.text();
+  const $ = cheerio.load(html);
+
+  $(".base-search-card").each((_i, el) => {
+    const title   = $(el).find(".base-search-card__title").text().trim();
+    const company = $(el).find(".base-search-card__subtitle").text().trim();
+    const loc     = $(el).find(".job-search-card__location").text().trim();
+    const dt      = $(el).find("time").attr("datetime") ?? "";
+    const href    = $(el).find("a.base-card__full-link").attr("href") ?? "";
+
+    // Only keep results that actually belong to this company
+    if (!company.toLowerCase().includes(nameLower.split(/\s+/)[0])) return;
+
+    const cleanUrl = href.split("?")[0];
+    if (!cleanUrl || seen.has(cleanUrl)) return;
+    seen.add(cleanUrl);
+
+    if (!isPmRole(title)) return;
+    if (!isUsLocation(loc)) return;
+
+    const datePosted = dt ? dt.slice(0, 10) : "—";
+    if (datePosted !== "—" && datePosted < cutoff) return;
+
+    jobs.push({
+      id:          makeId(companyName, cleanUrl.replace(/[^a-z0-9]/gi, "-").slice(-30)),
+      company:     companyName,
+      title,
+      location:    loc,
+      workType:    workTypeFrom(loc),
+      datePosted,
+      applyUrl:    cleanUrl,
+      careersUrl,
+      earlyCareer: isEarlyCareer(title, ""),
+      description: "",
+      sourceLabel: "LinkedIn",
+    });
+  });
+
+  return jobs;
+}
+
 async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job[]> {
   return scrapeLinkedIn("Google", linkedInId, careersUrl);
 }
@@ -595,6 +665,26 @@ class Semaphore {
     if (this.queue.length > 0) { this.queue.shift()!(); }
     else { this.count++; }
   }
+}
+
+// ── Single-company scrape (used by "Add Company" endpoint) ────────────────────
+
+export async function scrapeCompany(
+  platform: string,
+  slug: string,
+  name: string,
+  careersUrl: string,
+  linkedInId?: string,
+): Promise<Job[]> {
+  if (platform === "greenhouse") return scrapeGreenhouse(name, slug, careersUrl);
+  if (platform === "lever")      return scrapeLever(name, slug, careersUrl);
+  if (platform === "ashby")      return scrapeAshby(name, slug, careersUrl);
+  if (platform === "amazon")     return scrapeAmazon(careersUrl);
+  if (platform === "google")     return scrapeGoogle(linkedInId ?? "", careersUrl);
+  if (platform === "meta")       return scrapeMeta(linkedInId ?? "", careersUrl);
+  // "linkedin" — with or without company ID
+  if (linkedInId) return scrapeLinkedIn(name, linkedInId, careersUrl);
+  return scrapeLinkedInByKeyword(name, careersUrl);
 }
 
 // ── Main entry ────────────────────────────────────────────────────────────────
@@ -643,9 +733,14 @@ export async function scrapeAll(): Promise<void> {
           if (!company.linkedInId) throw new Error("Meta: no LinkedIn ID configured");
           jobs = await scrapeMeta(company.linkedInId, company.careersUrl);
         } else {
-          // platform === "linkedin" — companies with Workday/custom ATS
-          if (!company.linkedInId) throw new Error(`${company.name}: no LinkedIn ID configured`);
-          jobs = await scrapeLinkedIn(company.name, company.linkedInId, company.careersUrl);
+          // platform === "linkedin" — Workday/custom ATS companies
+          if (company.linkedInId) {
+            // Known company ID: precise company-filtered search
+            jobs = await scrapeLinkedIn(company.name, company.linkedInId, company.careersUrl);
+          } else {
+            // User-added company: keyword search fallback
+            jobs = await scrapeLinkedInByKeyword(company.name, company.careersUrl);
+          }
         }
 
         appState.jobs.push(...jobs);
