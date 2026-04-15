@@ -367,6 +367,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .interview-row input[type=date] { padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; font-size:0.82rem; color:#1e293b; flex:1; box-sizing:border-box; }
     .btn-remove-interview { font-size:0.68rem; padding:2px 7px; border-radius:4px; background:#fee2e2; color:#b91c1c; border:1px solid #fecdd3; cursor:pointer; font-weight:600; flex-shrink:0; }
     .btn-add-interview { font-size:0.72rem; padding:3px 10px; border-radius:5px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; cursor:pointer; font-weight:600; }
+    .notes-history { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; max-height:200px; overflow-y:auto; }
+    .note-entry { background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; padding:8px 12px; }
+    .note-ts { font-size:0.7rem; color:#94a3b8; margin-bottom:3px; }
+    .note-text { font-size:0.83rem; color:#1e293b; line-height:1.5; white-space:pre-wrap; }
+    .notes-empty { font-size:0.82rem; color:#94a3b8; font-style:italic; margin-bottom:10px; }
+    .btn-unapply { font-size:0.65rem; padding:2px 7px; border-radius:4px; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; cursor:pointer; font-weight:600; }
+    .btn-unapply:hover { background:#ffedd5; }
     .timeline { position:relative; padding-left:22px; }
     .timeline::before { content:''; position:absolute; left:7px; top:8px; bottom:0; width:2px; background:#e2e8f0; border-radius:1px; }
     .tl-entry { position:relative; margin-bottom:14px; }
@@ -556,8 +563,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       <!-- Notes -->
       <div class="detail-section">
         <div class="section-label">Notes</div>
-        <textarea class="detail-notes-area" id="adNotes" placeholder="Add notes about this application..."></textarea>
-        <button class="detail-save-btn" id="adSaveNotes">Save Notes</button>
+        <div class="notes-history" id="adNotesHistory"></div>
+        <textarea class="detail-notes-area" id="adNoteInput" placeholder="Add a note..." rows="3"></textarea>
+        <button class="detail-save-btn" id="adAddNote">Add Note</button>
       </div>
 
       <!-- Key Dates -->
@@ -586,7 +594,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
             <input type="date" id="adDateFollowUp">
           </div>
         </div>
-        <button class="detail-save-btn" id="adSaveDates" style="margin-top:14px">Save Dates</button>
+        <span class="dates-saved-msg" id="adDatesSavedMsg" style="display:none;font-size:0.75rem;color:#15803d;margin-top:10px;font-weight:600">&#10003; Dates saved</span>
       </div>
 
       <!-- Activity Timeline -->
@@ -893,7 +901,8 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         '<td>' + fuHtml + '</td>' +
         '<td style="white-space:nowrap">' +
           '<button class="btn-edit-apply" data-action="edit-applied" data-id="' + esc(jobId) + '">Email</button> ' +
-          '<button class="btn-details" data-action="open-details" data-id="' + esc(jobId) + '">Details</button>' +
+          '<button class="btn-details" data-action="open-details" data-id="' + esc(jobId) + '">Details</button> ' +
+          '<button class="btn-unapply" data-action="unapply" data-id="' + esc(jobId) + '">Unapply</button>' +
         '</td>' +
         '</tr>';
     }).join('');
@@ -906,6 +915,21 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 
     var detailsBtn = e.target.closest('[data-action="open-details"]');
     if (detailsBtn) { openDetailsModal(detailsBtn.dataset.id); return; }
+
+    var unapplyBtn = e.target.closest('[data-action="unapply"]');
+    if (unapplyBtn) {
+      var jobId = unapplyBtn.dataset.id;
+      var r = appliedJobs[jobId];
+      var name = (r && r.title) ? r.company + ' — ' + r.title : 'this job';
+      if (!confirm('Move "' + name + '" back to Scanned Jobs?\n\nAll tracking data (notes, dates, status) will be removed.')) return;
+      delete appliedJobs[jobId];
+      persistApplied();
+      // Also remove from server
+      fetch('/api/apply/' + encodeURIComponent(userId) + '/' + encodeURIComponent(jobId), { method: 'DELETE' }).catch(function(){});
+      renderTable();
+      renderAppliedSection();
+      return;
+    }
   });
 
   // Applied section change handler — inline status dropdown
@@ -964,7 +988,15 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     else            { linkEl.hidden = true; }
 
     document.getElementById('adStatusSelect').value = r.status || 'applied';
-    document.getElementById('adNotes').value = r.notes || '';
+    // Migrate legacy string notes to array format
+    if (typeof r.notes === 'string' && r.notes) {
+      r.notes = [{ text: r.notes, ts: r.appliedAt || new Date().toISOString() }];
+      persistApplied();
+    } else if (!Array.isArray(r.notes)) {
+      r.notes = [];
+    }
+    renderNotesHistory(r.notes);
+    document.getElementById('adNoteInput').value = '';
 
     var dates = r.dates || {};
     document.getElementById('adDateApplied').value   = dates.applied           || (r.appliedAt ? r.appliedAt.slice(0,10) : '');
@@ -1002,19 +1034,82 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     renderTimeline(appliedJobs[jobId].log);
   });
 
-  // Save Notes
-  document.getElementById('adSaveNotes').addEventListener('click', function() {
+  // Render notes history list
+  function renderNotesHistory(notes) {
+    var el = document.getElementById('adNotesHistory');
+    if (!notes || notes.length === 0) {
+      el.innerHTML = '<div class="notes-empty">No notes yet.</div>';
+      return;
+    }
+    el.innerHTML = notes.map(function(n) {
+      var when = n.ts ? new Date(n.ts).toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+      return '<div class="note-entry"><div class="note-ts">' + esc(when) + '</div><div class="note-text">' + esc(n.text) + '</div></div>';
+    }).join('');
+    el.scrollTop = el.scrollHeight; // scroll to latest
+  }
+
+  // Add Note — appends to list
+  document.getElementById('adAddNote').addEventListener('click', function() {
     var jobId = currentDetailsJobId;
     if (!jobId || !appliedJobs[jobId]) return;
-    var notes = document.getElementById('adNotes').value.trim();
-    appliedJobs[jobId].notes = notes;
-    appendLog(jobId, 'Notes updated');
+    var text = document.getElementById('adNoteInput').value.trim();
+    if (!text) return;
+    var r = appliedJobs[jobId];
+    if (!Array.isArray(r.notes)) r.notes = [];
+    var entry = { text: text, ts: new Date().toISOString() };
+    r.notes.push(entry);
+    appendLog(jobId, 'Note added');
     persistApplied();
-    renderTimeline(appliedJobs[jobId].log);
+    document.getElementById('adNoteInput').value = '';
+    renderNotesHistory(r.notes);
+    renderTimeline(r.log);
     var btn = this;
-    btn.textContent = 'Saved \u2713';
+    btn.textContent = 'Added \u2713';
     btn.classList.add('detail-save-ok');
-    setTimeout(function() { btn.textContent = 'Save Notes'; btn.classList.remove('detail-save-ok'); }, 1500);
+    setTimeout(function() { btn.textContent = 'Add Note'; btn.classList.remove('detail-save-ok'); }, 1200);
+  });
+
+  // Dates auto-save on change — no button needed
+  function autoSaveDates() {
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+    var r = appliedJobs[jobId];
+    if (!r.dates) r.dates = {};
+
+    var applied   = document.getElementById('adDateApplied').value;
+    var recruiter = document.getElementById('adDateRecruiter').value;
+    var offer     = document.getElementById('adDateOffer').value;
+    var followUp  = document.getElementById('adDateFollowUp').value;
+    var interviews = liveInterviews().filter(Boolean);
+
+    var changed = [];
+    if (applied   !== (r.dates.applied           || '')) changed.push('Date Applied');
+    if (recruiter !== (r.dates.recruiterContact   || '')) changed.push('Recruiter Contact');
+    if (offer     !== (r.dates.offer             || '')) changed.push('Offer Date');
+    if (followUp  !== (r.dates.followUp          || '')) changed.push('Follow-up Date');
+    if (JSON.stringify(interviews) !== JSON.stringify(r.dates.interviews || [])) changed.push('Interview Date(s)');
+
+    r.dates.applied          = applied;
+    r.dates.recruiterContact = recruiter;
+    r.dates.offer            = offer;
+    r.dates.followUp         = followUp;
+    r.dates.interviews       = interviews;
+
+    if (changed.length) appendLog(jobId, 'Dates updated: ' + changed.join(', '));
+    persistApplied();
+    renderAppliedSection();
+    renderTimeline(r.log);
+
+    var msg = document.getElementById('adDatesSavedMsg');
+    msg.style.display = 'inline';
+    setTimeout(function() { msg.style.display = 'none'; }, 1500);
+  }
+
+  ['adDateApplied','adDateRecruiter','adDateOffer','adDateFollowUp'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', autoSaveDates);
+  });
+  document.getElementById('adInterviewsList').addEventListener('change', function(e) {
+    if (e.target.matches('input[type=date]')) autoSaveDates();
   });
 
   // Snapshot current live interview inputs (typed-but-not-saved values)
@@ -1050,47 +1145,6 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     renderInterviewsList(appliedJobs[jobId].dates.interviews);
   });
 
-  // Save Dates
-  document.getElementById('adSaveDates').addEventListener('click', function() {
-    var jobId = currentDetailsJobId;
-    if (!jobId || !appliedJobs[jobId]) return;
-    var r = appliedJobs[jobId];
-    if (!r.dates) r.dates = {};
-
-    var applied    = document.getElementById('adDateApplied').value;
-    var recruiter  = document.getElementById('adDateRecruiter').value;
-    var offer      = document.getElementById('adDateOffer').value;
-    var followUp   = document.getElementById('adDateFollowUp').value;
-
-    // Collect interview dates from live inputs
-    var interviewInputs = document.querySelectorAll('#adInterviewsList input[type=date]');
-    var interviews = [];
-    interviewInputs.forEach(function(inp) { if (inp.value) interviews.push(inp.value); });
-
-    var changed = [];
-    if (applied   !== (r.dates.applied          || '')) changed.push('Date Applied');
-    if (recruiter !== (r.dates.recruiterContact  || '')) changed.push('Recruiter Contact');
-    if (offer     !== (r.dates.offer             || '')) changed.push('Offer Date');
-    if (followUp  !== (r.dates.followUp          || '')) changed.push('Follow-up Date');
-    var prevInterviews = JSON.stringify(r.dates.interviews || []);
-    if (JSON.stringify(interviews) !== prevInterviews)   changed.push('Interview Date(s)');
-
-    r.dates.applied          = applied;
-    r.dates.recruiterContact = recruiter;
-    r.dates.offer            = offer;
-    r.dates.followUp         = followUp;
-    r.dates.interviews       = interviews;
-
-    if (changed.length) appendLog(jobId, 'Updated dates: ' + changed.join(', '));
-    persistApplied();
-    renderAppliedSection();
-    renderTimeline(r.log);
-
-    var btn = this;
-    btn.textContent = 'Saved \u2713';
-    btn.classList.add('detail-save-ok');
-    setTimeout(function() { btn.textContent = 'Save Dates'; btn.classList.remove('detail-save-ok'); }, 1500);
-  });
 
   // Row click → open modal (delegated)
   // Upload / score buttons handle their own actions; <a> clicks pass through
@@ -1258,7 +1312,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         workType: job ? job.workType : (existing.workType || ''),
         applyUrl: job ? job.applyUrl : (existing.applyUrl || ''),
         status:   existing.status || 'applied',
-        notes:    existing.notes  || '',
+        notes:    Array.isArray(existing.notes) ? existing.notes : (existing.notes ? [{ text: existing.notes, ts: nowIso }] : []),
         dates:    existing.dates  || { applied: nowIso.slice(0,10), recruiterContact: '', interviews: [], offer: '', followUp: '' },
         log:      log
       };
@@ -1541,6 +1595,14 @@ app.get("/api/applications", (req, res) => {
         return res.status(400).json({ error: "userId query param required" });
     const records = Object.values(state_1.appState.applications).filter((r) => r.userId === userId);
     res.json({ applications: records });
+});
+// DELETE /api/apply/:userId/:jobId — remove an application record
+app.delete("/api/apply/:userId/:jobId", (req, res) => {
+    const userId = String(req.params.userId);
+    const jobId = String(req.params.jobId);
+    const key = `${userId}::${jobId}`;
+    delete state_1.appState.applications[key];
+    res.json({ status: "deleted" });
 });
 // POST /api/jobs/:id/resume — upload a per-job resume (base64 PDF)
 app.post("/api/jobs/:id/resume", async (req, res) => {
