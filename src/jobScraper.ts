@@ -290,6 +290,81 @@ async function scrapeLever(companyName: string, slug: string, careersUrl: string
   return jobs;
 }
 
+// ── Ashby scraper ─────────────────────────────────────────────────────────────
+
+interface AshbyJob {
+  id: string;
+  title: string;
+  isRemote: boolean;
+  location?: string;
+  locationName?: string;
+  publishedDate?: string;   // ISO timestamp
+  applyUrl?: string;
+  jobUrl?: string;
+  descriptionPlain?: string;
+  descriptionHtml?: string;
+  descriptionSections?: Array<{ heading?: string; descriptionHtml?: string }>;
+}
+
+interface AshbyResponse {
+  jobs?: AshbyJob[];
+  jobPostings?: AshbyJob[];
+}
+
+async function scrapeAshby(companyName: string, slug: string, careersUrl: string): Promise<Job[]> {
+  const url = `https://api.ashbyhq.com/posting-api/job-board/${slug}`;
+  const resp = await fetchWithTimeout(url);
+  if (!resp.ok) throw new Error(`Ashby ${slug}: HTTP ${resp.status}`);
+
+  const data = (await resp.json()) as AshbyResponse;
+  const rawJobs: AshbyJob[] = data.jobs ?? data.jobPostings ?? [];
+  const jobs: Job[] = [];
+  const cutoff = getDateCutoff();
+
+  for (const j of rawJobs) {
+    if (!isPmRole(j.title)) continue;
+
+    const loc = j.locationName ?? j.location ?? (j.isRemote ? "Remote" : "");
+    if (!isUsLocation(loc)) continue;
+
+    const datePosted = j.publishedDate ? formatDate(j.publishedDate) : "—";
+    if (datePosted !== "—" && datePosted < cutoff) continue;
+
+    // Build description from sections if available, else fall back to plain/html
+    let descHtml = "";
+    if (j.descriptionSections?.length) {
+      descHtml = j.descriptionSections
+        .map((s) => (s.heading ? `<h3>${s.heading}</h3>` : "") + (s.descriptionHtml ?? ""))
+        .join("\n");
+    } else {
+      descHtml = j.descriptionHtml ?? j.descriptionPlain ?? "";
+    }
+
+    const descText = descHtml
+      ? cheerio.load(descHtml).text()
+      : (j.descriptionPlain ?? "");
+
+    if (!passesExperienceFilter(descText)) continue;
+
+    const applyUrl = j.applyUrl ?? j.jobUrl ?? careersUrl;
+
+    jobs.push({
+      id:          makeId(companyName, j.id),
+      company:     companyName,
+      title:       j.title,
+      location:    loc,
+      workType:    j.isRemote ? "Remote" : workTypeFrom(loc),
+      datePosted,
+      applyUrl,
+      careersUrl,
+      earlyCareer: isEarlyCareer(j.title, descText),
+      description: descHtml || descText,
+    });
+  }
+
+  return jobs;
+}
+
 // ── Semaphore ─────────────────────────────────────────────────────────────────
 
 class Semaphore {
@@ -320,6 +395,7 @@ export async function scrapeAll(): Promise<void> {
     completedAt:   "",
     jobCount:      0,
     errors:        0,
+    companyErrors: [],
     scoreProgress: 0,
     scoreTotal:    0,
     scoreLabel:    "",
@@ -335,10 +411,14 @@ export async function scrapeAll(): Promise<void> {
       try {
         appState.status.currentCompany = company.name;
 
-        const jobs =
-          company.platform === "greenhouse"
-            ? await scrapeGreenhouse(company.name, company.slug, company.careersUrl)
-            : await scrapeLever(company.name, company.slug, company.careersUrl);
+        let jobs: Job[];
+        if (company.platform === "greenhouse") {
+          jobs = await scrapeGreenhouse(company.name, company.slug, company.careersUrl);
+        } else if (company.platform === "lever") {
+          jobs = await scrapeLever(company.name, company.slug, company.careersUrl);
+        } else {
+          jobs = await scrapeAshby(company.name, company.slug, company.careersUrl);
+        }
 
         appState.jobs.push(...jobs);
         appState.status.jobCount = appState.jobs.length;
@@ -347,7 +427,9 @@ export async function scrapeAll(): Promise<void> {
         }
       } catch (err) {
         appState.status.errors += 1;
-        console.error(`[scraper] ${company.name}: ${err}`);
+        const reason = err instanceof Error ? err.message : String(err);
+        appState.status.companyErrors.push({ name: company.name, reason });
+        console.error(`[scraper] ${company.name}: ${reason}`);
       } finally {
         appState.status.progress += 1;
         sem.release();

@@ -1,7 +1,7 @@
 export interface Company {
   name: string;
   slug: string;
-  platform: "greenhouse" | "lever";
+  platform: "greenhouse" | "lever" | "ashby";
   careersUrl: string;
 }
 
@@ -114,5 +114,19 @@ export function allCompanies(): Company[] {
     lv("Highspot",            "highspot",          "https://highspot.com/careers"),
     lv("Mindtickle",          "mindtickle",        "https://mindtickle.com/careers"),
     lv("Freshworks",          "freshworks",        "https://freshworks.com/company/careers"),
+
+    // ── Ashby ──────────────────────────────────────────────────────────────── (12)
+    { name: "Linear",     slug: "linear",     platform: "ashby" as const, careersUrl: "https://linear.app/careers" },
+    { name: "Ramp",       slug: "ramp",       platform: "ashby" as const, careersUrl: "https://ramp.com/careers" },
+    { name: "Mercury",    slug: "mercury",    platform: "ashby" as const, careersUrl: "https://mercury.com/careers" },
+    { name: "Retool",     slug: "retool",     platform: "ashby" as const, careersUrl: "https://retool.com/careers" },
+    { name: "Watershed",  slug: "watershed",  platform: "ashby" as const, careersUrl: "https://watershed.com/careers" },
+    { name: "Notion",     slug: "notion",     platform: "ashby" as const, careersUrl: "https://notion.so/careers" },
+    { name: "Descript",   slug: "descript",   platform: "ashby" as const, careersUrl: "https://descript.com/careers" },
+    { name: "Deel",       slug: "deel",       platform: "ashby" as const, careersUrl: "https://deel.com/careers" },
+    { name: "Pave",       slug: "pave",       platform: "ashby" as const, careersUrl: "https://pave.com/careers" },
+    { name: "Coda",       slug: "coda",       platform: "ashby" as const, careersUrl: "https://coda.io/careers" },
+    { name: "Hex",        slug: "hex",        platform: "ashby" as const, careersUrl: "https://hex.tech/company/careers" },
+    { name: "Tome",       slug: "tome",       platform: "ashby" as const, careersUrl: "https://tome.app/careers" },
   ];
 }

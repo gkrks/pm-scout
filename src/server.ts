@@ -420,6 +420,16 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Scan error panel — shown after scan if some companies failed -->
+  <div id="scanErrorPanel" style="display:none;margin:6px 0 0;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:8px 12px;font-size:12px;color:#7c2d12;">
+    <details>
+      <summary id="scanErrorToggle" style="cursor:pointer;font-weight:600;color:#9a3412;list-style:none;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:14px;">&#9888;</span> 0 companies could not be scanned
+      </summary>
+      <ul id="scanErrorList" style="margin:6px 0 0 16px;padding:0;line-height:1.7;"></ul>
+    </details>
+  </div>
+
   <!-- Hidden file input reused for all per-job resume uploads -->
   <input type="file" id="jobResumeFile" accept=".pdf" style="display:none">
 
@@ -728,8 +738,28 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       fill.style.width = (d.scoreTotal ? Math.round(d.scoreProgress/d.scoreTotal*100) : 0) + '%';
     } else if (d.scanState === 'done') {
       dot.classList.add('dot-done');
-      text.textContent = d.jobCount + ' jobs — completed ' + (d.completedAt || '');
+      var errSuffix = d.errors > 0 ? ', ' + d.errors + ' companies failed' : '';
+      text.textContent = d.jobCount + ' jobs — completed ' + (d.completedAt || '') + errSuffix;
       barW.style.display = 'none';
+    }
+
+    // Show/hide company error panel
+    var errPanel = document.getElementById('scanErrorPanel');
+    if (errPanel) {
+      var errs = d.companyErrors || [];
+      if (errs.length > 0 && d.scanState === 'done') {
+        errPanel.style.display = '';
+        var errList = document.getElementById('scanErrorList');
+        if (errList) {
+          errList.innerHTML = errs.map(function(e) {
+            return '<li><strong>' + esc(e.name) + '</strong>: ' + esc(e.reason) + '</li>';
+          }).join('');
+        }
+        var errToggle = document.getElementById('scanErrorToggle');
+        if (errToggle) errToggle.textContent = errs.length + ' companies could not be scanned';
+      } else {
+        errPanel.style.display = 'none';
+      }
     }
   }
 

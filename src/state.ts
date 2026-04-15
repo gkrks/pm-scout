@@ -38,6 +38,11 @@ export interface Job {
 
 // ── Scan / score status ───────────────────────────────────────────────────────
 
+export interface CompanyError {
+  name: string;
+  reason: string;
+}
+
 export interface ScanStatus {
   state: string;          // "idle" | "scanning" | "scoring" | "done"
   progress: number;
@@ -46,6 +51,7 @@ export interface ScanStatus {
   completedAt: string;
   jobCount: number;
   errors: number;
+  companyErrors: CompanyError[];
   // Scoring phase
   scoreProgress: number;
   scoreTotal: number;
@@ -77,6 +83,7 @@ class AppState {
     completedAt: "",
     jobCount: 0,
     errors: 0,
+    companyErrors: [],
     scoreProgress: 0,
     scoreTotal: 0,
     scoreLabel: "",
@@ -111,6 +118,7 @@ class AppState {
       completedAt:        this.status.completedAt,
       jobCount:           this.status.jobCount,
       errors:             this.status.errors,
+      companyErrors:      this.status.companyErrors,
       scoreProgress:      this.status.scoreProgress,
       scoreTotal:         this.status.scoreTotal,
       scoreLabel:         this.status.scoreLabel,
