@@ -871,7 +871,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         ? ' <span style="font-size:0.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New Grad</span>'
         : '';
       var srcBadge = j.sourceLabel === 'Early Careers Portal'
-        ? ' <span title="Sourced from the company\'s dedicated Early Careers / University portal" style="font-size:0.65rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">🎓 Early Careers Portal</span>'
+        ? ' <span title="Sourced from the company&#39;s dedicated Early Careers / University portal" style="font-size:0.65rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">🎓 Early Careers Portal</span>'
         : j.sourceLabel === 'LinkedIn'
           ? ' <span title="Sourced from LinkedIn — click Apply to view full listing" style="font-size:0.65rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">via LinkedIn</span>'
           : '';
@@ -1466,7 +1466,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('mCompany').textContent = j.company;
     var titleHtml = esc(j.title);
     if (j.earlyCareer) titleHtml += ' <span style="font-size:0.7rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New Grad</span>';
-    if (j.sourceLabel === 'Early Careers Portal') titleHtml += ' <span title="Sourced from the company\'s dedicated Early Careers / University portal" style="font-size:0.7rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">🎓 Early Careers Portal</span>';
+    if (j.sourceLabel === 'Early Careers Portal') titleHtml += ' <span title="Sourced from the company&#39;s dedicated Early Careers / University portal" style="font-size:0.7rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">🎓 Early Careers Portal</span>';
     else if (j.sourceLabel === 'LinkedIn') titleHtml += ' <span title="Listing sourced from LinkedIn" style="font-size:0.7rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">via LinkedIn</span>';
     document.getElementById('mTitle').innerHTML = titleHtml;
     document.getElementById('mLocation').textContent  = j.location || '—';
