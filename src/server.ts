@@ -752,7 +752,10 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         var errList = document.getElementById('scanErrorList');
         if (errList) {
           errList.innerHTML = errs.map(function(e) {
-            return '<li><strong>' + esc(e.name) + '</strong>: ' + esc(e.reason) + '</li>';
+            var link = e.careersUrl
+              ? ' &mdash; <a href="' + esc(e.careersUrl) + '" target="_blank" rel="noopener" style="color:#9a3412;">visit careers page</a>'
+              : '';
+            return '<li><strong>' + esc(e.name) + '</strong>: ' + esc(e.reason) + link + '</li>';
           }).join('');
         }
         var errToggle = document.getElementById('scanErrorToggle');

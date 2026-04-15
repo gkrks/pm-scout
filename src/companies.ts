@@ -1,7 +1,7 @@
 export interface Company {
   name: string;
   slug: string;
-  platform: "greenhouse" | "lever" | "ashby";
+  platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta";
   careersUrl: string;
 }
 
@@ -128,5 +128,10 @@ export function allCompanies(): Company[] {
     { name: "Coda",       slug: "coda",       platform: "ashby" as const, careersUrl: "https://coda.io/careers" },
     { name: "Hex",        slug: "hex",        platform: "ashby" as const, careersUrl: "https://hex.tech/company/careers" },
     { name: "Tome",       slug: "tome",       platform: "ashby" as const, careersUrl: "https://tome.app/careers" },
+
+    // ── Custom scrapers ─────────────────────────────────────────────────────── (3)
+    { name: "Amazon",  slug: "amazon",  platform: "amazon" as const,  careersUrl: "https://www.amazon.jobs/en/teams/pmts" },
+    { name: "Google",  slug: "google",  platform: "google" as const,  careersUrl: "https://careers.google.com" },
+    { name: "Meta",    slug: "meta",    platform: "meta" as const,    careersUrl: "https://www.metacareers.com/jobs" },
   ];
 }

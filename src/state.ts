@@ -41,6 +41,7 @@ export interface Job {
 export interface CompanyError {
   name: string;
   reason: string;
+  careersUrl: string;
 }
 
 export interface ScanStatus {

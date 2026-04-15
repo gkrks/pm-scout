@@ -365,6 +365,127 @@ async function scrapeAshby(companyName: string, slug: string, careersUrl: string
   return jobs;
 }
 
+// ── Amazon scraper ────────────────────────────────────────────────────────────
+// Uses amazon.jobs public search JSON endpoint (no auth required).
+
+interface AmazonJob {
+  id_icims: string;
+  title: string;
+  location: string;
+  posted_date?: string; // "Month DD, YYYY" or "YYYY-MM-DD"
+  job_path: string;     // "/en/jobs/..."
+  description_short?: string;
+  basic_qualifications?: string;
+  preferred_qualifications?: string;
+  job_family_value?: string;
+}
+
+interface AmazonResponse {
+  jobs: AmazonJob[];
+  hits: number;
+}
+
+function parseAmazonDate(s: string | undefined): string {
+  if (!s) return "—";
+  // Try ISO first
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // "April 10, 2024"
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 10);
+}
+
+async function scrapeAmazon(careersUrl: string): Promise<Job[]> {
+  const base = "https://www.amazon.jobs/en/search.json";
+  const jobs: Job[] = [];
+  const cutoff = getDateCutoff();
+  let offset = 0;
+  const limit = 100;
+
+  while (true) {
+    // Note: do NOT pass country=us — it returns 0 results due to an Amazon
+    // API quirk. Instead filter by location format "US, ..." below.
+    const params = new URLSearchParams({
+      base_query:   "product manager",
+      result_limit: String(limit),
+      offset:       String(offset),
+    });
+    const url = `${base}?${params}`;
+    const resp = await fetchWithTimeout(url);
+    if (!resp.ok) throw new Error(`Amazon jobs API: HTTP ${resp.status}`);
+
+    const data = (await resp.json()) as AmazonResponse;
+    const batch = data.jobs ?? [];
+    if (batch.length === 0) break;
+
+    for (const j of batch) {
+      if (!isPmRole(j.title)) continue;
+
+      // Amazon location format: "US, WA, Seattle" | "Virtual" | "US, TX, Austin"
+      // Filter to US-only by checking country prefix or virtual/remote keywords.
+      const loc = j.location ?? "";
+      const locLower = loc.toLowerCase();
+      const isUS = !loc ||
+        locLower.startsWith("us,") ||
+        locLower === "virtual" ||
+        locLower.includes("remote") ||
+        locLower.includes("virtual");
+      if (!isUS) continue;
+
+      const datePosted = parseAmazonDate(j.posted_date);
+      if (datePosted !== "—" && datePosted < cutoff) continue;
+
+      const descText = [
+        j.description_short ?? "",
+        j.basic_qualifications ?? "",
+        j.preferred_qualifications ?? "",
+      ].join("\n");
+
+      if (!passesExperienceFilter(descText)) continue;
+
+      jobs.push({
+        id:          makeId("amazon", j.id_icims),
+        company:     "Amazon",
+        title:       j.title,
+        location:    j.location ?? "",
+        workType:    workTypeFrom(j.location ?? ""),
+        datePosted,
+        applyUrl:    `https://www.amazon.jobs${j.job_path}`,
+        careersUrl,
+        earlyCareer: isEarlyCareer(j.title, descText),
+        description: descText,
+      });
+    }
+
+    // If we got fewer than limit, we've exhausted the results
+    if (batch.length < limit) break;
+    offset += limit;
+    // Safety cap: don't pull more than 500 results
+    if (offset >= 500) break;
+  }
+
+  return jobs;
+}
+
+// ── Google scraper ────────────────────────────────────────────────────────────
+// Google Careers is a fully JS-rendered SPA with no public JSON API.
+// We throw a descriptive error so it surfaces in the scan-error panel.
+
+async function scrapeGoogle(careersUrl: string): Promise<Job[]> {
+  throw new Error(`JS-rendered SPA — no public API. Check ${careersUrl} directly.`);
+}
+
+// ── Meta scraper ──────────────────────────────────────────────────────────────
+// Uses the public Meta Careers JSON search endpoint.
+
+// ── Meta scraper ──────────────────────────────────────────────────────────────
+// Meta Careers is a fully JS-rendered SPA; their search endpoint requires
+// signed session tokens that are not publicly accessible without a browser.
+// We throw a descriptive error so it surfaces in the scan-error panel.
+
+async function scrapeMeta(careersUrl: string): Promise<Job[]> {
+  throw new Error(`JS-rendered SPA — no public API. Check ${careersUrl} directly.`);
+}
+
 // ── Semaphore ─────────────────────────────────────────────────────────────────
 
 class Semaphore {
@@ -416,8 +537,14 @@ export async function scrapeAll(): Promise<void> {
           jobs = await scrapeGreenhouse(company.name, company.slug, company.careersUrl);
         } else if (company.platform === "lever") {
           jobs = await scrapeLever(company.name, company.slug, company.careersUrl);
-        } else {
+        } else if (company.platform === "ashby") {
           jobs = await scrapeAshby(company.name, company.slug, company.careersUrl);
+        } else if (company.platform === "amazon") {
+          jobs = await scrapeAmazon(company.careersUrl);
+        } else if (company.platform === "google") {
+          jobs = await scrapeGoogle(company.careersUrl);
+        } else {
+          jobs = await scrapeMeta(company.careersUrl);
         }
 
         appState.jobs.push(...jobs);
@@ -428,7 +555,7 @@ export async function scrapeAll(): Promise<void> {
       } catch (err) {
         appState.status.errors += 1;
         const reason = err instanceof Error ? err.message : String(err);
-        appState.status.companyErrors.push({ name: company.name, reason });
+        appState.status.companyErrors.push({ name: company.name, reason, careersUrl: company.careersUrl });
         console.error(`[scraper] ${company.name}: ${reason}`);
       } finally {
         appState.status.progress += 1;
