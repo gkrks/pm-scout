@@ -630,7 +630,9 @@ async function scrapeGooglePlaywright(careersUrl, earlyCareerUrl) {
             const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
             // ── Main careers page ─────────────────────────────────────────────────────
             const mainPage = await context.newPage();
-            await mainPage.goto("https://careers.google.com/jobs/results/?q=product+manager&location=United+States", { waitUntil: "networkidle", timeout: 35000 });
+            // "load" fires once HTML+subresources finish — don't use "networkidle" because
+            // Google's Angular SPA keeps firing background XHRs and never settles on slow hosts.
+            await mainPage.goto("https://careers.google.com/jobs/results/?q=product+manager&location=United+States", { waitUntil: "load", timeout: 60000 });
             const mainJobs = await extractGoogleCards(mainPage, careersUrl);
             await mainPage.close();
             // ── Students / Early Careers page ─────────────────────────────────────────
@@ -639,7 +641,7 @@ async function scrapeGooglePlaywright(careersUrl, earlyCareerUrl) {
                 try {
                     const studentPage = await context.newPage();
                     // students/ URL supports the same search params
-                    await studentPage.goto(earlyCareerUrl + "?q=product+manager&location=United+States", { waitUntil: "networkidle", timeout: 35000 });
+                    await studentPage.goto(earlyCareerUrl + "?q=product+manager&location=United+States", { waitUntil: "load", timeout: 60000 });
                     studentJobs = await extractGoogleCards(studentPage, earlyCareerUrl, "Early Careers Portal");
                     await studentPage.close();
                 }

@@ -1673,6 +1673,44 @@ app.get("/api/status", (_req: Request, res: Response) => {
   res.json(appState.statusForClient());
 });
 
+// GET /api/diagnostics — check Playwright/Chromium availability on this host
+app.get("/api/diagnostics", async (_req: Request, res: Response) => {
+  const fs = require("fs") as typeof import("fs");
+  const result: Record<string, unknown> = {
+    platform: process.platform,
+    arch: process.arch,
+    nodeVersion: process.version,
+    cwd: process.cwd(),
+    PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? "(not set)",
+    pwBrowsersExists: fs.existsSync("./pw-browsers"),
+    pwBrowsersContents: fs.existsSync("./pw-browsers") ? fs.readdirSync("./pw-browsers") : [],
+  };
+
+  // Check known system chromium paths
+  const SYSTEM_PATHS = [
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+  ];
+  result.systemChromium = SYSTEM_PATHS.filter((p) => fs.existsSync(p));
+
+  // Try launching Playwright browser
+  try {
+    const pw = require("playwright") as typeof import("playwright");
+    const browser = await pw.chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--single-process", "--no-zygote"],
+    });
+    await browser.close();
+    result.playwrightBrowser = "OK";
+  } catch (e) {
+    result.playwrightBrowser = `FAIL: ${e instanceof Error ? e.message : String(e)}`;
+  }
+
+  res.json(result);
+});
+
 // GET /api/companies
 app.get("/api/companies", (_req: Request, res: Response) => {
   res.json({ companies: allCompanies() });
