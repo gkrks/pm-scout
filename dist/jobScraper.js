@@ -492,9 +492,164 @@ async function scrapeLinkedIn(companyName, linkedInId, careersUrl) {
     }
     return jobs;
 }
-// ── Google scraper ────────────────────────────────────────────────────────────
-// Google Careers is a JS-rendered SPA with no public API.
-// Falls back to LinkedIn guest API using Google's LinkedIn company ID.
+async function scrapeGoogleApi(careersUrl) {
+    const base = "https://careers.google.com/api/v3/search/";
+    const jobs = [];
+    const cutoff = getDateCutoff();
+    let from = 0;
+    const pageSize = 20;
+    for (let page = 0; page < 5; page++) { // cap at 100 results (5 × 20)
+        const params = new URLSearchParams({
+            "query.query": "Product Manager",
+            "query.languageCodes": "en_US",
+            "query.locationFilters.address": "United States",
+            "query.locationFilters.distanceInMiles": "2000",
+            pageSize: String(pageSize),
+            from: String(from),
+        });
+        const resp = await fetchWithTimeout(`${base}?${params}`);
+        if (!resp.ok)
+            throw new Error(`Google Careers API: HTTP ${resp.status}`);
+        const data = (await resp.json());
+        const batch = data.jobs ?? [];
+        if (batch.length === 0)
+            break;
+        for (const j of batch) {
+            const title = j.title ?? "";
+            if (!isPmRole(title))
+                continue;
+            const loc = j.locations?.[0]?.address ?? "";
+            if (!isUsLocation(loc))
+                continue;
+            const datePosted = j.publishTime ? formatDate(j.publishTime) : "—";
+            if (datePosted !== "—" && datePosted < cutoff)
+                continue;
+            const descText = (j.description ?? "").replace(/<[^>]+>/g, " ");
+            if (!passesExperienceFilter(descText))
+                continue;
+            const applyUrl = j.applicationInfo?.uris?.[0] ?? careersUrl;
+            const jobId = j.name?.split("/").pop() ?? `${from}-${jobs.length}`;
+            jobs.push({
+                id: makeId("google", jobId),
+                company: "Google",
+                title,
+                location: loc,
+                workType: workTypeFrom(loc),
+                datePosted,
+                applyUrl,
+                careersUrl,
+                earlyCareer: isEarlyCareer(title, descText),
+                description: j.description ?? descText,
+            });
+        }
+        if (batch.length < pageSize)
+            break;
+        from += pageSize;
+    }
+    return jobs;
+}
+async function scrapeGooglePlaywright(careersUrl) {
+    // Dynamic require so the build stays clean if playwright is unavailable
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pw = require("playwright");
+    const browser = await pw.chromium.launch({
+        headless: true,
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-blink-features=AutomationControlled",
+        ],
+    });
+    const capturedJobs = [];
+    try {
+        const context = await browser.newContext({
+            userAgent: LI_UA,
+            viewport: { width: 1280, height: 800 },
+        });
+        const page = await context.newPage();
+        // Intercept the internal API calls the Google Careers SPA makes
+        await page.route("**/api/v3/search/**", async (route) => {
+            const response = await route.fetch();
+            try {
+                const body = (await response.json());
+                if (body.jobs?.length)
+                    capturedJobs.push(...body.jobs);
+            }
+            catch { /* ignore parse errors */ }
+            await route.fulfill({ response });
+        });
+        await page.goto("https://careers.google.com/jobs/results/?q=product+manager&location=United+States", { waitUntil: "networkidle", timeout: 30000 });
+        // Wait up to 10 s for at least one job card in the DOM as a secondary signal
+        await page.waitForSelector("li[class*='lLd']", { timeout: 10000 }).catch(() => null);
+    }
+    finally {
+        await browser.close();
+    }
+    if (capturedJobs.length === 0) {
+        throw new Error("Playwright loaded Google Careers but captured no API job data");
+    }
+    const jobs = [];
+    const cutoff = getDateCutoff();
+    for (const j of capturedJobs) {
+        const title = j.title ?? "";
+        if (!isPmRole(title))
+            continue;
+        const loc = j.locations?.[0]?.address ?? "";
+        if (!isUsLocation(loc))
+            continue;
+        const datePosted = j.publishTime ? formatDate(j.publishTime) : "—";
+        if (datePosted !== "—" && datePosted < cutoff)
+            continue;
+        const descText = (j.description ?? "").replace(/<[^>]+>/g, " ");
+        if (!passesExperienceFilter(descText))
+            continue;
+        const applyUrl = j.applicationInfo?.uris?.[0] ?? careersUrl;
+        const jobId = j.name?.split("/").pop() ?? String(jobs.length);
+        jobs.push({
+            id: makeId("google", jobId),
+            company: "Google",
+            title,
+            location: loc,
+            workType: workTypeFrom(loc),
+            datePosted,
+            applyUrl,
+            careersUrl,
+            earlyCareer: isEarlyCareer(title, descText),
+            description: j.description ?? descText,
+        });
+    }
+    return jobs;
+}
+async function scrapeGoogle(linkedInId, careersUrl) {
+    // 1. Direct API (fastest — same endpoint Google\\'s own SPA calls)
+    try {
+        const jobs = await scrapeGoogleApi(careersUrl);
+        if (jobs.length > 0) {
+            console.log(`[scraper] Google: ${jobs.length} jobs via Careers API`);
+            return jobs;
+        }
+        console.warn("[scraper] Google Careers API returned 0 results — trying headless");
+    }
+    catch (err) {
+        console.warn(`[scraper] Google Careers API failed: ${err instanceof Error ? err.message : err} — trying headless`);
+    }
+    // 2. Playwright headless (JS-renders the SPA, intercepts API calls)
+    try {
+        const jobs = await scrapeGooglePlaywright(careersUrl);
+        if (jobs.length > 0) {
+            console.log(`[scraper] Google: ${jobs.length} jobs via headless browser`);
+            return jobs;
+        }
+        console.warn("[scraper] Google headless returned 0 results — using LinkedIn fallback");
+    }
+    catch (err) {
+        console.warn(`[scraper] Google careers requires JS rendering — fallback triggered: ${err instanceof Error ? err.message : err}`);
+    }
+    // 3. LinkedIn fallback (unchanged existing behaviour)
+    console.log("[scraper] Google: using LinkedIn fallback");
+    return scrapeLinkedIn("Google", linkedInId, careersUrl);
+}
 // ── LinkedIn keyword scraper ──────────────────────────────────────────────────
 // Used for user-added companies where we don't have a LinkedIn company ID.
 // Searches "product manager {companyName}" and filters results by company name.
@@ -555,9 +710,6 @@ async function scrapeLinkedInByKeyword(companyName, careersUrl) {
         });
     });
     return jobs;
-}
-async function scrapeGoogle(linkedInId, careersUrl) {
-    return scrapeLinkedIn("Google", linkedInId, careersUrl);
 }
 // ── Meta scraper ──────────────────────────────────────────────────────────────
 // Meta Careers requires authenticated session tokens.
