@@ -1,7 +1,7 @@
 export interface Company {
   name: string;
   slug: string;
-  platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta";
+  platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta" | "linkedin";
   careersUrl: string;
   linkedInId?: string; // LinkedIn numeric company ID — used as aggregator fallback
 }
@@ -102,6 +102,9 @@ export function allCompanies(): Company[] {
     gh("Salesloft",           "salesloft",         "https://salesloft.com/company/careers"),
     gh("Five9",               "five9",             "https://five9.com/about/careers"),
     gh("Dialpad",             "dialpad",           "https://dialpad.com/company/careers"),
+    gh("Natera",             "natera",            "https://natera.com/careers"),
+    gh("Omada Health",       "omadahealth",       "https://www.omadahealth.com/careers"),
+    gh("Lucid Software",     "lucidsoftware",     "https://www.lucidsoftware.com/careers"),
 
     // ── Lever ──────────────────────────────────────────────────────────────── (17)
     lv("Plaid",               "plaid",             "https://plaid.com/careers"),
@@ -115,6 +118,7 @@ export function allCompanies(): Company[] {
     lv("Highspot",            "highspot",          "https://highspot.com/careers"),
     lv("Mindtickle",          "mindtickle",        "https://mindtickle.com/careers"),
     lv("Freshworks",          "freshworks",        "https://freshworks.com/company/careers"),
+    lv("Girls Who Code",      "girlswhocode",      "https://girlswhocode.com/careers"),
 
     // ── Ashby ──────────────────────────────────────────────────────────────── (12)
     { name: "Linear",     slug: "linear",     platform: "ashby" as const, careersUrl: "https://linear.app/careers" },
@@ -134,5 +138,12 @@ export function allCompanies(): Company[] {
     { name: "Amazon",  slug: "amazon",  platform: "amazon" as const,  careersUrl: "https://www.amazon.jobs/en/teams/pmts" },
     { name: "Google",  slug: "google",  platform: "google" as const,  careersUrl: "https://careers.google.com",         linkedInId: "1441"  },
     { name: "Meta",    slug: "meta",    platform: "meta" as const,    careersUrl: "https://www.metacareers.com/jobs",   linkedInId: "10667" },
+
+    // ── LinkedIn-scraped (Workday or custom ATS — no public API) ────────────── (5)
+    { name: "IBM",               slug: "ibm",       platform: "linkedin" as const, careersUrl: "https://www.ibm.com/us-en/employment",                         linkedInId: "1009"   },
+    { name: "Microsoft",         slug: "microsoft", platform: "linkedin" as const, careersUrl: "https://careers.microsoft.com",                                linkedInId: "1035"   },
+    { name: "Target",            slug: "target",    platform: "linkedin" as const, careersUrl: "https://corporate.target.com/careers",                         linkedInId: "2068"   },
+    { name: "BlackRock",         slug: "blackrock", platform: "linkedin" as const, careersUrl: "https://careers.blackrock.com",                                linkedInId: "162479" },
+    { name: "Zebra Technologies",slug: "zebra",     platform: "linkedin" as const, careersUrl: "https://www.zebra.com/us/en/about-zebra/careers.html",         linkedInId: "1038"   },
   ];
 }

@@ -639,9 +639,13 @@ export async function scrapeAll(): Promise<void> {
         } else if (company.platform === "google") {
           if (!company.linkedInId) throw new Error("Google: no LinkedIn ID configured");
           jobs = await scrapeGoogle(company.linkedInId, company.careersUrl);
-        } else {
+        } else if (company.platform === "meta") {
           if (!company.linkedInId) throw new Error("Meta: no LinkedIn ID configured");
           jobs = await scrapeMeta(company.linkedInId, company.careersUrl);
+        } else {
+          // platform === "linkedin" — companies with Workday/custom ATS
+          if (!company.linkedInId) throw new Error(`${company.name}: no LinkedIn ID configured`);
+          jobs = await scrapeLinkedIn(company.name, company.linkedInId, company.careersUrl);
         }
 
         appState.jobs.push(...jobs);
