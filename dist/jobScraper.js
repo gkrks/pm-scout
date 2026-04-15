@@ -515,6 +515,14 @@ async function scrapeGooglePlaywright(careersUrl) {
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-blink-features=AutomationControlled",
+            "--disable-gpu",
+            "--no-zygote",
+            "--single-process", // reduces memory on constrained hosts (Render free)
+            "--disable-extensions",
+            "--disable-background-networking",
+            "--disable-sync",
+            "--no-first-run",
+            "--mute-audio",
         ],
     });
     try {

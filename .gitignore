@@ -1,4 +1,5 @@
 node_modules/
+pw-browsers/
 .env
 match-report.json
 *.pdf
