@@ -566,83 +566,20 @@ async function scrapeLinkedIn(
 }
 
 // ── Google scraper ────────────────────────────────────────────────────────────
-// Strategy (in order):
-//   1. Google Careers JSON API  — fastest, no browser needed
-//   2. Playwright headless      — JS-render careers.google.com, intercept API calls
-//   3. LinkedIn guest API       — fallback if both above fail
-
-interface GoogleApiJob {
-  name?: string;
-  title?: string;
-  locations?: Array<{ address?: string }>;
-  description?: string;
-  publishTime?: string;
-  applicationInfo?: { uris?: string[] };
-}
-
-async function scrapeGoogleApi(careersUrl: string): Promise<Job[]> {
-  const base = "https://careers.google.com/api/v3/search/";
-  const jobs: Job[] = [];
-  const cutoff = getDateCutoff();
-  let from = 0;
-  const pageSize = 20;
-
-  for (let page = 0; page < 5; page++) { // cap at 100 results (5 × 20)
-    const params = new URLSearchParams({
-      "query.query":                           "Product Manager",
-      "query.languageCodes":                   "en_US",
-      "query.locationFilters.address":         "United States",
-      "query.locationFilters.distanceInMiles": "2000",
-      pageSize: String(pageSize),
-      from:     String(from),
-    });
-
-    const resp = await fetchWithTimeout(`${base}?${params}`);
-    if (!resp.ok) throw new Error(`Google Careers API: HTTP ${resp.status}`);
-
-    const data = (await resp.json()) as { jobs?: GoogleApiJob[] };
-    const batch = data.jobs ?? [];
-    if (batch.length === 0) break;
-
-    for (const j of batch) {
-      const title = j.title ?? "";
-      if (!isPmRole(title)) continue;
-
-      const loc = j.locations?.[0]?.address ?? "";
-      if (!isUsLocation(loc)) continue;
-
-      const datePosted = j.publishTime ? formatDate(j.publishTime) : "—";
-      if (datePosted !== "—" && datePosted < cutoff) continue;
-
-      const descText = (j.description ?? "").replace(/<[^>]+>/g, " ");
-      if (!passesExperienceFilter(descText)) continue;
-
-      const applyUrl = j.applicationInfo?.uris?.[0] ?? careersUrl;
-      const jobId    = j.name?.split("/").pop() ?? `${from}-${jobs.length}`;
-
-      jobs.push({
-        id:          makeId("google", jobId),
-        company:     "Google",
-        title,
-        location:    loc,
-        workType:    workTypeFrom(loc),
-        datePosted,
-        applyUrl,
-        careersUrl,
-        earlyCareer: isEarlyCareer(title, descText),
-        description: j.description ?? descText,
-      });
-    }
-
-    if (batch.length < pageSize) break;
-    from += pageSize;
-  }
-
-  return jobs;
-}
+// Google Careers is a JS-rendered Angular SPA with no public API.
+// Strategy:
+//   1. Playwright Chromium headless — renders the real page, extracts DOM cards
+//   2. LinkedIn guest API           — fallback if Playwright unavailable/fails
+//
+// Confirmed selectors (verified 2026-04-15):
+//   Cards:    li.lLd3Je
+//   Title:    h3 inside card
+//   Location: span.r0wTof (first one, without .p3oCrc)
+//   Job ID:   jsdata attr "Aiqs8c;{id};$N" on the inner div
+//   URL:      <a> href (relative) — prepend https://careers.google.com/
 
 async function scrapeGooglePlaywright(careersUrl: string): Promise<Job[]> {
-  // Dynamic require so the build stays clean if playwright is unavailable
+  // Dynamic require — graceful if playwright binary not installed
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const pw = require("playwright") as typeof import("playwright");
 
@@ -656,91 +593,84 @@ async function scrapeGooglePlaywright(careersUrl: string): Promise<Job[]> {
     ],
   });
 
-  const capturedJobs: GoogleApiJob[] = [];
-
   try {
     const context = await browser.newContext({
       userAgent: LI_UA,
-      viewport:  { width: 1280, height: 800 },
+      viewport:  { width: 1280, height: 900 },
     });
     const page = await context.newPage();
 
-    // Intercept the internal API calls the Google Careers SPA makes
-    await page.route("**/api/v3/search/**", async (route) => {
-      const response = await route.fetch();
-      try {
-        const body = (await response.json()) as { jobs?: GoogleApiJob[] };
-        if (body.jobs?.length) capturedJobs.push(...body.jobs);
-      } catch { /* ignore parse errors */ }
-      await route.fulfill({ response });
-    });
-
     await page.goto(
       "https://careers.google.com/jobs/results/?q=product+manager&location=United+States",
-      { waitUntil: "networkidle", timeout: 30_000 },
+      { waitUntil: "networkidle", timeout: 35_000 },
     );
 
-    // Wait up to 10 s for at least one job card in the DOM as a secondary signal
-    await page.waitForSelector("li[class*='lLd']", { timeout: 10_000 }).catch(() => null);
+    // Wait for at least one job card to appear
+    await page.waitForSelector("li.lLd3Je", { timeout: 15_000 });
 
+    // Scroll to trigger lazy-loading of additional results (up to ~60 cards)
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.waitForTimeout(1500);
+    }
+
+    // Extract card data from DOM
+    type CardData = { title: string; loc: string; href: string; jobId: string };
+    const cards: CardData[] = await page.evaluate(() => {
+      const results: { title: string; loc: string; href: string; jobId: string }[] = [];
+      document.querySelectorAll("li.lLd3Je").forEach((li) => {
+        const title = li.querySelector("h3")?.textContent?.trim() ?? "";
+
+        // First .r0wTof without .p3oCrc is the primary location
+        const locEl = li.querySelector("span.r0wTof:not(.p3oCrc)") as HTMLElement | null;
+        const loc = locEl?.textContent?.trim() ?? "";
+
+        // Relative href on the card anchor — strip query params
+        const href = (li.querySelector("a") as HTMLAnchorElement | null)?.href?.split("?")[0] ?? "";
+
+        // Job numeric ID from jsdata: "Aiqs8c;{id};$N"
+        const jsdata = (li.querySelector("[jsdata]") as HTMLElement | null)?.getAttribute("jsdata") ?? "";
+        const jobId  = jsdata.split(";")[1] ?? href.split("/").filter(Boolean).pop() ?? "";
+
+        if (title && href) results.push({ title, loc, href, jobId });
+      });
+      return results;
+    });
+
+    const jobs: Job[] = [];
+    for (const c of cards) {
+      if (!isPmRole(c.title)) continue;
+      if (!isUsLocation(c.loc)) continue;
+
+      // Google search results don't expose posting date — use blank
+      const datePosted = "—";
+
+      const applyUrl = c.href.startsWith("http")
+        ? c.href
+        : `https://careers.google.com/${c.href}`;
+
+      jobs.push({
+        id:          makeId("google", c.jobId || applyUrl.slice(-20)),
+        company:     "Google",
+        title:       c.title,
+        location:    c.loc,
+        workType:    workTypeFrom(c.loc),
+        datePosted,
+        applyUrl,
+        careersUrl,
+        earlyCareer: isEarlyCareer(c.title, ""),
+        description: "",
+      });
+    }
+
+    return jobs;
   } finally {
     await browser.close();
   }
-
-  if (capturedJobs.length === 0) {
-    throw new Error("Playwright loaded Google Careers but captured no API job data");
-  }
-
-  const jobs: Job[] = [];
-  const cutoff = getDateCutoff();
-
-  for (const j of capturedJobs) {
-    const title = j.title ?? "";
-    if (!isPmRole(title)) continue;
-
-    const loc = j.locations?.[0]?.address ?? "";
-    if (!isUsLocation(loc)) continue;
-
-    const datePosted = j.publishTime ? formatDate(j.publishTime) : "—";
-    if (datePosted !== "—" && datePosted < cutoff) continue;
-
-    const descText = (j.description ?? "").replace(/<[^>]+>/g, " ");
-    if (!passesExperienceFilter(descText)) continue;
-
-    const applyUrl = j.applicationInfo?.uris?.[0] ?? careersUrl;
-    const jobId    = j.name?.split("/").pop() ?? String(jobs.length);
-
-    jobs.push({
-      id:          makeId("google", jobId),
-      company:     "Google",
-      title,
-      location:    loc,
-      workType:    workTypeFrom(loc),
-      datePosted,
-      applyUrl,
-      careersUrl,
-      earlyCareer: isEarlyCareer(title, descText),
-      description: j.description ?? descText,
-    });
-  }
-
-  return jobs;
 }
 
 async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job[]> {
-  // 1. Direct API (fastest — same endpoint Google\\'s own SPA calls)
-  try {
-    const jobs = await scrapeGoogleApi(careersUrl);
-    if (jobs.length > 0) {
-      console.log(`[scraper] Google: ${jobs.length} jobs via Careers API`);
-      return jobs;
-    }
-    console.warn("[scraper] Google Careers API returned 0 results — trying headless");
-  } catch (err) {
-    console.warn(`[scraper] Google Careers API failed: ${err instanceof Error ? err.message : err} — trying headless`);
-  }
-
-  // 2. Playwright headless (JS-renders the SPA, intercepts API calls)
+  // 1. Playwright headless — renders Google Careers SPA, extracts real DOM cards
   try {
     const jobs = await scrapeGooglePlaywright(careersUrl);
     if (jobs.length > 0) {
@@ -754,7 +684,7 @@ async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job
     );
   }
 
-  // 3. LinkedIn fallback (unchanged existing behaviour)
+  // 2. LinkedIn fallback (unchanged existing behaviour)
   console.log("[scraper] Google: using LinkedIn fallback");
   return scrapeLinkedIn("Google", linkedInId, careersUrl);
 }
