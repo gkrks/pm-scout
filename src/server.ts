@@ -816,9 +816,12 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     });
     list.sort(function(a, b) {
       var av = a[sortCol], bv = b[sortCol];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
+      // Always sink missing/placeholder values to the bottom
+      var aMissing = (av == null || av === '—');
+      var bMissing = (bv == null || bv === '—');
+      if (aMissing && bMissing) return 0;
+      if (aMissing) return 1;
+      if (bMissing) return -1;
       if (av < bv) return sortDir;
       if (av > bv) return -sortDir;
       return 0;
