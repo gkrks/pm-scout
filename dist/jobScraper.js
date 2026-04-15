@@ -530,6 +530,41 @@ const CHROMIUM_ARGS = [
     "--no-first-run",
     "--mute-audio",
 ];
+// Known system Chromium paths — tried in order when Playwright's own browser is unavailable
+const SYSTEM_CHROMIUM_PATHS = [
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/google-chrome",
+];
+async function launchChromium() {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pw = require("playwright");
+    // 1. Try Playwright's own browser (installed to pw-browsers/ during build)
+    try {
+        const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+        console.log("[playwright] launched Playwright browser");
+        return browser;
+    }
+    catch (e) {
+        console.warn(`[playwright] own browser unavailable: ${e instanceof Error ? e.message : e}`);
+    }
+    // 2. Try known system Chromium paths (available on Render Debian images)
+    const fs = require("fs");
+    for (const executablePath of SYSTEM_CHROMIUM_PATHS) {
+        if (!fs.existsSync(executablePath))
+            continue;
+        try {
+            const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS, executablePath });
+            console.log(`[playwright] launched system chromium at ${executablePath}`);
+            return browser;
+        }
+        catch (e) {
+            console.warn(`[playwright] failed with ${executablePath}: ${e instanceof Error ? e.message : e}`);
+        }
+    }
+    throw new Error("No Chromium available — install playwright browser or system chromium");
+}
 // ── Google scraper ────────────────────────────────────────────────────────────
 // Google Careers is a JS-rendered Angular SPA with no public API.
 // NOTE: Google does not expose posting dates anywhere (confirmed via DOM, HTML
@@ -590,9 +625,7 @@ async function extractGoogleCards(page, careersUrl, sourceLabel) {
 }
 async function scrapeGooglePlaywright(careersUrl, earlyCareerUrl) {
     return withPlaywright(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pw = require("playwright");
-        const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+        const browser = await launchChromium();
         try {
             const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
             // ── Main careers page ─────────────────────────────────────────────────────
@@ -689,9 +722,7 @@ function metaGQLToJobs(rawJobs, careersUrl, sourceLabel) {
 }
 async function scrapeMetaPlaywright(careersUrl, earlyCareerUrl) {
     return withPlaywright(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pw = require("playwright");
-        const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+        const browser = await launchChromium();
         try {
             const context = await browser.newContext({ userAgent: LI_UA });
             // ── Main careers page ─────────────────────────────────────────────────────

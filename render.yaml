@@ -4,7 +4,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm ci --omit=dev && PLAYWRIGHT_BROWSERS_PATH=./pw-browsers npx playwright install chromium --with-deps || true
+    buildCommand: npm ci --omit=dev && (PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium --with-deps || apt-get install -y chromium-browser chromium || true)
     startCommand: node dist/index.js serve
     envVars:
       - key: NODE_ENV
