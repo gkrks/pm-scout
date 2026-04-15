@@ -828,6 +828,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       var ecBadge = j.earlyCareer
         ? ' <span style="font-size:0.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New Grad</span>'
         : '';
+      var srcBadge = j.sourceLabel === 'LinkedIn'
+        ? ' <span title="Sourced from LinkedIn — click Apply to view full listing" style="font-size:0.65rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">via LinkedIn</span>'
+        : '';
       var jr = jobResumes[j.id];
       var resumeCell = '<div class="cell-resume">' +
         '<button class="btn-job-upload" data-action="upload" data-id="' + esc(j.id) + '">' +
@@ -859,7 +862,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       }
       appliedCell += '</td>';
       return '<tr data-id="' + esc(j.id) + '"' + (appRecord ? ' class="row-applied"' : '') + '>' +
-        '<td><strong>' + esc(j.company) + '</strong></td>' +
+        '<td><strong>' + esc(j.company) + '</strong>' + srcBadge + '</td>' +
         '<td>' + esc(j.title) + ecBadge + '</td>' +
         '<td>' + esc(j.location || '—') + '</td>' +
         '<td><span class="wtype ' + workTypeClass(j.workType) + '">' + esc(j.workType) + '</span></td>' +
@@ -1411,6 +1414,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('mCompany').textContent = j.company;
     var titleHtml = esc(j.title);
     if (j.earlyCareer) titleHtml += ' <span style="font-size:0.7rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New Grad</span>';
+    if (j.sourceLabel === 'LinkedIn') titleHtml += ' <span title="Listing sourced from LinkedIn" style="font-size:0.7rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">via LinkedIn</span>';
     document.getElementById('mTitle').innerHTML = titleHtml;
     document.getElementById('mLocation').textContent  = j.location || '—';
 
@@ -1418,8 +1422,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     wt.innerHTML = '<span class="wtype ' + workTypeClass(j.workType) + '">' + esc(j.workType) + '</span>';
 
     var applyBtn = document.getElementById('mApply');
-    if (j.applyUrl) { applyBtn.href = j.applyUrl; applyBtn.style.display = ''; }
-    else            { applyBtn.style.display = 'none'; }
+    if (j.applyUrl) {
+      applyBtn.href = j.applyUrl;
+      applyBtn.style.display = '';
+      applyBtn.textContent = j.sourceLabel === 'LinkedIn' ? 'View on LinkedIn \u2192' : 'Apply';
+    } else {
+      applyBtn.style.display = 'none';
+    }
 
     // Score block
     var num = document.getElementById('mScoreNum');
@@ -1436,6 +1445,17 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 
     if (!summary && reqs.length === 0) {
       reqSection.style.display = 'none';
+      // For LinkedIn-sourced jobs show a notice instead of hiding the section
+      if (j.sourceLabel === 'LinkedIn') {
+        reqSection.style.display = '';
+        reqSection.innerHTML =
+          '<div style="padding:12px 16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;color:#0369a1;font-size:0.85rem;">' +
+          '<strong>Full job details on LinkedIn</strong><br>' +
+          'This listing was sourced from LinkedIn because ' + esc(j.company) + '\'s careers site requires browser rendering. ' +
+          '<a href="' + esc(j.applyUrl) + '" target="_blank" rel="noopener" style="color:#0369a1;font-weight:600;">Open on LinkedIn &rarr;</a> ' +
+          'to see the full description and apply via the company\'s official site.' +
+          '</div>';
+      }
       return;
     }
     reqSection.style.display = '';

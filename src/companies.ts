@@ -3,6 +3,7 @@ export interface Company {
   slug: string;
   platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta";
   careersUrl: string;
+  linkedInId?: string; // LinkedIn numeric company ID — used as aggregator fallback
 }
 
 /**
@@ -131,7 +132,7 @@ export function allCompanies(): Company[] {
 
     // ── Custom scrapers ─────────────────────────────────────────────────────── (3)
     { name: "Amazon",  slug: "amazon",  platform: "amazon" as const,  careersUrl: "https://www.amazon.jobs/en/teams/pmts" },
-    { name: "Google",  slug: "google",  platform: "google" as const,  careersUrl: "https://careers.google.com" },
-    { name: "Meta",    slug: "meta",    platform: "meta" as const,    careersUrl: "https://www.metacareers.com/jobs" },
+    { name: "Google",  slug: "google",  platform: "google" as const,  careersUrl: "https://careers.google.com",         linkedInId: "1441"  },
+    { name: "Meta",    slug: "meta",    platform: "meta" as const,    careersUrl: "https://www.metacareers.com/jobs",   linkedInId: "10667" },
   ];
 }

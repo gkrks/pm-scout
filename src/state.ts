@@ -34,6 +34,7 @@ export interface Job {
   summary?: RequirementsSummary;
   resumeAction?: string; // "apply_as_is" | "tailor_then_apply" | "skip"
   scoredWith?: string;   // "generic" | "uploaded"
+  sourceLabel?: string;  // undefined = official ATS, "LinkedIn" = aggregator fallback
 }
 
 // ── Scan / score status ───────────────────────────────────────────────────────

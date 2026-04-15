@@ -466,24 +466,114 @@ async function scrapeAmazon(careersUrl: string): Promise<Job[]> {
   return jobs;
 }
 
-// ── Google scraper ────────────────────────────────────────────────────────────
-// Google Careers is a fully JS-rendered SPA with no public JSON API.
-// We throw a descriptive error so it surfaces in the scan-error panel.
+// ── LinkedIn guest-API scraper ────────────────────────────────────────────────
+// LinkedIn's public guest job-search endpoint returns HTML job cards without
+// requiring authentication. Used as an aggregator fallback for companies whose
+// own career sites are JS-rendered SPAs (Google, Meta).
+//
+// Endpoint: /jobs-guest/jobs/api/seeMoreJobPostings/search
+// Key params: keywords, location, f_C (company ID), start, count
+// Rate limit: 1 req/s is safe; we stay well under that per scan.
 
-async function scrapeGoogle(careersUrl: string): Promise<Job[]> {
-  throw new Error(`JS-rendered SPA — no public API. Check ${careersUrl} directly.`);
+const LI_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+  "AppleWebKit/537.36 (KHTML, like Gecko) " +
+  "Chrome/120.0.0.0 Safari/537.36";
+
+async function scrapeLinkedIn(
+  companyName: string,
+  linkedInId: string,
+  careersUrl: string,
+): Promise<Job[]> {
+  const base = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search";
+  const jobs: Job[] = [];
+  const seen = new Set<string>(); // deduplicate by job URL
+  const cutoff = getDateCutoff();
+  const pageSize = 25;
+  let start = 0;
+
+  for (let page = 0; page < 4; page++) { // max 100 results (4 × 25)
+    const params = new URLSearchParams({
+      keywords: "product manager",
+      location: "United States",
+      f_C:      linkedInId,
+      start:    String(start),
+      count:    String(pageSize),
+    });
+
+    const resp = await (fetch as any)(`${base}?${params}`, {
+      headers: { "User-Agent": LI_UA },
+      timeout: FETCH_TIMEOUT_MS,
+    });
+
+    if (resp.status === 429) {
+      console.warn(`[scraper] LinkedIn rate-limited for ${companyName}, stopping pagination`);
+      break;
+    }
+    if (!resp.ok) throw new Error(`LinkedIn (${companyName}): HTTP ${resp.status}`);
+
+    const html: string = await resp.text();
+    if (!html.trim() || html.trim() === "<!DOCTYPE html>") break; // empty page
+
+    const $ = cheerio.load(html);
+    let pageCount = 0;
+
+    $(".base-search-card").each((_i, el) => {
+      const title = $(el).find(".base-search-card__title").text().trim();
+      const loc   = $(el).find(".job-search-card__location").text().trim();
+      const dt    = $(el).find("time").attr("datetime") ?? "";
+      const href  = $(el).find("a.base-card__full-link").attr("href") ?? "";
+
+      // Strip tracking params from LinkedIn URL
+      const cleanUrl = href.split("?")[0];
+      if (!cleanUrl || seen.has(cleanUrl)) return;
+      seen.add(cleanUrl);
+      pageCount++;
+
+      if (!isPmRole(title)) return;
+      if (!isUsLocation(loc)) return;
+
+      const datePosted = dt ? dt.slice(0, 10) : "—";
+      if (datePosted !== "—" && datePosted < cutoff) return;
+
+      // No description text available from LinkedIn search cards — experience
+      // filter is skipped here (fetching each detail page would hammer LinkedIn).
+      jobs.push({
+        id:          makeId(companyName, cleanUrl.replace(/[^a-z0-9]/gi, "-").slice(-30)),
+        company:     companyName,
+        title,
+        location:    loc,
+        workType:    workTypeFrom(loc),
+        datePosted,
+        applyUrl:    cleanUrl,    // LinkedIn job page — has "Apply on company website" button
+        careersUrl,
+        earlyCareer: isEarlyCareer(title, ""),
+        description: "",          // not available without individual page fetch
+        sourceLabel: "LinkedIn",  // marks this as aggregator-sourced
+      });
+    });
+
+    if (pageCount < pageSize) break; // last page
+    start += pageSize;
+  }
+
+  return jobs;
+}
+
+// ── Google scraper ────────────────────────────────────────────────────────────
+// Google Careers is a JS-rendered SPA with no public API.
+// Falls back to LinkedIn guest API using Google's LinkedIn company ID.
+
+async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job[]> {
+  return scrapeLinkedIn("Google", linkedInId, careersUrl);
 }
 
 // ── Meta scraper ──────────────────────────────────────────────────────────────
-// Uses the public Meta Careers JSON search endpoint.
+// Meta Careers requires authenticated session tokens.
+// Falls back to LinkedIn guest API using Meta's LinkedIn company ID.
 
-// ── Meta scraper ──────────────────────────────────────────────────────────────
-// Meta Careers is a fully JS-rendered SPA; their search endpoint requires
-// signed session tokens that are not publicly accessible without a browser.
-// We throw a descriptive error so it surfaces in the scan-error panel.
-
-async function scrapeMeta(careersUrl: string): Promise<Job[]> {
-  throw new Error(`JS-rendered SPA — no public API. Check ${careersUrl} directly.`);
+async function scrapeMeta(linkedInId: string, careersUrl: string): Promise<Job[]> {
+  return scrapeLinkedIn("Meta", linkedInId, careersUrl);
 }
 
 // ── Semaphore ─────────────────────────────────────────────────────────────────
@@ -542,9 +632,11 @@ export async function scrapeAll(): Promise<void> {
         } else if (company.platform === "amazon") {
           jobs = await scrapeAmazon(company.careersUrl);
         } else if (company.platform === "google") {
-          jobs = await scrapeGoogle(company.careersUrl);
+          if (!company.linkedInId) throw new Error("Google: no LinkedIn ID configured");
+          jobs = await scrapeGoogle(company.linkedInId, company.careersUrl);
         } else {
-          jobs = await scrapeMeta(company.careersUrl);
+          if (!company.linkedInId) throw new Error("Meta: no LinkedIn ID configured");
+          jobs = await scrapeMeta(company.linkedInId, company.careersUrl);
         }
 
         appState.jobs.push(...jobs);
