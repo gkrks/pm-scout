@@ -1451,9 +1451,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         reqSection.innerHTML =
           '<div style="padding:12px 16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;color:#0369a1;font-size:0.85rem;">' +
           '<strong>Full job details on LinkedIn</strong><br>' +
-          'This listing was sourced from LinkedIn because ' + esc(j.company) + '\'s careers site requires browser rendering. ' +
+          'This listing was sourced from LinkedIn because ' + esc(j.company) + '\\'s careers site requires browser rendering. ' +
           '<a href="' + esc(j.applyUrl) + '" target="_blank" rel="noopener" style="color:#0369a1;font-weight:600;">Open on LinkedIn &rarr;</a> ' +
-          'to see the full description and apply via the company\'s official site.' +
+          'to see the full description and apply via the company\\'s official site.' +
           '</div>';
       }
       return;
