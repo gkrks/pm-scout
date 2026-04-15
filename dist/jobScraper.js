@@ -540,7 +540,7 @@ const SYSTEM_CHROMIUM_PATHS = [
 async function launchChromium() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const pw = require("playwright");
-    // 1. Try Playwright's own browser (installed to pw-browsers/ during build)
+    // 1. Try Playwright's own browser (may already be installed)
     try {
         const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
         console.log("[playwright] launched Playwright browser");
@@ -549,7 +549,27 @@ async function launchChromium() {
     catch (e) {
         console.warn(`[playwright] own browser unavailable: ${e instanceof Error ? e.message : e}`);
     }
-    // 2. Try known system Chromium paths (available on Render Debian images)
+    // 2. Try installing browser at runtime (handles Render node_modules cache
+    //    skipping postinstall, or any other environment where install was missed)
+    try {
+        console.log("[playwright] attempting runtime browser install...");
+        const { execFileSync } = require("child_process");
+        // Find playwright CLI relative to this module
+        const pwCliPath = require.resolve("playwright/package.json").replace(/package\.json$/, "") + "node_modules/.bin/playwright";
+        const cli = require("fs").existsSync(pwCliPath) ? pwCliPath : "./node_modules/.bin/playwright";
+        execFileSync(cli, ["install", "chromium"], {
+            env: { ...process.env },
+            stdio: "inherit",
+            timeout: 120000,
+        });
+        const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+        console.log("[playwright] launched after runtime install");
+        return browser;
+    }
+    catch (e) {
+        console.warn(`[playwright] runtime install failed: ${e instanceof Error ? e.message : e}`);
+    }
+    // 3. Try known system Chromium paths (Render Debian base image)
     const fs = require("fs");
     for (const executablePath of SYSTEM_CHROMIUM_PATHS) {
         if (!fs.existsSync(executablePath))
@@ -563,7 +583,7 @@ async function launchChromium() {
             console.warn(`[playwright] failed with ${executablePath}: ${e instanceof Error ? e.message : e}`);
         }
     }
-    throw new Error("No Chromium available — install playwright browser or system chromium");
+    throw new Error("No Chromium available — all install attempts failed");
 }
 // ── Google scraper ────────────────────────────────────────────────────────────
 // Google Careers is a JS-rendered Angular SPA with no public API.
