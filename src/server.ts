@@ -628,7 +628,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 <script>
   var allJobs = [];
   var sortCol = 'datePosted';
-  var sortDir = -1; // -1 = desc (newest first)
+  var sortDir = 1; // 1 = desc (newest first)
   var currentJobId = null;
 
   // Per-job resumes persisted in localStorage: { [jobId]: { name, base64 } }
