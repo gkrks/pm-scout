@@ -565,8 +565,37 @@ async function scrapeLinkedIn(
   return jobs;
 }
 
+// ── Playwright serializer ─────────────────────────────────────────────────────
+// Only one Chromium instance at a time — each needs ~150-200 MB RAM which
+// is tight on Render free (512 MB total). Serialise all headless launches.
+
+let _pwQueue = Promise.resolve();
+function withPlaywright<T>(fn: () => Promise<T>): Promise<T> {
+  const next = _pwQueue.then(fn);
+  _pwQueue = next.then(() => { /* empty */ }, () => { /* empty */ });
+  return next;
+}
+
+// Common Chromium args for low-memory hosts (Render free, serverless)
+const CHROMIUM_ARGS = [
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--disable-blink-features=AutomationControlled",
+  "--disable-gpu",
+  "--no-zygote",
+  "--single-process",
+  "--disable-extensions",
+  "--disable-background-networking",
+  "--disable-sync",
+  "--no-first-run",
+  "--mute-audio",
+];
+
 // ── Google scraper ────────────────────────────────────────────────────────────
 // Google Careers is a JS-rendered Angular SPA with no public API.
+// NOTE: Google does not expose posting dates anywhere (confirmed via DOM, HTML
+//       source, and JSON-LD inspection) — datePosted will be "—".
 // Strategy:
 //   1. Playwright Chromium headless — renders the real page, extracts DOM cards
 //   2. LinkedIn guest API           — fallback if Playwright unavailable/fails
@@ -579,27 +608,12 @@ async function scrapeLinkedIn(
 //   URL:      <a> href (relative) — prepend https://careers.google.com/
 
 async function scrapeGooglePlaywright(careersUrl: string): Promise<Job[]> {
+  return withPlaywright(async () => {
   // Dynamic require — graceful if playwright binary not installed
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const pw = require("playwright") as typeof import("playwright");
 
-  const browser = await pw.chromium.launch({
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-blink-features=AutomationControlled",
-      "--disable-gpu",
-      "--no-zygote",
-      "--single-process",          // reduces memory on constrained hosts (Render free)
-      "--disable-extensions",
-      "--disable-background-networking",
-      "--disable-sync",
-      "--no-first-run",
-      "--mute-audio",
-    ],
-  });
+  const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
 
   try {
     const context = await browser.newContext({
@@ -675,6 +689,7 @@ async function scrapeGooglePlaywright(careersUrl: string): Promise<Job[]> {
   } finally {
     await browser.close();
   }
+  }); // end withPlaywright
 }
 
 async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job[]> {
@@ -695,6 +710,118 @@ async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job
   // 2. LinkedIn fallback (unchanged existing behaviour)
   console.log("[scraper] Google: using LinkedIn fallback");
   return scrapeLinkedIn("Google", linkedInId, careersUrl);
+}
+
+// ── Meta scraper ──────────────────────────────────────────────────────────────
+// Meta Careers is a React SPA. The page makes a GraphQL call to
+// metacareers.com/graphql that returns all matching jobs in one response.
+// NOTE: Meta does not expose posting dates anywhere — datePosted will be "—".
+// Strategy:
+//   1. Playwright — loads the page, intercepts the GraphQL response, extracts jobs
+//   2. LinkedIn guest API — fallback if Playwright unavailable/fails
+//
+// GraphQL response shape (verified 2026-04-15):
+//   data.job_search_with_featured_jobs.all_jobs[]
+//     id, title, locations[], teams[], sub_teams[]  (no date fields exposed)
+
+interface MetaGQLJob {
+  id: string;
+  title: string;
+  locations?: string[];
+  teams?: string[];
+}
+
+async function scrapeMetaPlaywright(careersUrl: string): Promise<Job[]> {
+  return withPlaywright(async () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pw = require("playwright") as typeof import("playwright");
+  const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+
+  const capturedJobs: MetaGQLJob[] = [];
+
+  try {
+    const page = await browser.newPage();
+    await page.setExtraHTTPHeaders({ "User-Agent": LI_UA });
+
+    // Intercept the GraphQL response that contains all job listings
+    page.on("response", async (resp) => {
+      if (!resp.url().includes("graphql")) return;
+      try {
+        const body = (await resp.json()) as { data?: { job_search_with_featured_jobs?: { all_jobs?: MetaGQLJob[] } } };
+        const jobs = body?.data?.job_search_with_featured_jobs?.all_jobs;
+        if (jobs?.length) capturedJobs.push(...jobs);
+      } catch { /* non-JSON response — skip */ }
+    });
+
+    // Filter by US offices and Product Management team upfront
+    await page.goto(
+      "https://www.metacareers.com/jobs?offices=United+States&teams=Product+Management&q=product+manager",
+      { waitUntil: "domcontentloaded", timeout: 35_000 },
+    );
+
+    // Wait long enough for GraphQL responses to complete (~8 s empirically)
+    await page.waitForTimeout(9_000);
+
+  } finally {
+    await browser.close();
+  }
+
+  if (capturedJobs.length === 0) {
+    throw new Error("Meta Playwright: no jobs captured from GraphQL response");
+  }
+
+  const jobs: Job[] = [];
+  const seen = new Set<string>();
+
+  for (const j of capturedJobs) {
+    if (seen.has(j.id)) continue;
+    seen.add(j.id);
+
+    const title = j.title ?? "";
+    if (!isPmRole(title)) continue;
+
+    // Filter to US locations — Meta locations are human-readable strings
+    const usLocs = (j.locations ?? []).filter((l) => isUsLocation(l));
+    if (usLocs.length === 0) continue;
+
+    const loc = usLocs[0];
+
+    jobs.push({
+      id:          makeId("meta", j.id),
+      company:     "Meta",
+      title,
+      location:    loc,
+      workType:    workTypeFrom(loc),
+      datePosted:  "—",  // Meta does not expose posting dates
+      applyUrl:    `https://www.metacareers.com/profile/job_details/${j.id}`,
+      careersUrl,
+      earlyCareer: isEarlyCareer(title, ""),
+      description: "",
+    });
+  }
+
+  return jobs;
+  }); // end withPlaywright
+}
+
+async function scrapeMeta(linkedInId: string, careersUrl: string): Promise<Job[]> {
+  // 1. Playwright — intercepts Meta\\'s own GraphQL job-search response
+  try {
+    const jobs = await scrapeMetaPlaywright(careersUrl);
+    if (jobs.length > 0) {
+      console.log(`[scraper] Meta: ${jobs.length} jobs via headless browser`);
+      return jobs;
+    }
+    console.warn("[scraper] Meta headless returned 0 results — using LinkedIn fallback");
+  } catch (err) {
+    console.warn(
+      `[scraper] Meta scraper failed: ${err instanceof Error ? err.message : err} — using LinkedIn fallback`,
+    );
+  }
+
+  // 2. LinkedIn fallback
+  console.log("[scraper] Meta: using LinkedIn fallback");
+  return scrapeLinkedIn("Meta", linkedInId, careersUrl);
 }
 
 // ── LinkedIn keyword scraper ──────────────────────────────────────────────────
@@ -768,13 +895,6 @@ export async function scrapeLinkedInByKeyword(
 }
 
 // ── Meta scraper ──────────────────────────────────────────────────────────────
-// Meta Careers requires authenticated session tokens.
-// Falls back to LinkedIn guest API using Meta's LinkedIn company ID.
-
-async function scrapeMeta(linkedInId: string, careersUrl: string): Promise<Job[]> {
-  return scrapeLinkedIn("Meta", linkedInId, careersUrl);
-}
-
 // ── Semaphore ─────────────────────────────────────────────────────────────────
 
 class Semaphore {
