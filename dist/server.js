@@ -435,6 +435,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       <option value="tailor_then_apply">Tailor first</option>
       <option value="skip">Skip</option>
     </select>
+    <button id="btnEarlyCareer" class="btn btn-secondary" title="Show only jobs from Early Careers / University portals or tagged as new-grad">🎓 Early Career Only</button>
   </div>
 
   <!-- Add Company panel -->
@@ -653,6 +654,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   var allJobs = [];
   var sortCol = 'datePosted';
   var sortDir = 1; // 1 = desc (newest first)
+  var earlyCareerOnly = false;
   var currentJobId = null;
 
   // Per-job resumes persisted in localStorage: { [jobId]: { name, base64 } }
@@ -836,6 +838,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       if (appliedJobs[j.id]) return false; // applied jobs move to their own section
       if (text && !(j.company+j.title+j.location).toLowerCase().includes(text)) return false;
       if (action && j.resumeAction !== action) return false;
+      if (earlyCareerOnly && !j.earlyCareer && j.sourceLabel !== 'Early Careers Portal') return false;
       return true;
     });
     list.sort(function(a, b) {
@@ -867,9 +870,11 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       var ecBadge = j.earlyCareer
         ? ' <span style="font-size:0.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New Grad</span>'
         : '';
-      var srcBadge = j.sourceLabel === 'LinkedIn'
-        ? ' <span title="Sourced from LinkedIn — click Apply to view full listing" style="font-size:0.65rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">via LinkedIn</span>'
-        : '';
+      var srcBadge = j.sourceLabel === 'Early Careers Portal'
+        ? ' <span title="Sourced from the company\'s dedicated Early Careers / University portal" style="font-size:0.65rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">🎓 Early Careers Portal</span>'
+        : j.sourceLabel === 'LinkedIn'
+          ? ' <span title="Sourced from LinkedIn — click Apply to view full listing" style="font-size:0.65rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;cursor:help;">via LinkedIn</span>'
+          : '';
       var jr = jobResumes[j.id];
       var resumeCell = '<div class="cell-resume">' +
         '<button class="btn-job-upload" data-action="upload" data-id="' + esc(j.id) + '">' +
@@ -1439,6 +1444,14 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 
   document.getElementById('filterText').addEventListener('input', renderTable);
   document.getElementById('filterAction').addEventListener('change', renderTable);
+  document.getElementById('btnEarlyCareer').addEventListener('click', function() {
+    earlyCareerOnly = !earlyCareerOnly;
+    this.style.background = earlyCareerOnly ? '#fef9c3' : '';
+    this.style.borderColor = earlyCareerOnly ? '#f59e0b' : '';
+    this.style.color = earlyCareerOnly ? '#854d0e' : '';
+    this.style.fontWeight = earlyCareerOnly ? '700' : '';
+    renderTable();
+  });
 
   // ── Modal ──────────────────────────────────────────────────────────────────
 
@@ -1453,7 +1466,8 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     document.getElementById('mCompany').textContent = j.company;
     var titleHtml = esc(j.title);
     if (j.earlyCareer) titleHtml += ' <span style="font-size:0.7rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New Grad</span>';
-    if (j.sourceLabel === 'LinkedIn') titleHtml += ' <span title="Listing sourced from LinkedIn" style="font-size:0.7rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">via LinkedIn</span>';
+    if (j.sourceLabel === 'Early Careers Portal') titleHtml += ' <span title="Sourced from the company\'s dedicated Early Careers / University portal" style="font-size:0.7rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">🎓 Early Careers Portal</span>';
+    else if (j.sourceLabel === 'LinkedIn') titleHtml += ' <span title="Listing sourced from LinkedIn" style="font-size:0.7rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">via LinkedIn</span>';
     document.getElementById('mTitle').innerHTML = titleHtml;
     document.getElementById('mLocation').textContent  = j.location || '—';
 

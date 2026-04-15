@@ -4,11 +4,12 @@ export interface Company {
     platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta" | "linkedin";
     careersUrl: string;
     linkedInId?: string;
+    earlyCareerUrl?: string;
 }
 /**
- * 100 top US tech companies — every slug verified live (HTTP 200) against the
- * Greenhouse boards-api or Lever postings API before inclusion.
- * Companies that use Workday, Ashby, or custom ATS are excluded (not scrapeable via API).
+ * ~150 top US tech companies.
+ * GH/LV slugs are verified against the public API before inclusion.
+ * Companies on Workday or custom ATS fall back to LinkedIn guest scraping.
  */
 export declare function allCompanies(): Company[];
 //# sourceMappingURL=companies.d.ts.map

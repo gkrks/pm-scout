@@ -399,7 +399,11 @@ function parseAmazonDate(s: string | undefined): string {
   return isNaN(d.getTime()) ? "—" : d.toISOString().slice(0, 10);
 }
 
-async function scrapeAmazon(careersUrl: string): Promise<Job[]> {
+async function fetchAmazonJobs(
+  query: string,
+  careersUrl: string,
+  sourceLabel?: string,
+): Promise<Job[]> {
   const base = "https://www.amazon.jobs/en/search.json";
   const jobs: Job[] = [];
   const cutoff = getDateCutoff();
@@ -410,12 +414,11 @@ async function scrapeAmazon(careersUrl: string): Promise<Job[]> {
     // Note: do NOT pass country=us — it returns 0 results due to an Amazon
     // API quirk. Instead filter by location format "US, ..." below.
     const params = new URLSearchParams({
-      base_query:   "product manager",
+      base_query:   query,
       result_limit: String(limit),
       offset:       String(offset),
     });
-    const url = `${base}?${params}`;
-    const resp = await fetchWithTimeout(url);
+    const resp = await fetchWithTimeout(`${base}?${params}`);
     if (!resp.ok) throw new Error(`Amazon jobs API: HTTP ${resp.status}`);
 
     const data = (await resp.json()) as AmazonResponse;
@@ -425,8 +428,6 @@ async function scrapeAmazon(careersUrl: string): Promise<Job[]> {
     for (const j of batch) {
       if (!isPmRole(j.title)) continue;
 
-      // Amazon location format: "US, WA, Seattle" | "Virtual" | "US, TX, Austin"
-      // Filter to US-only by checking country prefix or virtual/remote keywords.
       const loc = j.location ?? "";
       const locLower = loc.toLowerCase();
       const isUS = !loc ||
@@ -458,17 +459,40 @@ async function scrapeAmazon(careersUrl: string): Promise<Job[]> {
         careersUrl,
         earlyCareer: isEarlyCareer(j.title, descText),
         description: descText,
+        ...(sourceLabel ? { sourceLabel } : {}),
       });
     }
 
-    // If we got fewer than limit, we've exhausted the results
     if (batch.length < limit) break;
     offset += limit;
-    // Safety cap: don't pull more than 500 results
     if (offset >= 500) break;
   }
 
   return jobs;
+}
+
+async function scrapeAmazon(careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
+  // Main product manager search
+  const main = await fetchAmazonJobs("product manager", careersUrl);
+
+  // University / early-career pass — targets Amazon\\'s dedicated university portal
+  let university: Job[] = [];
+  if (earlyCareerUrl) {
+    try {
+      university = await fetchAmazonJobs(
+        "product manager new grad university",
+        earlyCareerUrl,
+        "Early Careers Portal",
+      );
+    } catch (err) {
+      console.warn(`[scraper] Amazon university pass failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  // Deduplicate: university results that match a main result by ICIMS id are skipped
+  const mainIds = new Set(main.map((j) => j.id));
+  const newUniversity = university.filter((j) => !mainIds.has(j.id));
+  return [...main, ...newUniversity];
 }
 
 // ── LinkedIn guest-API scraper ────────────────────────────────────────────────
@@ -607,95 +631,105 @@ const CHROMIUM_ARGS = [
 //   Job ID:   jsdata attr "Aiqs8c;{id};$N" on the inner div
 //   URL:      <a> href (relative) — prepend https://careers.google.com/
 
-async function scrapeGooglePlaywright(careersUrl: string): Promise<Job[]> {
+/** Shared helper — extracts job cards from a loaded Google Careers page */
+async function extractGoogleCards(
+  page: import("playwright").Page,
+  careersUrl: string,
+  sourceLabel?: string,
+): Promise<Job[]> {
+  await page.waitForSelector("li.lLd3Je", { timeout: 15_000 });
+
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1500);
+  }
+
+  type CardData = { title: string; loc: string; href: string; jobId: string };
+  const cards: CardData[] = await page.evaluate(() => {
+    const results: { title: string; loc: string; href: string; jobId: string }[] = [];
+    document.querySelectorAll("li.lLd3Je").forEach((li) => {
+      const title  = li.querySelector("h3")?.textContent?.trim() ?? "";
+      const locEl  = li.querySelector("span.r0wTof:not(.p3oCrc)") as HTMLElement | null;
+      const loc    = locEl?.textContent?.trim() ?? "";
+      const href   = (li.querySelector("a") as HTMLAnchorElement | null)?.href?.split("?")[0] ?? "";
+      const jsdata = (li.querySelector("[jsdata]") as HTMLElement | null)?.getAttribute("jsdata") ?? "";
+      const jobId  = jsdata.split(";")[1] ?? href.split("/").filter(Boolean).pop() ?? "";
+      if (title && href) results.push({ title, loc, href, jobId });
+    });
+    return results;
+  });
+
+  const jobs: Job[] = [];
+  for (const c of cards) {
+    if (!isPmRole(c.title)) continue;
+    if (!isUsLocation(c.loc)) continue;
+    const applyUrl = c.href.startsWith("http") ? c.href : `https://careers.google.com/${c.href}`;
+    jobs.push({
+      id:          makeId("google", c.jobId || applyUrl.slice(-20)),
+      company:     "Google",
+      title:       c.title,
+      location:    c.loc,
+      workType:    workTypeFrom(c.loc),
+      datePosted:  "—",
+      applyUrl,
+      careersUrl,
+      earlyCareer: isEarlyCareer(c.title, ""),
+      description: "",
+      ...(sourceLabel ? { sourceLabel } : {}),
+    });
+  }
+  return jobs;
+}
+
+async function scrapeGooglePlaywright(careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
   return withPlaywright(async () => {
-  // Dynamic require — graceful if playwright binary not installed
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const pw = require("playwright") as typeof import("playwright");
-
   const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
 
   try {
-    const context = await browser.newContext({
-      userAgent: LI_UA,
-      viewport:  { width: 1280, height: 900 },
-    });
-    const page = await context.newPage();
+    const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
 
-    await page.goto(
+    // ── Main careers page ─────────────────────────────────────────────────────
+    const mainPage = await context.newPage();
+    await mainPage.goto(
       "https://careers.google.com/jobs/results/?q=product+manager&location=United+States",
       { waitUntil: "networkidle", timeout: 35_000 },
     );
+    const mainJobs = await extractGoogleCards(mainPage, careersUrl);
+    await mainPage.close();
 
-    // Wait for at least one job card to appear
-    await page.waitForSelector("li.lLd3Je", { timeout: 15_000 });
-
-    // Scroll to trigger lazy-loading of additional results (up to ~60 cards)
-    for (let i = 0; i < 3; i++) {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(1500);
+    // ── Students / Early Careers page ─────────────────────────────────────────
+    let studentJobs: Job[] = [];
+    if (earlyCareerUrl) {
+      try {
+        const studentPage = await context.newPage();
+        // students/ URL supports the same search params
+        await studentPage.goto(
+          earlyCareerUrl + "?q=product+manager&location=United+States",
+          { waitUntil: "networkidle", timeout: 35_000 },
+        );
+        studentJobs = await extractGoogleCards(studentPage, earlyCareerUrl, "Early Careers Portal");
+        await studentPage.close();
+      } catch (err) {
+        console.warn(`[scraper] Google students page failed: ${err instanceof Error ? err.message : err}`);
+      }
     }
 
-    // Extract card data from DOM
-    type CardData = { title: string; loc: string; href: string; jobId: string };
-    const cards: CardData[] = await page.evaluate(() => {
-      const results: { title: string; loc: string; href: string; jobId: string }[] = [];
-      document.querySelectorAll("li.lLd3Je").forEach((li) => {
-        const title = li.querySelector("h3")?.textContent?.trim() ?? "";
+    // Merge — student page jobs that already appear on main page are deduplicated
+    const mainIds = new Set(mainJobs.map((j) => j.id));
+    const newStudentJobs = studentJobs.filter((j) => !mainIds.has(j.id));
+    return [...mainJobs, ...newStudentJobs];
 
-        // First .r0wTof without .p3oCrc is the primary location
-        const locEl = li.querySelector("span.r0wTof:not(.p3oCrc)") as HTMLElement | null;
-        const loc = locEl?.textContent?.trim() ?? "";
-
-        // Relative href on the card anchor — strip query params
-        const href = (li.querySelector("a") as HTMLAnchorElement | null)?.href?.split("?")[0] ?? "";
-
-        // Job numeric ID from jsdata: "Aiqs8c;{id};$N"
-        const jsdata = (li.querySelector("[jsdata]") as HTMLElement | null)?.getAttribute("jsdata") ?? "";
-        const jobId  = jsdata.split(";")[1] ?? href.split("/").filter(Boolean).pop() ?? "";
-
-        if (title && href) results.push({ title, loc, href, jobId });
-      });
-      return results;
-    });
-
-    const jobs: Job[] = [];
-    for (const c of cards) {
-      if (!isPmRole(c.title)) continue;
-      if (!isUsLocation(c.loc)) continue;
-
-      // Google search results don't expose posting date — use blank
-      const datePosted = "—";
-
-      const applyUrl = c.href.startsWith("http")
-        ? c.href
-        : `https://careers.google.com/${c.href}`;
-
-      jobs.push({
-        id:          makeId("google", c.jobId || applyUrl.slice(-20)),
-        company:     "Google",
-        title:       c.title,
-        location:    c.loc,
-        workType:    workTypeFrom(c.loc),
-        datePosted,
-        applyUrl,
-        careersUrl,
-        earlyCareer: isEarlyCareer(c.title, ""),
-        description: "",
-      });
-    }
-
-    return jobs;
   } finally {
     await browser.close();
   }
   }); // end withPlaywright
 }
 
-async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job[]> {
-  // 1. Playwright headless — renders Google Careers SPA, extracts real DOM cards
+async function scrapeGoogle(linkedInId: string, careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
   try {
-    const jobs = await scrapeGooglePlaywright(careersUrl);
+    const jobs = await scrapeGooglePlaywright(careersUrl, earlyCareerUrl);
     if (jobs.length > 0) {
       console.log(`[scraper] Google: ${jobs.length} jobs via headless browser`);
       return jobs;
@@ -706,8 +740,6 @@ async function scrapeGoogle(linkedInId: string, careersUrl: string): Promise<Job
       `[scraper] Google careers requires JS rendering — fallback triggered: ${err instanceof Error ? err.message : err}`,
     );
   }
-
-  // 2. LinkedIn fallback (unchanged existing behaviour)
   console.log("[scraper] Google: using LinkedIn fallback");
   return scrapeLinkedIn("Google", linkedInId, careersUrl);
 }
@@ -731,95 +763,122 @@ interface MetaGQLJob {
   teams?: string[];
 }
 
-async function scrapeMetaPlaywright(careersUrl: string): Promise<Job[]> {
-  return withPlaywright(async () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const pw = require("playwright") as typeof import("playwright");
-  const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+/** Shared helper — intercepts Meta GraphQL responses and builds Job objects */
+async function fetchMetaGraphQLJobs(
+  page: import("playwright").Page,
+  url: string,
+  careersUrl: string,
+  sourceLabel?: string,
+): Promise<MetaGQLJob[]> {
+  const captured: MetaGQLJob[] = [];
+  page.on("response", async (resp) => {
+    if (!resp.url().includes("graphql")) return;
+    try {
+      const body = (await resp.json()) as { data?: { job_search_with_featured_jobs?: { all_jobs?: MetaGQLJob[] } } };
+      const jobs = body?.data?.job_search_with_featured_jobs?.all_jobs;
+      if (jobs?.length) captured.push(...jobs);
+    } catch { /* non-JSON — skip */ }
+  });
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 35_000 });
+  await page.waitForTimeout(9_000);
+  return captured;
+}
 
-  const capturedJobs: MetaGQLJob[] = [];
-
-  try {
-    const page = await browser.newPage();
-    await page.setExtraHTTPHeaders({ "User-Agent": LI_UA });
-
-    // Intercept the GraphQL response that contains all job listings
-    page.on("response", async (resp) => {
-      if (!resp.url().includes("graphql")) return;
-      try {
-        const body = (await resp.json()) as { data?: { job_search_with_featured_jobs?: { all_jobs?: MetaGQLJob[] } } };
-        const jobs = body?.data?.job_search_with_featured_jobs?.all_jobs;
-        if (jobs?.length) capturedJobs.push(...jobs);
-      } catch { /* non-JSON response — skip */ }
-    });
-
-    // Filter by US offices and Product Management team upfront
-    await page.goto(
-      "https://www.metacareers.com/jobs?offices=United+States&teams=Product+Management&q=product+manager",
-      { waitUntil: "domcontentloaded", timeout: 35_000 },
-    );
-
-    // Wait long enough for GraphQL responses to complete (~8 s empirically)
-    await page.waitForTimeout(9_000);
-
-  } finally {
-    await browser.close();
-  }
-
-  if (capturedJobs.length === 0) {
-    throw new Error("Meta Playwright: no jobs captured from GraphQL response");
-  }
-
+function metaGQLToJobs(
+  rawJobs: MetaGQLJob[],
+  careersUrl: string,
+  sourceLabel?: string,
+): Job[] {
   const jobs: Job[] = [];
   const seen = new Set<string>();
-
-  for (const j of capturedJobs) {
+  for (const j of rawJobs) {
     if (seen.has(j.id)) continue;
     seen.add(j.id);
-
     const title = j.title ?? "";
     if (!isPmRole(title)) continue;
-
-    // Filter to US locations — Meta locations are human-readable strings
     const usLocs = (j.locations ?? []).filter((l) => isUsLocation(l));
     if (usLocs.length === 0) continue;
-
     const loc = usLocs[0];
-
     jobs.push({
       id:          makeId("meta", j.id),
       company:     "Meta",
       title,
       location:    loc,
       workType:    workTypeFrom(loc),
-      datePosted:  "—",  // Meta does not expose posting dates
+      datePosted:  "—",
       applyUrl:    `https://www.metacareers.com/profile/job_details/${j.id}`,
       careersUrl,
       earlyCareer: isEarlyCareer(title, ""),
       description: "",
+      ...(sourceLabel ? { sourceLabel } : {}),
     });
   }
-
   return jobs;
+}
+
+async function scrapeMetaPlaywright(careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
+  return withPlaywright(async () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const pw = require("playwright") as typeof import("playwright");
+  const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+
+  try {
+    const context = await browser.newContext({ userAgent: LI_UA });
+
+    // ── Main careers page ─────────────────────────────────────────────────────
+    const mainPage = await context.newPage();
+    const mainRaw = await fetchMetaGraphQLJobs(
+      mainPage,
+      "https://www.metacareers.com/jobs?offices=United+States&teams=Product+Management&q=product+manager",
+      careersUrl,
+    );
+    await mainPage.close();
+    const mainJobs = metaGQLToJobs(mainRaw, careersUrl);
+
+    // ── Early Careers portal ──────────────────────────────────────────────────
+    let earlyJobs: Job[] = [];
+    if (earlyCareerUrl) {
+      try {
+        const earlyPage = await context.newPage();
+        const earlyRaw = await fetchMetaGraphQLJobs(
+          earlyPage,
+          earlyCareerUrl,
+          earlyCareerUrl,
+          "Early Careers Portal",
+        );
+        await earlyPage.close();
+        earlyJobs = metaGQLToJobs(earlyRaw, earlyCareerUrl, "Early Careers Portal");
+      } catch (err) {
+        console.warn(`[scraper] Meta early career page failed: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+
+    if (mainJobs.length === 0 && earlyJobs.length === 0) {
+      throw new Error("Meta Playwright: no jobs captured from GraphQL responses");
+    }
+
+    // Deduplicate early-career results that are already in main
+    const mainIds = new Set(mainJobs.map((j) => j.id));
+    const newEarlyJobs = earlyJobs.filter((j) => !mainIds.has(j.id));
+    return [...mainJobs, ...newEarlyJobs];
+
+  } finally {
+    await browser.close();
+  }
   }); // end withPlaywright
 }
 
-async function scrapeMeta(linkedInId: string, careersUrl: string): Promise<Job[]> {
-  // 1. Playwright — intercepts Meta\\'s own GraphQL job-search response
+async function scrapeMeta(linkedInId: string, careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
   try {
-    const jobs = await scrapeMetaPlaywright(careersUrl);
+    const jobs = await scrapeMetaPlaywright(careersUrl, earlyCareerUrl);
     if (jobs.length > 0) {
       console.log(`[scraper] Meta: ${jobs.length} jobs via headless browser`);
       return jobs;
     }
     console.warn("[scraper] Meta headless returned 0 results — using LinkedIn fallback");
   } catch (err) {
-    console.warn(
-      `[scraper] Meta scraper failed: ${err instanceof Error ? err.message : err} — using LinkedIn fallback`,
-    );
+    console.warn(`[scraper] Meta scraper failed: ${err instanceof Error ? err.message : err} — using LinkedIn fallback`);
   }
-
-  // 2. LinkedIn fallback
   console.log("[scraper] Meta: using LinkedIn fallback");
   return scrapeLinkedIn("Meta", linkedInId, careersUrl);
 }
@@ -919,13 +978,14 @@ export async function scrapeCompany(
   name: string,
   careersUrl: string,
   linkedInId?: string,
+  earlyCareerUrl?: string,
 ): Promise<Job[]> {
   if (platform === "greenhouse") return scrapeGreenhouse(name, slug, careersUrl);
   if (platform === "lever")      return scrapeLever(name, slug, careersUrl);
   if (platform === "ashby")      return scrapeAshby(name, slug, careersUrl);
-  if (platform === "amazon")     return scrapeAmazon(careersUrl);
-  if (platform === "google")     return scrapeGoogle(linkedInId ?? "", careersUrl);
-  if (platform === "meta")       return scrapeMeta(linkedInId ?? "", careersUrl);
+  if (platform === "amazon")     return scrapeAmazon(careersUrl, earlyCareerUrl);
+  if (platform === "google")     return scrapeGoogle(linkedInId ?? "", careersUrl, earlyCareerUrl);
+  if (platform === "meta")       return scrapeMeta(linkedInId ?? "", careersUrl, earlyCareerUrl);
   // "linkedin" — with or without company ID
   if (linkedInId) return scrapeLinkedIn(name, linkedInId, careersUrl);
   return scrapeLinkedInByKeyword(name, careersUrl);
@@ -969,13 +1029,13 @@ export async function scrapeAll(): Promise<void> {
         } else if (company.platform === "ashby") {
           jobs = await scrapeAshby(company.name, company.slug, company.careersUrl);
         } else if (company.platform === "amazon") {
-          jobs = await scrapeAmazon(company.careersUrl);
+          jobs = await scrapeAmazon(company.careersUrl, company.earlyCareerUrl);
         } else if (company.platform === "google") {
           if (!company.linkedInId) throw new Error("Google: no LinkedIn ID configured");
-          jobs = await scrapeGoogle(company.linkedInId, company.careersUrl);
+          jobs = await scrapeGoogle(company.linkedInId, company.careersUrl, company.earlyCareerUrl);
         } else if (company.platform === "meta") {
           if (!company.linkedInId) throw new Error("Meta: no LinkedIn ID configured");
-          jobs = await scrapeMeta(company.linkedInId, company.careersUrl);
+          jobs = await scrapeMeta(company.linkedInId, company.careersUrl, company.earlyCareerUrl);
         } else {
           // platform === "linkedin" — Workday/custom ATS companies
           if (company.linkedInId) {
