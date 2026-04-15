@@ -1,8 +1,9 @@
 export interface Company {
     name: string;
     slug: string;
-    platform: "greenhouse" | "lever";
+    platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta" | "linkedin";
     careersUrl: string;
+    linkedInId?: string;
 }
 /**
  * 100 top US tech companies — every slug verified live (HTTP 200) against the

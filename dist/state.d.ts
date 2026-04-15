@@ -27,6 +27,12 @@ export interface Job {
     summary?: RequirementsSummary;
     resumeAction?: string;
     scoredWith?: string;
+    sourceLabel?: string;
+}
+export interface CompanyError {
+    name: string;
+    reason: string;
+    careersUrl: string;
 }
 export interface ScanStatus {
     state: string;
@@ -36,6 +42,7 @@ export interface ScanStatus {
     completedAt: string;
     jobCount: number;
     errors: number;
+    companyErrors: CompanyError[];
     scoreProgress: number;
     scoreTotal: number;
     scoreLabel: string;
@@ -67,6 +74,7 @@ declare class AppState {
         completedAt: string;
         jobCount: number;
         errors: number;
+        companyErrors: CompanyError[];
         scoreProgress: number;
         scoreTotal: number;
         scoreLabel: string;

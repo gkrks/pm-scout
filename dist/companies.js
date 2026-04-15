@@ -9,7 +9,12 @@ exports.allCompanies = allCompanies;
 function allCompanies() {
     const gh = (name, slug, url) => ({ name, slug, platform: "greenhouse", careersUrl: url });
     const lv = (name, slug, url) => ({ name, slug, platform: "lever", careersUrl: url });
-    return [
+    // Merge static list with user-added companies (loaded lazily to avoid
+    // circular deps at module load time — imported inline here).
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { loadCustomCompanies } = require("./customCompanies");
+    const custom = loadCustomCompanies();
+    const staticList = [
         // ── Greenhouse ─────────────────────────────────────────────────────────── (83)
         gh("Airbnb", "airbnb", "https://careers.airbnb.com"),
         gh("Stripe", "stripe", "https://stripe.com/jobs"),
@@ -94,6 +99,9 @@ function allCompanies() {
         gh("Salesloft", "salesloft", "https://salesloft.com/company/careers"),
         gh("Five9", "five9", "https://five9.com/about/careers"),
         gh("Dialpad", "dialpad", "https://dialpad.com/company/careers"),
+        gh("Natera", "natera", "https://natera.com/careers"),
+        gh("Omada Health", "omadahealth", "https://www.omadahealth.com/careers"),
+        gh("Lucid Software", "lucidsoftware", "https://www.lucidsoftware.com/careers"),
         // ── Lever ──────────────────────────────────────────────────────────────── (17)
         lv("Plaid", "plaid", "https://plaid.com/careers"),
         lv("Outreach", "outreach", "https://outreach.io/company/careers"),
@@ -106,6 +114,34 @@ function allCompanies() {
         lv("Highspot", "highspot", "https://highspot.com/careers"),
         lv("Mindtickle", "mindtickle", "https://mindtickle.com/careers"),
         lv("Freshworks", "freshworks", "https://freshworks.com/company/careers"),
+        lv("Girls Who Code", "girlswhocode", "https://girlswhocode.com/careers"),
+        // ── Ashby ──────────────────────────────────────────────────────────────── (12)
+        { name: "Linear", slug: "linear", platform: "ashby", careersUrl: "https://linear.app/careers" },
+        { name: "Ramp", slug: "ramp", platform: "ashby", careersUrl: "https://ramp.com/careers" },
+        { name: "Mercury", slug: "mercury", platform: "ashby", careersUrl: "https://mercury.com/careers" },
+        { name: "Retool", slug: "retool", platform: "ashby", careersUrl: "https://retool.com/careers" },
+        { name: "Watershed", slug: "watershed", platform: "ashby", careersUrl: "https://watershed.com/careers" },
+        { name: "Notion", slug: "notion", platform: "ashby", careersUrl: "https://notion.so/careers" },
+        { name: "Descript", slug: "descript", platform: "ashby", careersUrl: "https://descript.com/careers" },
+        { name: "Deel", slug: "deel", platform: "ashby", careersUrl: "https://deel.com/careers" },
+        { name: "Pave", slug: "pave", platform: "ashby", careersUrl: "https://pave.com/careers" },
+        { name: "Coda", slug: "coda", platform: "ashby", careersUrl: "https://coda.io/careers" },
+        { name: "Hex", slug: "hex", platform: "ashby", careersUrl: "https://hex.tech/company/careers" },
+        { name: "Tome", slug: "tome", platform: "ashby", careersUrl: "https://tome.app/careers" },
+        // ── Custom scrapers ─────────────────────────────────────────────────────── (3)
+        { name: "Amazon", slug: "amazon", platform: "amazon", careersUrl: "https://www.amazon.jobs/en/teams/pmts" },
+        { name: "Google", slug: "google", platform: "google", careersUrl: "https://careers.google.com", linkedInId: "1441" },
+        { name: "Meta", slug: "meta", platform: "meta", careersUrl: "https://www.metacareers.com/jobs", linkedInId: "10667" },
+        // ── LinkedIn-scraped (Workday or custom ATS — no public API) ────────────── (5)
+        { name: "IBM", slug: "ibm", platform: "linkedin", careersUrl: "https://www.ibm.com/us-en/employment", linkedInId: "1009" },
+        { name: "Microsoft", slug: "microsoft", platform: "linkedin", careersUrl: "https://careers.microsoft.com", linkedInId: "1035" },
+        { name: "Target", slug: "target", platform: "linkedin", careersUrl: "https://corporate.target.com/careers", linkedInId: "2068" },
+        { name: "BlackRock", slug: "blackrock", platform: "linkedin", careersUrl: "https://careers.blackrock.com", linkedInId: "162479" },
+        { name: "Zebra Technologies", slug: "zebra", platform: "linkedin", careersUrl: "https://www.zebra.com/us/en/about-zebra/careers.html", linkedInId: "1038" },
     ];
+    // Merge: custom companies override static entries with same slug
+    const staticSlugs = new Set(staticList.map((c) => c.slug));
+    const newCustom = custom.filter((c) => !staticSlugs.has(c.slug));
+    return [...staticList, ...newCustom];
 }
 //# sourceMappingURL=companies.js.map
