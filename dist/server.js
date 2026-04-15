@@ -368,9 +368,15 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .btn-remove-interview { font-size:0.68rem; padding:2px 7px; border-radius:4px; background:#fee2e2; color:#b91c1c; border:1px solid #fecdd3; cursor:pointer; font-weight:600; flex-shrink:0; }
     .btn-add-interview { font-size:0.72rem; padding:3px 10px; border-radius:5px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; cursor:pointer; font-weight:600; }
     .notes-history { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; max-height:200px; overflow-y:auto; }
-    .note-entry { background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; padding:8px 12px; }
-    .note-ts { font-size:0.7rem; color:#94a3b8; margin-bottom:3px; }
+    .note-entry { background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; padding:8px 12px; position:relative; }
+    .note-ts { font-size:0.7rem; color:#94a3b8; margin-bottom:3px; display:flex; align-items:center; gap:6px; }
     .note-text { font-size:0.83rem; color:#1e293b; line-height:1.5; white-space:pre-wrap; }
+    .btn-note-edit { font-size:0.65rem; padding:1px 6px; border-radius:4px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; cursor:pointer; font-weight:600; margin-left:auto; }
+    .btn-note-edit:hover { background:#e2e8f0; }
+    .note-edit-area { width:100%; min-height:60px; padding:6px 8px; border:1px solid #93c5fd; border-radius:6px; font-size:0.83rem; color:#1e293b; resize:vertical; font-family:inherit; line-height:1.5; box-sizing:border-box; margin-top:4px; }
+    .note-edit-actions { display:flex; gap:6px; margin-top:6px; }
+    .btn-note-save { font-size:0.72rem; padding:3px 10px; border-radius:5px; background:#2563eb; color:#fff; border:none; cursor:pointer; font-weight:600; }
+    .btn-note-cancel { font-size:0.72rem; padding:3px 10px; border-radius:5px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; cursor:pointer; font-weight:600; }
     .notes-empty { font-size:0.82rem; color:#94a3b8; font-style:italic; margin-bottom:10px; }
     .btn-unapply { font-size:0.65rem; padding:2px 7px; border-radius:4px; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; cursor:pointer; font-weight:600; }
     .btn-unapply:hover { background:#ffedd5; }
@@ -1041,11 +1047,14 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       el.innerHTML = '<div class="notes-empty">No notes yet.</div>';
       return;
     }
-    el.innerHTML = notes.map(function(n) {
+    el.innerHTML = notes.map(function(n, i) {
       var when = n.ts ? new Date(n.ts).toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '';
-      return '<div class="note-entry"><div class="note-ts">' + esc(when) + '</div><div class="note-text">' + esc(n.text) + '</div></div>';
+      return '<div class="note-entry" data-note-idx="' + i + '">' +
+        '<div class="note-ts">' + esc(when) + '<button class="btn-note-edit" data-action="edit-note" data-idx="' + i + '">Edit</button></div>' +
+        '<div class="note-text">' + esc(n.text) + '</div>' +
+        '</div>';
     }).join('');
-    el.scrollTop = el.scrollHeight; // scroll to latest
+    el.scrollTop = el.scrollHeight;
   }
 
   // Add Note — appends to list
@@ -1067,6 +1076,50 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     btn.textContent = 'Added \u2713';
     btn.classList.add('detail-save-ok');
     setTimeout(function() { btn.textContent = 'Add Note'; btn.classList.remove('detail-save-ok'); }, 1200);
+  });
+
+  // Notes history — inline edit / save / cancel
+  document.getElementById('adNotesHistory').addEventListener('click', function(e) {
+    var jobId = currentDetailsJobId;
+    if (!jobId || !appliedJobs[jobId]) return;
+
+    // Edit button → swap text div for textarea
+    var editBtn = e.target.closest('[data-action="edit-note"]');
+    if (editBtn) {
+      var entry = editBtn.closest('.note-entry');
+      var idx   = parseInt(editBtn.dataset.idx, 10);
+      var text  = appliedJobs[jobId].notes[idx].text;
+      entry.querySelector('.note-text').style.display = 'none';
+      editBtn.style.display = 'none';
+      entry.insertAdjacentHTML('beforeend',
+        '<textarea class="note-edit-area" data-edit-idx="' + idx + '">' + esc(text) + '</textarea>' +
+        '<div class="note-edit-actions">' +
+          '<button class="btn-note-save" data-action="save-note" data-idx="' + idx + '">Save</button>' +
+          '<button class="btn-note-cancel" data-action="cancel-note">Cancel</button>' +
+        '</div>'
+      );
+      entry.querySelector('.note-edit-area').focus();
+      return;
+    }
+
+    // Save button → persist updated text
+    var saveBtn = e.target.closest('[data-action="save-note"]');
+    if (saveBtn) {
+      var idx      = parseInt(saveBtn.dataset.idx, 10);
+      var entry    = saveBtn.closest('.note-entry');
+      var newText  = entry.querySelector('.note-edit-area').value.trim();
+      if (newText) {
+        appliedJobs[jobId].notes[idx].text = newText;
+        appendLog(jobId, 'Note edited');
+        persistApplied();
+      }
+      renderNotesHistory(appliedJobs[jobId].notes);
+      return;
+    }
+
+    // Cancel button → just re-render
+    var cancelBtn = e.target.closest('[data-action="cancel-note"]');
+    if (cancelBtn) { renderNotesHistory(appliedJobs[jobId].notes); return; }
   });
 
   // Dates auto-save on change — no button needed
