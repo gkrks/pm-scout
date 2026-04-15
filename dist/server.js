@@ -639,13 +639,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   var currentDetailsJobId = null;
 
   var STATUSES = [
-    { value: 'applied',               label: 'Applied',               cls: 'status-applied' },
-    { value: 'recruiter_reached_out', label: 'Recruiter Reached Out', cls: 'status-recruiter' },
-    { value: 'interview_scheduled',   label: 'Interview Scheduled',   cls: 'status-interview-sched' },
-    { value: 'interview_completed',   label: 'Interview Completed',   cls: 'status-interview-done' },
-    { value: 'offer_received',        label: 'Offer Received',        cls: 'status-offer' },
-    { value: 'rejected',              label: 'Rejected',              cls: 'status-rejected' },
-    { value: 'withdrawn',             label: 'Withdrawn',             cls: 'status-withdrawn' }
+    { value: 'applied',               label: 'Applied',               cls: 'status-applied',          color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe' },
+    { value: 'recruiter_reached_out', label: 'Recruiter Reached Out', cls: 'status-recruiter',         color:'#7e22ce', bg:'#faf5ff', border:'#e9d5ff' },
+    { value: 'interview_scheduled',   label: 'Interview Scheduled',   cls: 'status-interview-sched',  color:'#854d0e', bg:'#fef9c3', border:'#fde68a' },
+    { value: 'interview_completed',   label: 'Interview Completed',   cls: 'status-interview-done',   color:'#0f766e', bg:'#f0fdfa', border:'#99f6e4' },
+    { value: 'offer_received',        label: 'Offer Received',        cls: 'status-offer',            color:'#15803d', bg:'#dcfce7', border:'#bbf7d0' },
+    { value: 'rejected',              label: 'Rejected',              cls: 'status-rejected',         color:'#b91c1c', bg:'#fee2e2', border:'#fecdd3' },
+    { value: 'withdrawn',             label: 'Withdrawn',             cls: 'status-withdrawn',        color:'#64748b', bg:'#f1f5f9', border:'#e2e8f0' }
   ];
 
   function statusInfo(val) {
@@ -888,7 +888,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       return '<tr' + rowCls + ' data-applied-id="' + esc(jobId) + '">' +
         '<td><strong>' + esc(r.company || '—') + '</strong></td>' +
         '<td>' + titleCell + '</td>' +
-        '<td><select class="status-select-inline" data-action="status-change" data-id="' + esc(jobId) + '">' + statusOpts + '</select></td>' +
+        '<td><select class="status-select-inline" style="color:' + si.color + ';background:' + si.bg + ';border-color:' + si.border + '" data-action="status-change" data-id="' + esc(jobId) + '">' + statusOpts + '</select></td>' +
         '<td style="font-size:0.78rem;color:#475569">' + esc(fmtDate(r.appliedAt) || '—') + '</td>' +
         '<td>' + fuHtml + '</td>' +
         '<td style="white-space:nowrap">' +
@@ -1017,25 +1017,36 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     setTimeout(function() { btn.textContent = 'Save Notes'; btn.classList.remove('detail-save-ok'); }, 1500);
   });
 
-  // Add interview date row
+  // Snapshot current live interview inputs (typed-but-not-saved values)
+  function liveInterviews() {
+    var inputs = document.querySelectorAll('#adInterviewsList input[type=date]');
+    var vals = [];
+    inputs.forEach(function(inp) { vals.push(inp.value); });
+    return vals;
+  }
+
+  // Add interview date row — preserve any unsaved typed values first
   document.getElementById('adAddInterview').addEventListener('click', function() {
     var jobId = currentDetailsJobId;
     if (!jobId || !appliedJobs[jobId]) return;
     var r = appliedJobs[jobId];
     if (!r.dates) r.dates = {};
-    if (!r.dates.interviews) r.dates.interviews = [];
-    r.dates.interviews.push('');
+    var current = liveInterviews(); // capture what's in the DOM right now
+    current.push('');
+    r.dates.interviews = current;
     renderInterviewsList(r.dates.interviews);
   });
 
-  // Remove interview row (delegated on the list)
+  // Remove interview row — preserve unsaved values, then splice
   document.getElementById('adInterviewsList').addEventListener('click', function(e) {
     var btn = e.target.closest('[data-remove-interview]');
     if (!btn) return;
     var jobId = currentDetailsJobId;
     if (!jobId || !appliedJobs[jobId]) return;
+    var current = liveInterviews();
     var idx = parseInt(btn.dataset.removeInterview, 10);
-    appliedJobs[jobId].dates.interviews.splice(idx, 1);
+    current.splice(idx, 1);
+    appliedJobs[jobId].dates.interviews = current;
     renderInterviewsList(appliedJobs[jobId].dates.interviews);
   });
 
