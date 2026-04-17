@@ -86,6 +86,16 @@ function saveStore(store) {
     }
 }
 // ── Public API ────────────────────────────────────────────────────────────────
+function isRecentlyPosted(job, firstSeenAt, nowMs) {
+    // If the company provides a real posted date, trust it over firstSeenAt.
+    // A job posted 3 weeks ago is not "new" even if we just discovered it.
+    if (job.datePosted && job.datePosted !== "—") {
+        const postedMs = new Date(job.datePosted).getTime();
+        return !isNaN(postedMs) && (nowMs - postedMs) < NEW_JOB_TTL_MS;
+    }
+    // No posted date (Google, Meta) — fall back to when we first saw it
+    return (nowMs - new Date(firstSeenAt).getTime()) < NEW_JOB_TTL_MS;
+}
 /**
  * Diff incoming jobs against the stored snapshot.
  * Returns jobs with firstSeenAt and isNew populated.
@@ -100,14 +110,11 @@ function applyJobDiff(jobs) {
         const fp = jobFingerprint(job.company, job.title, job.location);
         const existing = store[fp];
         if (!existing) {
-            // First time we've seen this job
             updated[fp] = { firstSeenAt: now, lastSeenAt: now };
-            return { ...job, firstSeenAt: now, isNew: true };
+            return { ...job, firstSeenAt: now, isNew: isRecentlyPosted(job, now, nowMs) };
         }
-        // Seen before — update lastSeenAt, keep firstSeenAt
         updated[fp] = { firstSeenAt: existing.firstSeenAt, lastSeenAt: now };
-        const ageMs = nowMs - new Date(existing.firstSeenAt).getTime();
-        return { ...job, firstSeenAt: existing.firstSeenAt, isNew: ageMs < NEW_JOB_TTL_MS };
+        return { ...job, firstSeenAt: existing.firstSeenAt, isNew: isRecentlyPosted(job, existing.firstSeenAt, nowMs) };
     });
     // Merge: preserve records for jobs not in this scan (they may come back)
     saveStore({ ...store, ...updated });
