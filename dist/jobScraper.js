@@ -177,10 +177,13 @@ function epochToDate(ms) {
 function makeId(company, externalId) {
     return `${company.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${externalId}`;
 }
-// ── 3-month date cutoff ───────────────────────────────────────────────────────
+// ── Date cutoff (configurable via UI, default 180 days) ──────────────────────
 function getDateCutoff() {
+    const days = state_1.appState.scanDays;
+    if (days <= 0)
+        return "0000-00-00"; // no cutoff — return everything
     const d = new Date();
-    d.setMonth(d.getMonth() - 6);
+    d.setDate(d.getDate() - days);
     return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
 // ── Fetch helper with timeout ─────────────────────────────────────────────────

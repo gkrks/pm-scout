@@ -5,6 +5,7 @@ exports.appState = void 0;
 class AppState {
     constructor() {
         this.jobs = [];
+        this.scanDays = 180; // how far back to fetch jobs (0 = no cutoff)
         this.jobResumes = {};
         this.scoringJobIds = new Set();
         // key: `${userId}::${jobId}`

@@ -77,6 +77,7 @@ export interface ResumeState {
 
 class AppState {
   jobs: Job[] = [];
+  scanDays = 180; // how far back to fetch jobs (0 = no cutoff)
   jobResumes: Record<string, { text: string; name: string }> = {};
   scoringJobIds: Set<string> = new Set();
   // key: `${userId}::${jobId}`

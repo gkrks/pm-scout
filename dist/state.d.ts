@@ -57,6 +57,7 @@ export interface ResumeState {
 }
 declare class AppState {
     jobs: Job[];
+    scanDays: number;
     jobResumes: Record<string, {
         text: string;
         name: string;

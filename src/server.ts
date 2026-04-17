@@ -394,6 +394,11 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   <!-- Toolbar -->
   <div class="toolbar">
     <button class="btn btn-primary" id="btnScan">Scan Jobs</button>
+    <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;color:#475569;font-weight:500;">
+      <input id="scanDaysInput" type="number" min="0" max="180" value="180"
+        style="width:52px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.82rem;text-align:center;">
+      days back
+    </label>
 
     <label class="btn btn-secondary" style="cursor:pointer">
       Upload Resume
@@ -412,12 +417,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       <option value="skip">Skip</option>
     </select>
     <button id="btnEarlyCareer" class="btn btn-secondary" title="Show only jobs from Early Careers / University portals or tagged as new-grad">🎓 Early Career Only</button>
-    <button id="btnNewOnly" class="btn btn-secondary" title="Show only jobs posted or first seen within the selected number of days">🆕 New Only</button>
-    <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;color:#475569;">
-      <input id="newDaysInput" type="number" min="0" max="180" value="3"
-        style="width:52px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.82rem;text-align:center;">
-      days
-    </label>
+    <button id="btnNewOnly" class="btn btn-secondary" title="Show only jobs posted or first seen within the last 3 days">🆕 New Only</button>
   </div>
 
   <!-- Add Company panel -->
@@ -638,14 +638,12 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   var sortDir = 1; // 1 = desc (newest first)
   var earlyCareerOnly = false;
   var newOnly = false;
-  var newDays = 3;
 
-  // Compute "is new" client-side using the selected day range.
-  // Uses datePosted when available (Greenhouse/Lever/etc.) and falls back
-  // to firstSeenAt for companies that never expose a date (Google, Meta).
+  // isNew = posted or first seen within last 3 days.
+  // Uses datePosted when available; falls back to firstSeenAt for Google/Meta.
+  var NEW_TTL_MS = 3 * 86400000;
   function isJobNew(j) {
-    if (newDays === 0) return false;
-    var cutoffMs = Date.now() - newDays * 86400000;
+    var cutoffMs = Date.now() - NEW_TTL_MS;
     var dateStr = (j.datePosted && j.datePosted !== '—') ? j.datePosted : j.firstSeenAt;
     if (!dateStr) return false;
     return new Date(dateStr).getTime() >= cutoffMs;
@@ -868,7 +866,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     tbody.innerHTML = jobs.map(function(j) {
       var sc = j.matchScore != null ? j.matchScore + '%' : '—';
       var newBadge = isJobNew(j)
-        ? ' <span title="Posted or first seen within ' + newDays + ' days" style="font-size:0.68rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New</span>'
+        ? ' <span title="Posted or first seen within the last 3 days" style="font-size:0.68rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New</span>'
         : '';
       var ecBadge = j.earlyCareer
         ? ' <span style="font-size:0.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New Grad</span>'
@@ -1465,12 +1463,6 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     renderTable();
   });
 
-  document.getElementById('newDaysInput').addEventListener('change', function() {
-    var v = Math.max(0, Math.min(180, parseInt(this.value, 10) || 0));
-    this.value = v;
-    newDays = v;
-    renderTable();
-  });
 
   // ── Modal ──────────────────────────────────────────────────────────────────
 
@@ -1484,7 +1476,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   function populateModal(j) {
     document.getElementById('mCompany').textContent = j.company;
     var titleHtml = esc(j.title);
-    if (isJobNew(j)) titleHtml += ' <span title="Posted or first seen within ' + newDays + ' days" style="font-size:0.7rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New</span>';
+    if (isJobNew(j)) titleHtml += ' <span title="Posted or first seen within the last 3 days" style="font-size:0.7rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New</span>';
     if (j.earlyCareer) titleHtml += ' <span style="font-size:0.7rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New Grad</span>';
     if (j.sourceLabel === 'Early Careers Portal') titleHtml += ' <span title="Sourced from the company&#39;s dedicated Early Careers / University portal" style="font-size:0.7rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">🎓 Early Careers Portal</span>';
     else if (j.sourceLabel === 'LinkedIn') titleHtml += ' <span title="Listing sourced from LinkedIn" style="font-size:0.7rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">via LinkedIn</span>';
@@ -1585,7 +1577,14 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   // ── Actions ────────────────────────────────────────────────────────────────
 
   document.getElementById('btnScan').addEventListener('click', function() {
-    fetch('/api/scan', { method: 'POST' })
+    var scanDaysEl = document.getElementById('scanDaysInput');
+    var days = Math.max(0, Math.min(180, parseInt(scanDaysEl.value, 10) || 180));
+    scanDaysEl.value = days;
+    fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days: days }),
+    })
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (d.error) alert(d.error);
@@ -1761,13 +1760,16 @@ app.get("/api/companies", (_req: Request, res: Response) => {
 });
 
 // POST /api/scan
+// Body (optional): { days: number }  — how far back to fetch (0–180, default 180)
 app.post("/api/scan", (req: Request, res: Response) => {
   if (appState.status.state === "scanning") {
     return res.status(409).json({ error: "Scan already in progress." });
   }
+  const days = Number((req.body as { days?: unknown })?.days);
+  appState.scanDays = (!isNaN(days) && days >= 0 && days <= 180) ? days : 180;
   appState.jobs = [];
   scrapeAll().catch((err) => console.error("[scan]", err));
-  res.json({ status: "started" });
+  res.json({ status: "started", scanDays: appState.scanDays });
 });
 
 // POST /api/resume/upload — base64 PDF
