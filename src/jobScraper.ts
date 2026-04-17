@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import { allCompanies } from "./companies";
+import { applyJobDiff } from "./jobStore";
 import { appState, Job } from "./state";
 
 const UA = "Mozilla/5.0 (compatible; JobSearchBot/1.0)";
@@ -1129,7 +1130,8 @@ export async function scrapeAll(): Promise<void> {
       seen.set(key, job);
     }
   }
-  appState.jobs = [...seen.values()];
+  // Diff against previous scan — stamps firstSeenAt / isNew on every job
+  appState.jobs = applyJobDiff([...seen.values()]);
   appState.status.jobCount = appState.jobs.length;
 
   appState.status.state        = "done";

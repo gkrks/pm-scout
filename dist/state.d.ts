@@ -22,6 +22,8 @@ export interface Job {
     careersUrl: string;
     earlyCareer: boolean;
     description: string;
+    firstSeenAt?: string;
+    isNew?: boolean;
     matchScore?: number;
     requirements?: MatchResult[];
     summary?: RequirementsSummary;

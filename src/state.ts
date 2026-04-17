@@ -28,6 +28,10 @@ export interface Job {
   earlyCareer: boolean;
   description: string; // raw HTML — never sent to frontend
 
+  // Scan diffing (set by jobStore after each scan)
+  firstSeenAt?: string;  // ISO timestamp of first scan this job appeared in
+  isNew?: boolean;       // true if firstSeenAt is within the last 3 days
+
   // Scoring (undefined = not yet scored)
   matchScore?: number;
   requirements?: MatchResult[];

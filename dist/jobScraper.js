@@ -42,6 +42,7 @@ exports.scrapeAll = scrapeAll;
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const cheerio = __importStar(require("cheerio"));
 const companies_1 = require("./companies");
+const jobStore_1 = require("./jobStore");
 const state_1 = require("./state");
 const UA = "Mozilla/5.0 (compatible; JobSearchBot/1.0)";
 const FETCH_TIMEOUT_MS = 15000;
@@ -981,7 +982,8 @@ async function scrapeAll() {
             seen.set(key, job);
         }
     }
-    state_1.appState.jobs = [...seen.values()];
+    // Diff against previous scan — stamps firstSeenAt / isNew on every job
+    state_1.appState.jobs = (0, jobStore_1.applyJobDiff)([...seen.values()]);
     state_1.appState.status.jobCount = state_1.appState.jobs.length;
     state_1.appState.status.state = "done";
     state_1.appState.status.completedAt = new Date().toUTCString();

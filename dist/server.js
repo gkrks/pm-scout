@@ -436,6 +436,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       <option value="skip">Skip</option>
     </select>
     <button id="btnEarlyCareer" class="btn btn-secondary" title="Show only jobs from Early Careers / University portals or tagged as new-grad">🎓 Early Career Only</button>
+    <button id="btnNewOnly" class="btn btn-secondary" title="Show only jobs first seen in the last 3 days">🆕 New Only</button>
   </div>
 
   <!-- Add Company panel -->
@@ -655,6 +656,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   var sortCol = 'datePosted';
   var sortDir = 1; // 1 = desc (newest first)
   var earlyCareerOnly = false;
+  var newOnly = false;
   var currentJobId = null;
 
   // Per-job resumes persisted in localStorage: { [jobId]: { name, base64 } }
@@ -839,11 +841,16 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       if (text && !(j.company+j.title+j.location).toLowerCase().includes(text)) return false;
       if (action && j.resumeAction !== action) return false;
       if (earlyCareerOnly && !j.earlyCareer && j.sourceLabel !== 'Early Careers Portal') return false;
+      if (newOnly && !j.isNew) return false;
       return true;
     });
     list.sort(function(a, b) {
       var av = a[sortCol], bv = b[sortCol];
-      // Always sink missing/placeholder values to the bottom
+      // For date columns: jobs with no posted date fall back to firstSeenAt
+      if (sortCol === 'datePosted') {
+        if (av === '—' || av == null) av = a.firstSeenAt ? a.firstSeenAt.slice(0,10) : null;
+        if (bv === '—' || bv == null) bv = b.firstSeenAt ? b.firstSeenAt.slice(0,10) : null;
+      }
       var aMissing = (av == null || av === '—');
       var bMissing = (bv == null || bv === '—');
       if (aMissing && bMissing) return 0;
@@ -867,6 +874,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     }
     tbody.innerHTML = jobs.map(function(j) {
       var sc = j.matchScore != null ? j.matchScore + '%' : '—';
+      var newBadge = j.isNew
+        ? ' <span title="First seen in the last 3 days" style="font-size:0.68rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New</span>'
+        : '';
       var ecBadge = j.earlyCareer
         ? ' <span style="font-size:0.68rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:1px 6px;font-weight:700;vertical-align:middle;">New Grad</span>'
         : '';
@@ -907,7 +917,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       appliedCell += '</td>';
       return '<tr data-id="' + esc(j.id) + '"' + (appRecord ? ' class="row-applied"' : '') + '>' +
         '<td><strong>' + esc(j.company) + '</strong>' + srcBadge + '</td>' +
-        '<td>' + esc(j.title) + ecBadge + '</td>' +
+        '<td>' + esc(j.title) + newBadge + ecBadge + '</td>' +
         '<td>' + esc(j.location || '—') + '</td>' +
         '<td><span class="wtype ' + workTypeClass(j.workType) + '">' + esc(j.workType) + '</span></td>' +
         '<td>' + esc(j.datePosted || '—') + '</td>' +
@@ -1453,6 +1463,15 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     renderTable();
   });
 
+  document.getElementById('btnNewOnly').addEventListener('click', function() {
+    newOnly = !newOnly;
+    this.style.background = newOnly ? '#eff6ff' : '';
+    this.style.borderColor = newOnly ? '#3b82f6' : '';
+    this.style.color = newOnly ? '#1d4ed8' : '';
+    this.style.fontWeight = newOnly ? '700' : '';
+    renderTable();
+  });
+
   // ── Modal ──────────────────────────────────────────────────────────────────
 
   function scoreColor(s) {
@@ -1465,6 +1484,7 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   function populateModal(j) {
     document.getElementById('mCompany').textContent = j.company;
     var titleHtml = esc(j.title);
+    if (j.isNew) titleHtml += ' <span title="First seen in the last 3 days" style="font-size:0.7rem;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New</span>';
     if (j.earlyCareer) titleHtml += ' <span style="font-size:0.7rem;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">New Grad</span>';
     if (j.sourceLabel === 'Early Careers Portal') titleHtml += ' <span title="Sourced from the company&#39;s dedicated Early Careers / University portal" style="font-size:0.7rem;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">🎓 Early Careers Portal</span>';
     else if (j.sourceLabel === 'LinkedIn') titleHtml += ' <span title="Listing sourced from LinkedIn" style="font-size:0.7rem;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;border-radius:4px;padding:2px 7px;font-weight:700;vertical-align:middle;">via LinkedIn</span>';
