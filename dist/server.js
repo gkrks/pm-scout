@@ -418,11 +418,33 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   <!-- Toolbar -->
   <div class="toolbar">
     <button class="btn btn-primary" id="btnScan">Scan Jobs</button>
-    <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;color:#475569;font-weight:500;">
-      <input id="scanDaysInput" type="number" min="0" max="180" value="180"
-        style="width:52px;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.82rem;text-align:center;">
-      days back
-    </label>
+
+    <!-- Date range picker (AWS-style) -->
+    <div id="dateRangeWrap" style="position:relative;">
+      <button id="btnDateRange" class="btn btn-secondary"
+        style="font-size:0.82rem;min-width:130px;display:flex;align-items:center;gap:6px;">
+        <span>&#128197;</span><span id="dateRangeLabel">Last 6 months</span><span style="margin-left:auto;opacity:0.5;">&#9660;</span>
+      </button>
+      <div id="dateRangePanel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;
+        background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);
+        padding:14px 16px;min-width:280px;">
+        <div style="font-size:0.72rem;font-weight:700;color:#94a3b8;letter-spacing:.06em;margin-bottom:10px;">RELATIVE TIME RANGE</div>
+        <table id="drTable" style="border-collapse:separate;border-spacing:4px;width:100%;">
+          <thead>
+            <tr>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;"></td>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;text-align:center;">1</td>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;text-align:center;">2</td>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;text-align:center;">3</td>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;text-align:center;">4</td>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;text-align:center;">5</td>
+              <td style="font-size:0.72rem;font-weight:600;color:#64748b;padding:2px 6px;text-align:center;">6</td>
+            </tr>
+          </thead>
+          <tbody id="drBody"></tbody>
+        </table>
+      </div>
+    </div>
 
     <label class="btn btn-secondary" style="cursor:pointer">
       Upload Resume
@@ -1600,10 +1622,70 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
+  // ── Date range picker ────────────────────────────────────────────────────────
+  var DR_UNITS = [
+    { label: 'Hours',  toDays: function(n){ return n / 24; } },
+    { label: 'Days',   toDays: function(n){ return n; } },
+    { label: 'Weeks',  toDays: function(n){ return n * 7; } },
+    { label: 'Months', toDays: function(n){ return n * 30; } },
+  ];
+  var drSelected = { unitIdx: 3, num: 6 }; // default: 6 months
+
+  function drDays() {
+    var u = DR_UNITS[drSelected.unitIdx];
+    return Math.round(u.toDays(drSelected.num));
+  }
+
+  function drLabel() {
+    return 'Last ' + drSelected.num + ' ' + DR_UNITS[drSelected.unitIdx].label.toLowerCase();
+  }
+
+  function drRender() {
+    var tbody = document.getElementById('drBody');
+    tbody.innerHTML = DR_UNITS.map(function(u, ui) {
+      var cells = [1,2,3,4,5,6].map(function(n) {
+        var active = (ui === drSelected.unitIdx && n === drSelected.num);
+        return '<td><button data-u="' + ui + '" data-n="' + n + '" style="' +
+          'width:100%;padding:5px 0;border-radius:6px;border:1.5px solid ' +
+          (active ? '#3b82f6' : '#e2e8f0') + ';' +
+          'background:' + (active ? '#eff6ff' : '#f8fafc') + ';' +
+          'color:' + (active ? '#1d4ed8' : '#334155') + ';' +
+          'font-weight:' + (active ? '700' : '500') + ';' +
+          'font-size:0.8rem;cursor:pointer;">' + n + '</button></td>';
+      }).join('');
+      return '<tr><td style="font-size:0.78rem;font-weight:600;color:#475569;padding:2px 6px;white-space:nowrap;">' +
+        u.label + '</td>' + cells + '</tr>';
+    }).join('');
+    document.getElementById('dateRangeLabel').textContent = drLabel();
+  }
+
+  drRender();
+
+  document.getElementById('drBody').addEventListener('click', function(e) {
+    var btn = e.target.closest('button[data-u]');
+    if (!btn) return;
+    drSelected = { unitIdx: parseInt(btn.dataset.u, 10), num: parseInt(btn.dataset.n, 10) };
+    drRender();
+    document.getElementById('dateRangePanel').style.display = 'none';
+  });
+
+  document.getElementById('btnDateRange').addEventListener('click', function(e) {
+    e.stopPropagation();
+    var panel = document.getElementById('dateRangePanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.addEventListener('click', function() {
+    document.getElementById('dateRangePanel').style.display = 'none';
+  });
+
+  document.getElementById('dateRangePanel').addEventListener('click', function(e) {
+    e.stopPropagation(); // keep panel open when clicking inside it
+  });
+
+  // ── Scan ─────────────────────────────────────────────────────────────────────
   document.getElementById('btnScan').addEventListener('click', function() {
-    var scanDaysEl = document.getElementById('scanDaysInput');
-    var days = Math.max(0, Math.min(180, parseInt(scanDaysEl.value, 10) || 180));
-    scanDaysEl.value = days;
+    var days = drDays();
     fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
