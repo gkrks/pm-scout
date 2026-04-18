@@ -36,6 +36,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CHROMIUM_ARGS = exports.LI_UA = void 0;
+exports.withPlaywright = withPlaywright;
+exports.launchChromium = launchChromium;
 exports.scrapeLinkedInByKeyword = scrapeLinkedInByKeyword;
 exports.scrapeCompany = scrapeCompany;
 exports.scrapeAll = scrapeAll;
@@ -437,7 +440,7 @@ async function scrapeAmazon(careersUrl, earlyCareerUrl) {
 // Endpoint: /jobs-guest/jobs/api/seeMoreJobPostings/search
 // Key params: keywords, location, f_C (company ID), start, count
 // Rate limit: 1 req/s is safe; we stay well under that per scan.
-const LI_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+exports.LI_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
     "AppleWebKit/537.36 (KHTML, like Gecko) " +
     "Chrome/120.0.0.0 Safari/537.36";
 async function scrapeLinkedIn(companyName, linkedInId, careersUrl) {
@@ -456,7 +459,7 @@ async function scrapeLinkedIn(companyName, linkedInId, careersUrl) {
             count: String(pageSize),
         });
         const resp = await node_fetch_1.default(`${base}?${params}`, {
-            headers: { "User-Agent": LI_UA },
+            headers: { "User-Agent": exports.LI_UA },
             timeout: FETCH_TIMEOUT_MS,
         });
         if (resp.status === 429) {
@@ -520,7 +523,7 @@ function withPlaywright(fn) {
     return next;
 }
 // Common Chromium args for low-memory hosts (Render free, serverless)
-const CHROMIUM_ARGS = [
+exports.CHROMIUM_ARGS = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
@@ -546,7 +549,7 @@ async function launchChromium() {
     const pw = require("playwright");
     // 1. Try Playwright's own browser (may already be installed)
     try {
-        const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+        const browser = await pw.chromium.launch({ headless: true, args: exports.CHROMIUM_ARGS });
         console.log("[playwright] launched Playwright browser");
         return browser;
     }
@@ -566,7 +569,7 @@ async function launchChromium() {
             stdio: "inherit",
             timeout: 120000,
         });
-        const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS });
+        const browser = await pw.chromium.launch({ headless: true, args: exports.CHROMIUM_ARGS });
         console.log("[playwright] launched after runtime install");
         return browser;
     }
@@ -579,7 +582,7 @@ async function launchChromium() {
         if (!fs.existsSync(executablePath))
             continue;
         try {
-            const browser = await pw.chromium.launch({ headless: true, args: CHROMIUM_ARGS, executablePath });
+            const browser = await pw.chromium.launch({ headless: true, args: exports.CHROMIUM_ARGS, executablePath });
             console.log(`[playwright] launched system chromium at ${executablePath}`);
             return browser;
         }
@@ -651,7 +654,7 @@ async function scrapeGooglePlaywright(careersUrl, earlyCareerUrl) {
     return withPlaywright(async () => {
         const browser = await launchChromium();
         try {
-            const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
+            const context = await browser.newContext({ userAgent: exports.LI_UA, viewport: { width: 1280, height: 900 } });
             // ── Main careers page ─────────────────────────────────────────────────────
             const mainPage = await context.newPage();
             // "load" fires once HTML+subresources finish — don't use "networkidle" because
@@ -750,7 +753,7 @@ async function scrapeMetaPlaywright(careersUrl, earlyCareerUrl) {
     return withPlaywright(async () => {
         const browser = await launchChromium();
         try {
-            const context = await browser.newContext({ userAgent: LI_UA });
+            const context = await browser.newContext({ userAgent: exports.LI_UA });
             // ── Main careers page ─────────────────────────────────────────────────────
             const mainPage = await context.newPage();
             const mainRaw = await fetchMetaGraphQLJobs(mainPage, "https://www.metacareers.com/jobs?offices=United+States&teams=Product+Management&q=product+manager", careersUrl);
@@ -813,7 +816,7 @@ async function scrapeLinkedInByKeyword(companyName, careersUrl) {
         count: "25",
     });
     const resp = await node_fetch_1.default(`${base}?${params}`, {
-        headers: { "User-Agent": LI_UA },
+        headers: { "User-Agent": exports.LI_UA },
         timeout: FETCH_TIMEOUT_MS,
     });
     if (resp.status === 429)

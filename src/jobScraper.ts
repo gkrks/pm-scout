@@ -507,7 +507,7 @@ async function scrapeAmazon(careersUrl: string, earlyCareerUrl?: string): Promis
 // Key params: keywords, location, f_C (company ID), start, count
 // Rate limit: 1 req/s is safe; we stay well under that per scan.
 
-const LI_UA =
+export const LI_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
   "AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/120.0.0.0 Safari/537.36";
@@ -597,14 +597,14 @@ async function scrapeLinkedIn(
 // is tight on Render free (512 MB total). Serialise all headless launches.
 
 let _pwQueue = Promise.resolve();
-function withPlaywright<T>(fn: () => Promise<T>): Promise<T> {
+export function withPlaywright<T>(fn: () => Promise<T>): Promise<T> {
   const next = _pwQueue.then(fn);
   _pwQueue = next.then(() => { /* empty */ }, () => { /* empty */ });
   return next;
 }
 
 // Common Chromium args for low-memory hosts (Render free, serverless)
-const CHROMIUM_ARGS = [
+export const CHROMIUM_ARGS = [
   "--no-sandbox",
   "--disable-setuid-sandbox",
   "--disable-dev-shm-usage",
@@ -627,7 +627,7 @@ const SYSTEM_CHROMIUM_PATHS = [
   "/usr/bin/google-chrome",
 ];
 
-async function launchChromium() {
+export async function launchChromium() {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const pw = require("playwright") as typeof import("playwright");
 

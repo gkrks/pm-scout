@@ -1663,6 +1663,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   function renderPFResults(d) {
     var html = '';
 
+    // Stats bar
+    if (d.scrapedCount != null) {
+      html += '<div style="font-size:0.75rem;color:#94a3b8;margin-bottom:10px;">' +
+        '&#128269; Scraped <strong>' + d.scrapedCount + '</strong> LinkedIn profiles &mdash; ' +
+        '<strong>' + (d.candidates || []).length + '</strong> likely HM candidates</div>';
+    }
+
     // Org hypothesis
     html += '<div class="pf-hypothesis"><strong>Org hypothesis:</strong> ' + esc(d.orgHypothesis) + '</div>';
 
@@ -1670,24 +1677,24 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     html += '<div class="pf-candidates">';
     (d.candidates || []).forEach(function(c) {
       var barW = Math.min(100, Math.max(0, c.confidence || 0));
-      var outreach = (d.outreach || []).find(function(o){ return o.name === c.name; });
+      var barColor = barW >= 70 ? '#16a34a' : barW >= 45 ? '#d97706' : '#94a3b8';
       html += '<div class="pf-card">' +
         '<div class="pf-card-header">' +
           '<div>' +
             '<div class="pf-name">' + esc(c.name) + '</div>' +
-            '<div class="pf-title-team">' + esc(c.title) + ' &middot; ' + esc(c.team) + '</div>' +
+            '<div class="pf-title-team">' + esc(c.title) + (c.team ? ' &middot; ' + esc(c.team) : '') + '</div>' +
           '</div>' +
-          '<a class="pf-li-link" href="' + esc(c.linkedInSearchUrl) + '" target="_blank" rel="noopener">Search LinkedIn ↗</a>' +
+          (c.url ? '<a class="pf-li-link" href="' + esc(c.url) + '" target="_blank" rel="noopener">View Profile ↗</a>' : '') +
         '</div>' +
         '<div class="pf-reasoning">' + esc(c.reasoning) + '</div>' +
         '<div class="pf-confidence">' +
-          '<div class="pf-conf-bar-wrap"><div class="pf-conf-bar" style="width:' + barW + '%"></div></div>' +
+          '<div class="pf-conf-bar-wrap"><div class="pf-conf-bar" style="width:' + barW + '%;background:' + barColor + '"></div></div>' +
           '<span class="pf-conf-label">' + barW + '% confidence</span>' +
         '</div>';
-      if (outreach) {
+      if (c.outreach) {
         html += '<div class="pf-outreach">' +
           '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:4px;">OUTREACH ANGLE</div>' +
-          '<div class="pf-outreach-msg">' + esc(outreach.message) + '</div>' +
+          '<div class="pf-outreach-msg">' + esc(c.outreach) + '</div>' +
         '</div>';
       }
       html += '</div>';
