@@ -16,7 +16,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findHiringManager = findHiringManager;
 const groq_sdk_1 = __importDefault(require("groq-sdk"));
-const linkedInScraper_1 = require("./linkedInScraper");
+const apolloClient_1 = require("./apolloClient");
 const client = new groq_sdk_1.default({ apiKey: process.env.GROQ_API_KEY });
 const MODEL = "llama-3.1-8b-instant";
 const PASS1_PROMPT = `You are a talent intelligence analyst. Analyze this job posting and return a JSON object with:
@@ -73,9 +73,9 @@ Rules:
 - No markdown, no explanation`;
 async function rankProfiles(signals, orgHypothesis, profiles, job) {
     if (profiles.length === 0) {
-        return { candidates: [], eliminated: ["No LinkedIn profiles found via scraping"] };
+        return { candidates: [], eliminated: ["No Apollo profiles found"] };
     }
-    const profileList = profiles.map((p, i) => `${i + 1}. Name: ${p.name}\n   Title: ${p.title}\n   URL: ${p.url}\n   Bio: ${p.snippet || "(none)"}`).join("\n\n");
+    const profileList = profiles.map((p, i) => `${i + 1}. Name: ${p.name}\n   Title: ${p.title}\n   URL: ${p.linkedInUrl || "(no URL)"}\n   Org: ${p.organization}`).join("\n\n");
     const completion = await client.chat.completions.create({
         model: MODEL,
         max_tokens: 1500,
@@ -108,9 +108,10 @@ async function findHiringManager(job) {
     // Pass 1: extract signals + decide what to search for
     console.log(`[people-finder] Pass 1 — extracting JD signals for ${job.company} / ${job.title}`);
     const pass1 = await extractSignals(job);
-    // Pass 2: scrape real LinkedIn profiles (runs through Playwright serializer)
-    console.log(`[people-finder] Pass 2 — scraping LinkedIn for: "${job.company}" ${pass1.titleKeywords}`);
-    const profiles = await (0, linkedInScraper_1.findLinkedInProfiles)(job.company, pass1.titleKeywords);
+    // Pass 2: search Apollo for people matching title keywords
+    const titleArray = pass1.titleKeywords.split(/\s+OR\s+/i).map((t) => t.trim()).filter(Boolean);
+    console.log(`[people-finder] Pass 2 — Apollo search for: "${job.company}" [${titleArray.join(", ")}]`);
+    const profiles = await (0, apolloClient_1.searchApollo)(job.company, titleArray);
     // Pass 3: Claude ranks the real profiles
     console.log(`[people-finder] Pass 3 — ranking ${profiles.length} profiles`);
     const pass3 = await rankProfiles(pass1.signals, pass1.orgHypothesis, profiles, job);

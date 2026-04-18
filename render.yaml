@@ -13,3 +13,5 @@ services:
         sync: false   # set this manually in the Render dashboard
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: ./pw-browsers
+      - key: APOLLO_API_KEY
+        sync: false   # set this manually in the Render dashboard

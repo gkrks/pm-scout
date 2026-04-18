@@ -12,7 +12,7 @@
 
 import Groq from "groq-sdk";
 import { Job } from "./state";
-import { findLinkedInProfiles, LIPerson } from "./linkedInScraper";
+import { searchApollo, ApolloPerson } from "./apolloClient";
 
 const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL = "llama-3.1-8b-instant";
@@ -111,15 +111,15 @@ interface Pass3Result {
 async function rankProfiles(
   signals: string,
   orgHypothesis: string,
-  profiles: LIPerson[],
+  profiles: ApolloPerson[],
   job: Job,
 ): Promise<Pass3Result> {
   if (profiles.length === 0) {
-    return { candidates: [], eliminated: ["No LinkedIn profiles found via scraping"] };
+    return { candidates: [], eliminated: ["No Apollo profiles found"] };
   }
 
   const profileList = profiles.map((p, i) =>
-    `${i + 1}. Name: ${p.name}\n   Title: ${p.title}\n   URL: ${p.url}\n   Bio: ${p.snippet || "(none)"}`,
+    `${i + 1}. Name: ${p.name}\n   Title: ${p.title}\n   URL: ${p.linkedInUrl || "(no URL)"}\n   Org: ${p.organization}`,
   ).join("\n\n");
 
   const completion = await client.chat.completions.create({
@@ -160,9 +160,10 @@ export async function findHiringManager(job: Job): Promise<PFResult> {
   console.log(`[people-finder] Pass 1 — extracting JD signals for ${job.company} / ${job.title}`);
   const pass1 = await extractSignals(job);
 
-  // Pass 2: scrape real LinkedIn profiles (runs through Playwright serializer)
-  console.log(`[people-finder] Pass 2 — scraping LinkedIn for: "${job.company}" ${pass1.titleKeywords}`);
-  const profiles = await findLinkedInProfiles(job.company, pass1.titleKeywords);
+  // Pass 2: search Apollo for people matching title keywords
+  const titleArray = pass1.titleKeywords.split(/\s+OR\s+/i).map((t) => t.trim()).filter(Boolean);
+  console.log(`[people-finder] Pass 2 — Apollo search for: "${job.company}" [${titleArray.join(", ")}]`);
+  const profiles = await searchApollo(job.company, titleArray);
 
   // Pass 3: Claude ranks the real profiles
   console.log(`[people-finder] Pass 3 — ranking ${profiles.length} profiles`);
