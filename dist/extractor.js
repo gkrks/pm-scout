@@ -4,8 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.extractRequirements = extractRequirements;
-const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
-const client = new sdk_1.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+const groq_sdk_1 = __importDefault(require("groq-sdk"));
+const client = new groq_sdk_1.default({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = "llama-3.1-8b-instant";
 const SYSTEM_PROMPT = `You are a job requirement parser. You receive raw text scraped from a job posting's requirements section.
 
 Your job: extract ONLY the core skill/qualification phrases. Strip all filler language.
@@ -26,24 +27,20 @@ Example input:
 Example output:
 ["Bachelor's or Master's degree or equivalent", "3+ years product management experience", "payment systems (ACH, wires, card networks)", "vendor integrations — data aggregators"]`;
 async function callExtractor(rawText) {
-    const message = await client.messages.create({
-        model: "claude-opus-4-5",
+    const completion = await client.chat.completions.create({
+        model: MODEL,
         max_tokens: 1000,
         temperature: 0,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: rawText }],
+        messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: rawText },
+        ],
     });
-    const content = message.content[0];
-    if (content.type !== "text") {
-        throw new Error("Unexpected response type from extractor");
-    }
-    const text = content.text.trim();
-    // Strip markdown fences if the model wraps the JSON
+    const text = (completion.choices[0].message.content ?? "").trim();
     const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
     const parsed = JSON.parse(clean);
-    if (!Array.isArray(parsed)) {
+    if (!Array.isArray(parsed))
         throw new Error("Extractor response is not a JSON array");
-    }
     return parsed;
 }
 /**
@@ -55,7 +52,6 @@ async function extractRequirements(rawText) {
         return await callExtractor(rawText);
     }
     catch (err) {
-        // Retry once
         try {
             return await callExtractor(rawText);
         }

@@ -1,7 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { ResumeData } from "./parser";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = "llama-3.1-8b-instant";
 
 export interface MatchResult {
   requirement: string;
@@ -53,31 +54,23 @@ const FALLBACK_RESULT: Omit<MatchResult, "requirement"> = {
   confidence: 0,
 };
 
-async function callMatcher(
-  requirement: string,
-  resume: ResumeData
-): Promise<MatchResult> {
-  const message = await client.messages.create({
-    model: "claude-opus-4-5",
+async function callMatcher(requirement: string, resume: ResumeData): Promise<MatchResult> {
+  const completion = await client.chat.completions.create({
+    model: MODEL,
     max_tokens: 500,
     temperature: 0,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildUserMessage(requirement, resume) }],
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user",   content: buildUserMessage(requirement, resume) },
+    ],
   });
 
-  const content = message.content[0];
-  if (content.type !== "text") {
-    throw new Error("Unexpected response type from matcher");
-  }
-
-  const text = content.text.trim();
+  const text = (completion.choices[0].message.content ?? "").trim();
   const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   const parsed = JSON.parse(clean) as Omit<MatchResult, "requirement">;
 
   // Enforce: if status is "missing", proof must be empty
-  if (parsed.status === "missing") {
-    parsed.proof = "";
-  }
+  if (parsed.status === "missing") parsed.proof = "";
 
   return { requirement, ...parsed };
 }
@@ -92,12 +85,11 @@ const CONCURRENCY = 10;
 export async function matchRequirements(
   requirements: string[],
   resume: ResumeData,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
 ): Promise<MatchResult[]> {
   const total = requirements.length;
   let completed = 0;
 
-  // Semaphore: cap concurrent Claude calls
   let slots = CONCURRENCY;
   const queue: Array<() => void> = [];
   function acquire(): Promise<void> {
@@ -116,7 +108,6 @@ export async function matchRequirements(
       try {
         result = await callMatcher(req, resume);
       } catch {
-        // Retry once
         try {
           result = await callMatcher(req, resume);
         } catch (retryErr) {
@@ -133,8 +124,6 @@ export async function matchRequirements(
   });
 
   const settled = await Promise.all(promises);
-
-  // Restore original order (Promise.all preserves insertion order, but be explicit)
   settled.sort((a, b) => a.i - b.i);
   return settled.map((s) => s.result);
 }

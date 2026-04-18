@@ -10,11 +10,12 @@
  *                    add reasoning and outreach angles.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { Job } from "./state";
 import { findLinkedInProfiles, LIPerson } from "./linkedInScraper";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = "llama-3.1-8b-instant";
 
 export interface PFCandidate {
   name: string;
@@ -58,18 +59,17 @@ async function extractSignals(job: Job): Promise<Pass1Result> {
     ? job.description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3000)
     : "(no description)";
 
-  const msg = await client.messages.create({
-    model: "claude-opus-4-5",
+  const completion = await client.chat.completions.create({
+    model: MODEL,
     max_tokens: 600,
     temperature: 0,
-    system: PASS1_PROMPT,
-    messages: [{
-      role: "user",
-      content: `Company: ${job.company}\nTitle: ${job.title}\nLocation: ${job.location}\n\nJD:\n${desc}`,
-    }],
+    messages: [
+      { role: "system", content: PASS1_PROMPT },
+      { role: "user",   content: `Company: ${job.company}\nTitle: ${job.title}\nLocation: ${job.location}\n\nJD:\n${desc}` },
+    ],
   });
 
-  const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "{}";
+  const raw = (completion.choices[0].message.content ?? "").trim();
   const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
   return JSON.parse(cleaned) as Pass1Result;
 }
@@ -122,14 +122,13 @@ async function rankProfiles(
     `${i + 1}. Name: ${p.name}\n   Title: ${p.title}\n   URL: ${p.url}\n   Bio: ${p.snippet || "(none)"}`,
   ).join("\n\n");
 
-  const msg = await client.messages.create({
-    model: "claude-opus-4-5",
+  const completion = await client.chat.completions.create({
+    model: MODEL,
     max_tokens: 1500,
     temperature: 0,
-    system: PASS3_PROMPT,
-    messages: [{
-      role: "user",
-      content: [
+    messages: [
+      { role: "system", content: PASS3_PROMPT },
+      { role: "user",   content: [
         `Company: ${job.company}`,
         `Role: ${job.title}`,
         ``,
@@ -138,11 +137,11 @@ async function rankProfiles(
         ``,
         `Scraped LinkedIn Profiles (${profiles.length} found):`,
         profileList,
-      ].join("\n"),
-    }],
+      ].join("\n") },
+    ],
   });
 
-  const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "{}";
+  const raw = (completion.choices[0].message.content ?? "").trim();
   const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
   return JSON.parse(cleaned) as Pass3Result;
 }

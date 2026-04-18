@@ -4,8 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.matchRequirements = matchRequirements;
-const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
-const client = new sdk_1.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+const groq_sdk_1 = __importDefault(require("groq-sdk"));
+const client = new groq_sdk_1.default({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = "llama-3.1-8b-instant";
 const SYSTEM_PROMPT = `You are a resume analyst. You will be given ONE job requirement phrase and the full text of a resume.
 
 Your task: determine whether the resume satisfies this requirement.
@@ -46,24 +47,21 @@ const FALLBACK_RESULT = {
     confidence: 0,
 };
 async function callMatcher(requirement, resume) {
-    const message = await client.messages.create({
-        model: "claude-opus-4-5",
+    const completion = await client.chat.completions.create({
+        model: MODEL,
         max_tokens: 500,
         temperature: 0,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildUserMessage(requirement, resume) }],
+        messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: buildUserMessage(requirement, resume) },
+        ],
     });
-    const content = message.content[0];
-    if (content.type !== "text") {
-        throw new Error("Unexpected response type from matcher");
-    }
-    const text = content.text.trim();
+    const text = (completion.choices[0].message.content ?? "").trim();
     const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
     const parsed = JSON.parse(clean);
     // Enforce: if status is "missing", proof must be empty
-    if (parsed.status === "missing") {
+    if (parsed.status === "missing")
         parsed.proof = "";
-    }
     return { requirement, ...parsed };
 }
 const CONCURRENCY = 10;
@@ -75,7 +73,6 @@ const CONCURRENCY = 10;
 async function matchRequirements(requirements, resume, onProgress) {
     const total = requirements.length;
     let completed = 0;
-    // Semaphore: cap concurrent Claude calls
     let slots = CONCURRENCY;
     const queue = [];
     function acquire() {
@@ -101,7 +98,6 @@ async function matchRequirements(requirements, resume, onProgress) {
                 result = await callMatcher(req, resume);
             }
             catch {
-                // Retry once
                 try {
                     result = await callMatcher(req, resume);
                 }
@@ -120,7 +116,6 @@ async function matchRequirements(requirements, resume, onProgress) {
         }
     });
     const settled = await Promise.all(promises);
-    // Restore original order (Promise.all preserves insertion order, but be explicit)
     settled.sort((a, b) => a.i - b.i);
     return settled.map((s) => s.result);
 }

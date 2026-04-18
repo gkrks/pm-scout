@@ -15,9 +15,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findHiringManager = findHiringManager;
-const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
+const groq_sdk_1 = __importDefault(require("groq-sdk"));
 const linkedInScraper_1 = require("./linkedInScraper");
-const client = new sdk_1.default({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new groq_sdk_1.default({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = "llama-3.1-8b-instant";
 const PASS1_PROMPT = `You are a talent intelligence analyst. Analyze this job posting and return a JSON object with:
 {
   "signals": "2-3 sentence summary: product area, team function, seniority, scope keywords",
@@ -30,17 +31,16 @@ async function extractSignals(job) {
     const desc = job.description
         ? job.description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 3000)
         : "(no description)";
-    const msg = await client.messages.create({
-        model: "claude-opus-4-5",
+    const completion = await client.chat.completions.create({
+        model: MODEL,
         max_tokens: 600,
         temperature: 0,
-        system: PASS1_PROMPT,
-        messages: [{
-                role: "user",
-                content: `Company: ${job.company}\nTitle: ${job.title}\nLocation: ${job.location}\n\nJD:\n${desc}`,
-            }],
+        messages: [
+            { role: "system", content: PASS1_PROMPT },
+            { role: "user", content: `Company: ${job.company}\nTitle: ${job.title}\nLocation: ${job.location}\n\nJD:\n${desc}` },
+        ],
     });
-    const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "{}";
+    const raw = (completion.choices[0].message.content ?? "").trim();
     const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
     return JSON.parse(cleaned);
 }
@@ -76,14 +76,13 @@ async function rankProfiles(signals, orgHypothesis, profiles, job) {
         return { candidates: [], eliminated: ["No LinkedIn profiles found via scraping"] };
     }
     const profileList = profiles.map((p, i) => `${i + 1}. Name: ${p.name}\n   Title: ${p.title}\n   URL: ${p.url}\n   Bio: ${p.snippet || "(none)"}`).join("\n\n");
-    const msg = await client.messages.create({
-        model: "claude-opus-4-5",
+    const completion = await client.chat.completions.create({
+        model: MODEL,
         max_tokens: 1500,
         temperature: 0,
-        system: PASS3_PROMPT,
-        messages: [{
-                role: "user",
-                content: [
+        messages: [
+            { role: "system", content: PASS3_PROMPT },
+            { role: "user", content: [
                     `Company: ${job.company}`,
                     `Role: ${job.title}`,
                     ``,
@@ -92,10 +91,10 @@ async function rankProfiles(signals, orgHypothesis, profiles, job) {
                     ``,
                     `Scraped LinkedIn Profiles (${profiles.length} found):`,
                     profileList,
-                ].join("\n"),
-            }],
+                ].join("\n") },
+        ],
     });
-    const raw = msg.content[0].type === "text" ? msg.content[0].text.trim() : "{}";
+    const raw = (completion.choices[0].message.content ?? "").trim();
     const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
     return JSON.parse(cleaned);
 }
