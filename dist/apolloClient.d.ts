@@ -10,8 +10,12 @@ export interface ApolloPerson {
     linkedInUrl: string;
 }
 /**
- * Search Apollo for people at a company matching given titles.
- * titleKeywords: array of title strings, e.g. ["Senior PM", "Group PM", "Director of Product"]
+ * Search Apollo for people at a company.
+ * - Always searches broad PM/leadership base titles
+ * - Merges JD-inferred title keywords (hiring manager level titles)
+ * - If teamArea provided, also searches for that team name in titles
+ *   (catches "Product Manager, Shopping Graph" style titles)
+ * - Deduplicates results by LinkedIn URL or name
  */
-export declare function searchApollo(company: string, titleKeywords: string[]): Promise<ApolloPerson[]>;
+export declare function searchApollo(company: string, titleKeywords: string[], teamArea?: string): Promise<ApolloPerson[]>;
 //# sourceMappingURL=apolloClient.d.ts.map

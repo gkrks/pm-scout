@@ -12,17 +12,46 @@ exports.searchApollo = searchApollo;
 const node_fetch_1 = __importDefault(require("node-fetch"));
 const APOLLO_API = "https://api.apollo.io/v1/mixed_people/search";
 const CACHE = new Map();
+// Base PM/leadership titles always included regardless of JD
+const BASE_TITLES = [
+    "Product Manager",
+    "Senior Product Manager",
+    "Staff Product Manager",
+    "Principal Product Manager",
+    "Group Product Manager",
+    "Director of Product",
+    "Director of Product Management",
+    "Head of Product",
+    "VP of Product",
+    "Vice President of Product",
+    "VP Product Management",
+    "Product Lead",
+    "Product Owner",
+    "Hiring Manager",
+];
 /**
- * Search Apollo for people at a company matching given titles.
- * titleKeywords: array of title strings, e.g. ["Senior PM", "Group PM", "Director of Product"]
+ * Search Apollo for people at a company.
+ * - Always searches broad PM/leadership base titles
+ * - Merges JD-inferred title keywords (hiring manager level titles)
+ * - If teamArea provided, also searches for that team name in titles
+ *   (catches "Product Manager, Shopping Graph" style titles)
+ * - Deduplicates results by LinkedIn URL or name
  */
-async function searchApollo(company, titleKeywords) {
-    const cacheKey = `${company.toLowerCase()}::${titleKeywords.join("|").toLowerCase()}`;
+async function searchApollo(company, titleKeywords, teamArea) {
+    // Build unified title list: base + JD-inferred + team-specific variants
+    const titles = new Set([...BASE_TITLES, ...titleKeywords]);
+    if (teamArea) {
+        titles.add(teamArea); // exact team name match
+        titles.add(`Product Manager ${teamArea}`); // "PM, Shopping Graph" style
+        titles.add(`Senior Product Manager ${teamArea}`);
+    }
+    const titleArray = Array.from(titles);
+    const cacheKey = `${company.toLowerCase()}::${titleArray.join("|").toLowerCase()}`;
     if (CACHE.has(cacheKey)) {
         console.log(`[apollo] cache hit for "${company}"`);
         return CACHE.get(cacheKey);
     }
-    console.log(`[apollo] searching "${company}" for titles: ${titleKeywords.join(", ")}`);
+    console.log(`[apollo] searching "${company}" — ${titleArray.length} title variants${teamArea ? ` (team: "${teamArea}")` : ""}`);
     const resp = await (0, node_fetch_1.default)(APOLLO_API, {
         method: "POST",
         headers: {
@@ -32,8 +61,8 @@ async function searchApollo(company, titleKeywords) {
         body: JSON.stringify({
             api_key: process.env.APOLLO_API_KEY,
             q_organization_name: company,
-            person_titles: titleKeywords,
-            per_page: 10,
+            person_titles: titleArray,
+            per_page: 25,
             page: 1,
         }),
     });
@@ -41,6 +70,7 @@ async function searchApollo(company, titleKeywords) {
         throw new Error(`Apollo API error: ${resp.status} ${await resp.text()}`);
     }
     const data = (await resp.json());
+    const seen = new Set();
     const people = (data.people ?? [])
         .map((p) => ({
         name: p.name ?? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(),
@@ -48,7 +78,15 @@ async function searchApollo(company, titleKeywords) {
         organization: p.organization_name ?? company,
         linkedInUrl: p.linkedin_url ?? "",
     }))
-        .filter((p) => p.name);
+        .filter((p) => {
+        if (!p.name)
+            return false;
+        const key = p.linkedInUrl || p.name.toLowerCase();
+        if (seen.has(key))
+            return false;
+        seen.add(key);
+        return true;
+    });
     CACHE.set(cacheKey, people);
     console.log(`[apollo] found ${people.length} people at "${company}"`);
     return people;

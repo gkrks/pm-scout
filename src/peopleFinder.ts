@@ -160,10 +160,10 @@ export async function findHiringManager(job: Job): Promise<PFResult> {
   console.log(`[people-finder] Pass 1 — extracting JD signals for ${job.company} / ${job.title}`);
   const pass1 = await extractSignals(job);
 
-  // Pass 2: search Apollo for people matching title keywords
+  // Pass 2: search Apollo — broad base titles + JD-inferred titles + team area
   const titleArray = pass1.titleKeywords.split(/\s+OR\s+/i).map((t) => t.trim()).filter(Boolean);
-  console.log(`[people-finder] Pass 2 — Apollo search for: "${job.company}" [${titleArray.join(", ")}]`);
-  const profiles = await searchApollo(job.company, titleArray);
+  console.log(`[people-finder] Pass 2 — Apollo search for: "${job.company}" team="${pass1.teamArea}" [${titleArray.join(", ")}]`);
+  const profiles = await searchApollo(job.company, titleArray, pass1.teamArea);
 
   // Pass 3: Claude ranks the real profiles
   console.log(`[people-finder] Pass 3 — ranking ${profiles.length} profiles`);
