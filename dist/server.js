@@ -51,6 +51,7 @@ const matcher_1 = require("./matcher");
 const pdfUtil_1 = require("./pdfUtil");
 const companyDetector_1 = require("./companyDetector");
 const customCompanies_1 = require("./customCompanies");
+const peopleFinder_1 = require("./peopleFinder");
 // ── Config ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 exports.GENERIC_RESUME_PATH = process.env.GENERIC_RESUME_PATH || "";
@@ -389,6 +390,32 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .tl-action { font-size:0.82rem; color:#0f172a; font-weight:500; line-height:1.4; }
     .tl-ts { font-size:0.72rem; color:#94a3b8; margin-top:1px; }
 
+    /* People Finder section */
+    .pf-section { margin-top: 28px; }
+    .pf-btn { display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:7px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:0.83rem;font-weight:600;cursor:pointer; }
+    .pf-btn:hover { background:#f1f5f9; border-color:#cbd5e1; }
+    .pf-btn.loading { opacity:0.6;cursor:not-allowed; }
+    .pf-results { margin-top:16px; }
+    .pf-hypothesis { font-size:0.83rem;color:#475569;line-height:1.6;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:16px; }
+    .pf-candidates { display:flex;flex-direction:column;gap:10px;margin-bottom:16px; }
+    .pf-card { border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;background:#fff; }
+    .pf-card-header { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px; }
+    .pf-name { font-size:0.9rem;font-weight:700;color:#0f172a; }
+    .pf-title-team { font-size:0.78rem;color:#64748b;margin-bottom:6px; }
+    .pf-reasoning { font-size:0.8rem;color:#475569;line-height:1.55;margin-bottom:8px; }
+    .pf-confidence { display:flex;align-items:center;gap:8px;margin-bottom:8px; }
+    .pf-conf-bar-wrap { flex:1;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden; }
+    .pf-conf-bar { height:100%;border-radius:3px;background:#3b82f6; }
+    .pf-conf-label { font-size:0.72rem;font-weight:700;color:#64748b;white-space:nowrap; }
+    .pf-li-link { font-size:0.75rem;font-weight:600;color:#2563eb;text-decoration:none; }
+    .pf-li-link:hover { text-decoration:underline; }
+    .pf-outreach { margin-top:4px; }
+    .pf-outreach-msg { font-size:0.79rem;color:#334155;line-height:1.6;background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:10px 12px;font-style:italic; }
+    .pf-searches { display:flex;flex-wrap:wrap;gap:7px;margin-top:12px; }
+    .pf-search-link { font-size:0.75rem;font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;padding:4px 10px;text-decoration:none; }
+    .pf-search-link:hover { background:#dbeafe; }
+    .pf-eliminated { font-size:0.78rem;color:#94a3b8;line-height:1.6;margin-top:10px; }
+
     /* Apply modal */
     #applyModal { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:200; align-items:center; justify-content:center; }
     #applyModal.open { display:flex; }
@@ -582,6 +609,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
         <div class="section-label">Requirements Map</div>
         <div class="req-summary" id="mReqSummary"></div>
         <div id="mReqList"></div>
+      </div>
+
+      <!-- People Finder -->
+      <div class="pf-section">
+        <div class="section-label" style="margin-bottom:10px;">Hiring Manager Finder</div>
+        <button class="pf-btn" id="btnPeopleFinder">&#128269; Find Hiring Manager</button>
+        <div id="pfResults" class="pf-results" style="display:none;"></div>
       </div>
 
     </div>
@@ -1602,6 +1636,13 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     if (!j) return;
     currentJobId = jobId;
     populateModal(j);
+    // Reset People Finder for the new job
+    document.getElementById('pfResults').style.display = 'none';
+    document.getElementById('pfResults').innerHTML = '';
+    var pfBtn = document.getElementById('btnPeopleFinder');
+    pfBtn.textContent = '🔍 Find Hiring Manager';
+    pfBtn.disabled = false;
+    pfBtn.classList.remove('loading');
     document.getElementById('jobModal').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -1615,6 +1656,95 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
   document.getElementById('modalClose').addEventListener('click', closeModal);
   document.getElementById('jobModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal();
+  });
+
+  // ── People Finder ──────────────────────────────────────────────────────────
+
+  function renderPFResults(d) {
+    var html = '';
+
+    // Org hypothesis
+    html += '<div class="pf-hypothesis"><strong>Org hypothesis:</strong> ' + esc(d.orgHypothesis) + '</div>';
+
+    // Candidate cards
+    html += '<div class="pf-candidates">';
+    (d.candidates || []).forEach(function(c) {
+      var barW = Math.min(100, Math.max(0, c.confidence || 0));
+      var outreach = (d.outreach || []).find(function(o){ return o.name === c.name; });
+      html += '<div class="pf-card">' +
+        '<div class="pf-card-header">' +
+          '<div>' +
+            '<div class="pf-name">' + esc(c.name) + '</div>' +
+            '<div class="pf-title-team">' + esc(c.title) + ' &middot; ' + esc(c.team) + '</div>' +
+          '</div>' +
+          '<a class="pf-li-link" href="' + esc(c.linkedInSearchUrl) + '" target="_blank" rel="noopener">Search LinkedIn ↗</a>' +
+        '</div>' +
+        '<div class="pf-reasoning">' + esc(c.reasoning) + '</div>' +
+        '<div class="pf-confidence">' +
+          '<div class="pf-conf-bar-wrap"><div class="pf-conf-bar" style="width:' + barW + '%"></div></div>' +
+          '<span class="pf-conf-label">' + barW + '% confidence</span>' +
+        '</div>';
+      if (outreach) {
+        html += '<div class="pf-outreach">' +
+          '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:4px;">OUTREACH ANGLE</div>' +
+          '<div class="pf-outreach-msg">' + esc(outreach.message) + '</div>' +
+        '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+
+    // LinkedIn search shortcuts
+    if (d.linkedInSearches && d.linkedInSearches.length) {
+      html += '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:6px;">LINKEDIN SEARCHES</div>';
+      html += '<div class="pf-searches">';
+      d.linkedInSearches.forEach(function(s) {
+        html += '<a class="pf-search-link" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.label) + ' ↗</a>';
+      });
+      html += '</div>';
+    }
+
+    // Eliminated
+    if (d.eliminated && d.eliminated.length) {
+      html += '<div class="pf-eliminated"><strong>Skip these:</strong> ' + d.eliminated.map(function(e){ return esc(e); }).join(' &bull; ') + '</div>';
+    }
+
+    return html;
+  }
+
+  document.getElementById('btnPeopleFinder').addEventListener('click', function() {
+    if (!currentJobId) return;
+    var btn = this;
+    var resultsEl = document.getElementById('pfResults');
+    btn.classList.add('loading');
+    btn.textContent = '⏳ Analyzing...';
+    btn.disabled = true;
+    resultsEl.style.display = 'none';
+
+    fetch('/api/people-finder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: currentJobId }),
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        btn.classList.remove('loading');
+        btn.textContent = '🔍 Re-run';
+        btn.disabled = false;
+        if (d.error) {
+          resultsEl.innerHTML = '<div style="color:#b91c1c;font-size:0.82rem;">' + esc(d.error) + '</div>';
+        } else {
+          resultsEl.innerHTML = renderPFResults(d);
+        }
+        resultsEl.style.display = 'block';
+      })
+      .catch(function(err) {
+        btn.classList.remove('loading');
+        btn.textContent = '🔍 Find Hiring Manager';
+        btn.disabled = false;
+        resultsEl.innerHTML = '<div style="color:#b91c1c;font-size:0.82rem;">Request failed: ' + esc(String(err)) + '</div>';
+        resultsEl.style.display = 'block';
+      });
   });
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') { closeModal(); closeDetailsModal(); }
@@ -1919,6 +2049,25 @@ app.post("/api/run-ats", (req, res) => {
     const label = state_1.appState.resume.uploadedText ? "uploaded" : "generic";
     scoreAllJobs(label).catch((err) => console.error("[ats]", err));
     res.json({ status: "scoring" });
+});
+// POST /api/people-finder
+// Body: { jobId: string }
+// Returns PFResult — hiring manager candidates, org hypothesis, outreach angles.
+app.post("/api/people-finder", async (req, res) => {
+    const { jobId } = req.body;
+    if (!jobId)
+        return res.status(400).json({ error: "jobId required" });
+    const job = state_1.appState.jobs.find((j) => j.id === jobId);
+    if (!job)
+        return res.status(404).json({ error: "Job not found — run a scan first" });
+    try {
+        const result = await (0, peopleFinder_1.findHiringManager)(job);
+        res.json(result);
+    }
+    catch (err) {
+        console.error("[people-finder]", err);
+        res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
 });
 // POST /api/apply — save or update an application record
 app.post("/api/apply", (req, res) => {
