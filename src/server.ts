@@ -372,7 +372,10 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
     .pf-btn:hover { background:#f1f5f9; border-color:#cbd5e1; }
     .pf-btn.loading { opacity:0.6;cursor:not-allowed; }
     .pf-results { margin-top:16px; }
-    .pf-hypothesis { font-size:0.83rem;color:#475569;line-height:1.6;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:16px; }
+    .pf-hypothesis { font-size:0.83rem;color:#475569;line-height:1.6;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:8px; }
+    .pf-badge { display:inline-block;padding:2px 8px;border-radius:9999px;font-size:0.72rem;font-weight:600; }
+    .pf-badge-blue { background:#ede9fe;color:#6d28d9; }
+    .pf-badge-gray { background:#f1f5f9;color:#475569; }
     .pf-candidates { display:flex;flex-direction:column;gap:10px;margin-bottom:16px; }
     .pf-card { border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;background:#fff; }
     .pf-card-header { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px; }
@@ -1638,48 +1641,84 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
 
   function renderPFResults(d) {
     var html = '';
+    var signals = d.jdSignals || {};
+    var candidates = d.candidates || [];
 
-    // Stats bar
-    if (d.scrapedCount != null) {
-      html += '<div style="font-size:0.75rem;color:#94a3b8;margin-bottom:10px;">' +
-        '&#128269; Scraped <strong>' + d.scrapedCount + '</strong> LinkedIn profiles &mdash; ' +
-        '<strong>' + (d.candidates || []).length + '</strong> likely HM candidates</div>';
+    // ── JD Signal summary bar ─────────────────────────────────────────────────
+    if (signals.team || signals.seniorityLevel) {
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
+      if (signals.team)           html += '<span class="pf-badge pf-badge-blue">' + esc(signals.team) + '</span>';
+      if (signals.seniorityLevel) html += '<span class="pf-badge pf-badge-gray">' + esc(signals.seniorityLevel) + '</span>';
+      if (signals.productArea)    html += '<span class="pf-badge pf-badge-gray">' + esc(signals.productArea) + '</span>';
+      html += '</div>';
+    }
+    if (signals.coreProblemSpace) {
+      html += '<div class="pf-hypothesis"><strong>Problem space:</strong> ' + esc(signals.coreProblemSpace) + '</div>';
+    }
+    if (signals.orgHypothesis) {
+      html += '<div class="pf-hypothesis" style="margin-top:4px;"><strong>Org hypothesis:</strong> ' + esc(signals.orgHypothesis) + '</div>';
     }
 
-    // Org hypothesis
-    html += '<div class="pf-hypothesis"><strong>Org hypothesis:</strong> ' + esc(d.orgHypothesis) + '</div>';
+    // Stats
+    if (d.scrapedCount != null) {
+      var hmCount   = candidates.filter(function(c){ return c.category === 'hiring_manager'; }).length;
+      var recCount  = candidates.filter(function(c){ return c.category === 'recruiter'; }).length;
+      var peerCount = candidates.filter(function(c){ return c.category === 'peer'; }).length;
+      html += '<div style="font-size:0.75rem;color:#94a3b8;margin:8px 0;">' +
+        '&#128269; <strong>' + d.scrapedCount + '</strong> profiles found &mdash; ' +
+        '<strong>' + hmCount + '</strong> hiring mgrs &middot; ' +
+        '<strong>' + recCount + '</strong> recruiters &middot; ' +
+        '<strong>' + peerCount + '</strong> peers</div>';
+    }
 
-    // Candidate cards
-    html += '<div class="pf-candidates">';
-    (d.candidates || []).forEach(function(c) {
-      var barW = Math.min(100, Math.max(0, c.confidence || 0));
-      var barColor = barW >= 70 ? '#16a34a' : barW >= 45 ? '#d97706' : '#94a3b8';
-      html += '<div class="pf-card">' +
-        '<div class="pf-card-header">' +
-          '<div>' +
-            '<div class="pf-name">' + esc(c.name) + '</div>' +
-            '<div class="pf-title-team">' + esc(c.title) + (c.team ? ' &middot; ' + esc(c.team) : '') + '</div>' +
+    // ── Render one persona section ────────────────────────────────────────────
+    function renderSection(title, icon, category, accentColor) {
+      var group = candidates.filter(function(c){ return c.category === category; });
+      if (!group.length) return '';
+      var s = '<div style="margin-top:14px;">';
+      s += '<div style="font-size:0.72rem;font-weight:700;color:' + accentColor + ';letter-spacing:0.05em;margin-bottom:6px;">' + icon + ' ' + title.toUpperCase() + ' (' + group.length + ')</div>';
+      group.forEach(function(c) {
+        var barW      = Math.min(100, Math.max(0, c.confidence || 0));
+        var barColor  = barW >= 70 ? '#16a34a' : barW >= 45 ? '#d97706' : '#94a3b8';
+        var relScore  = Math.min(5, Math.max(1, c.relevanceScore || 1));
+        var relDots   = '';
+        for (var i = 1; i <= 5; i++) {
+          relDots += '<span style="color:' + (i <= relScore ? accentColor : '#334155') + ';font-size:10px;">&#9679;</span>';
+        }
+        s += '<div class="pf-card">' +
+          '<div class="pf-card-header">' +
+            '<div>' +
+              '<div class="pf-name">' + esc(c.name) + '</div>' +
+              '<div class="pf-title-team">' + esc(c.title) + (c.team ? ' &middot; ' + esc(c.team) : '') + '</div>' +
+            '</div>' +
+            '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
+              (c.url ? '<a class="pf-li-link" href="' + esc(c.url) + '" target="_blank" rel="noopener">View Profile ↗</a>' : '') +
+              '<span style="font-size:0.65rem;color:#64748b;">relevance ' + relDots + '</span>' +
+            '</div>' +
           '</div>' +
-          (c.url ? '<a class="pf-li-link" href="' + esc(c.url) + '" target="_blank" rel="noopener">View Profile ↗</a>' : '') +
-        '</div>' +
-        '<div class="pf-reasoning">' + esc(c.reasoning) + '</div>' +
-        '<div class="pf-confidence">' +
-          '<div class="pf-conf-bar-wrap"><div class="pf-conf-bar" style="width:' + barW + '%;background:' + barColor + '"></div></div>' +
-          '<span class="pf-conf-label">' + barW + '% confidence</span>' +
-        '</div>';
-      if (c.outreach) {
-        html += '<div class="pf-outreach">' +
-          '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:4px;">OUTREACH ANGLE</div>' +
-          '<div class="pf-outreach-msg">' + esc(c.outreach) + '</div>' +
-        '</div>';
-      }
-      html += '</div>';
-    });
-    html += '</div>';
+          '<div class="pf-reasoning">' + esc(c.reasoning) + '</div>' +
+          '<div class="pf-confidence">' +
+            '<div class="pf-conf-bar-wrap"><div class="pf-conf-bar" style="width:' + barW + '%;background:' + barColor + '"></div></div>' +
+            '<span class="pf-conf-label">' + barW + '% confidence</span>' +
+          '</div>';
+        if (c.outreach) {
+          s += '<div class="pf-outreach">' +
+            '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:4px;">OUTREACH ANGLE</div>' +
+            '<div class="pf-outreach-msg">' + esc(c.outreach) + '</div>' +
+          '</div>';
+        }
+        s += '</div>';
+      });
+      return s + '</div>';
+    }
 
-    // LinkedIn search shortcuts
+    html += renderSection('Hiring Managers', '&#127775;', 'hiring_manager', '#818cf8');
+    html += renderSection('Recruiters',      '&#128101;', 'recruiter',      '#34d399');
+    html += renderSection('Peers (Same Team)', '&#128101;', 'peer',          '#fb923c');
+
+    // ── LinkedIn search shortcuts ─────────────────────────────────────────────
     if (d.linkedInSearches && d.linkedInSearches.length) {
-      html += '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin-bottom:6px;">LINKEDIN SEARCHES</div>';
+      html += '<div style="font-size:0.72rem;font-weight:700;color:#94a3b8;margin:14px 0 6px;">LINKEDIN SEARCHES</div>';
       html += '<div class="pf-searches">';
       d.linkedInSearches.forEach(function(s) {
         html += '<a class="pf-search-link" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.label) + ' ↗</a>';
@@ -1687,9 +1726,9 @@ const INDEX_HTML = /* html */ `<!DOCTYPE html>
       html += '</div>';
     }
 
-    // Eliminated
+    // ── Eliminated ────────────────────────────────────────────────────────────
     if (d.eliminated && d.eliminated.length) {
-      html += '<div class="pf-eliminated"><strong>Skip these:</strong> ' + d.eliminated.map(function(e){ return esc(e); }).join(' &bull; ') + '</div>';
+      html += '<div class="pf-eliminated"><strong>Skip:</strong> ' + d.eliminated.map(function(e){ return esc(e); }).join(' &bull; ') + '</div>';
     }
 
     return html;

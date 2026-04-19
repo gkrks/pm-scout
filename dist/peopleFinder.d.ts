@@ -1,34 +1,62 @@
 /**
- * peopleFinder — identifies real hiring managers using LinkedIn scraping + Claude.
+ * peopleFinder — structured 3-persona hiring intelligence pipeline.
  *
- * Two-pass approach:
- *   Pass 1 (Claude): extract JD signals, infer org structure, produce title keywords
- *                    to search for on LinkedIn.
- *   Pass 2 (Playwright): scrape DuckDuckGo + LinkedIn guest search for real profiles
- *                        matching those keywords at the company.
- *   Pass 3 (Claude): rank the real scraped profiles by hiring manager probability,
- *                    add reasoning and outreach angles.
+ * Pass 1 (Groq): Extract JD signals → team, seniority, product area,
+ *                generate persona-specific Apollo search strategies.
+ * Pass 2 (Apollo): Run 3 parallel searches — hiring managers, recruiters, peers.
+ * Pass 3 (Groq): Categorize + score every returned profile.
+ *                Assigns: category, relevance_score (1-5), confidence (0-100),
+ *                reasoning, outreach for top HM candidates.
  */
 import { Job } from "./state";
+export type CandidateCategory = "hiring_manager" | "recruiter" | "peer";
 export interface PFCandidate {
     name: string;
     title: string;
     url: string;
     team: string;
-    reasoning: string;
+    category: CandidateCategory;
+    relevanceScore: number;
     confidence: number;
+    reasoning: string;
     outreach?: string;
 }
-export interface PFResult {
-    signals: string;
+export interface JDSignals {
+    team: string;
+    productArea: string;
+    seniorityLevel: string;
+    keyKeywords: string[];
+    coreProblemSpace: string;
     orgHypothesis: string;
+}
+export interface SearchStrategy {
+    hiringManager: {
+        titles: string[];
+        seniorities: string[];
+    };
+    recruiter: {
+        titles: string[];
+    };
+    peers: {
+        titles: string[];
+        seniorities: string[];
+    };
+    booleanStrings: {
+        hiringManager: string;
+        recruiter: string;
+        peers: string;
+    };
+}
+export interface PFResult {
+    jdSignals: JDSignals;
+    searchStrategy: SearchStrategy;
     candidates: PFCandidate[];
     eliminated: string[];
+    scrapedCount: number;
     linkedInSearches: {
         label: string;
         url: string;
     }[];
-    scrapedCount: number;
 }
 export declare function findHiringManager(job: Job): Promise<PFResult>;
 //# sourceMappingURL=peopleFinder.d.ts.map
