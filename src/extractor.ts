@@ -23,6 +23,17 @@ Example input:
 Example output:
 ["Bachelor's or Master's degree or equivalent", "3+ years product management experience", "payment systems (ACH, wires, card networks)", "vendor integrations — data aggregators"]`;
 
+function parseRateLimitWaitMs(err: unknown): number | null {
+  const msg = String(err);
+  if (!msg.includes("429") && !msg.includes("rate_limit_exceeded")) return null;
+  const match = msg.match(/try again in ([\d.]+)s/i);
+  return match ? Math.ceil(parseFloat(match[1]) * 1000) + 500 : 10_000;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function callExtractor(rawText: string): Promise<string[]> {
   const completion = await client.chat.completions.create({
     model: MODEL,
@@ -43,16 +54,21 @@ async function callExtractor(rawText: string): Promise<string[]> {
 
 /**
  * Extract atomic requirement phrases from raw job posting text.
- * Retries once on JSON parse failure.
+ * Retries with backoff on rate limits; retries once on JSON parse failure.
  */
-export async function extractRequirements(rawText: string): Promise<string[]> {
-  try {
-    return await callExtractor(rawText);
-  } catch (err) {
+export async function extractRequirements(rawText: string, maxRetries = 4): Promise<string[]> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await callExtractor(rawText);
-    } catch {
-      throw new Error(`Extractor failed after retry: ${err}`);
+    } catch (err) {
+      const waitMs = parseRateLimitWaitMs(err);
+      if (waitMs !== null && attempt < maxRetries) {
+        console.warn(`  [extractor] Rate limit hit — waiting ${(waitMs / 1000).toFixed(1)}s (attempt ${attempt + 1}/${maxRetries})`);
+        await sleep(waitMs);
+        continue;
+      }
+      throw new Error(`Extractor failed after ${attempt + 1} attempt(s): ${err}`);
     }
   }
+  throw new Error("extractRequirements: exceeded max retries");
 }

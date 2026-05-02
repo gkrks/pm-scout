@@ -1,0 +1,3909 @@
+{
+  "version": 1,
+  "_comment": "ATS routing for job scanner. Slug keys match company slugs in config/targets.json. Run scripts/discoverATS.js to detect ATS for unmapped companies.",
+  "routing": {
+    "222": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "google": {
+      "ats": "google-playwright"
+    },
+    "meta": {
+      "ats": "meta-playwright"
+    },
+    "amazon": {
+      "ats": "amazon"
+    },
+    "scaleai": {
+      "ats": "greenhouse",
+      "slug": "scaleai"
+    },
+    "checkr": {
+      "ats": "greenhouse",
+      "slug": "checkr"
+    },
+    "roblox": {
+      "ats": "greenhouse",
+      "slug": "roblox"
+    },
+    "squarespace": {
+      "ats": "greenhouse",
+      "slug": "squarespace"
+    },
+    "jfrog": {
+      "ats": "greenhouse",
+      "slug": "jfrog"
+    },
+    "qualtrics": {
+      "ats": "greenhouse",
+      "slug": "qualtrics"
+    },
+    "contentful": {
+      "ats": "greenhouse",
+      "slug": "contentful"
+    },
+    "algolia": {
+      "ats": "greenhouse",
+      "slug": "algolia"
+    },
+    "netlify": {
+      "ats": "greenhouse",
+      "slug": "netlify"
+    },
+    "cockroachlabs": {
+      "ats": "greenhouse",
+      "slug": "cockroachlabs"
+    },
+    "ziprecruiter": {
+      "ats": "greenhouse",
+      "slug": "ziprecruiter"
+    },
+    "blend": {
+      "ats": "greenhouse",
+      "slug": "blend"
+    },
+    "opendoor": {
+      "ats": "greenhouse",
+      "slug": "opendoor"
+    },
+    "benchling": {
+      "ats": "greenhouse",
+      "slug": "benchling"
+    },
+    "grafana": {
+      "ats": "greenhouse",
+      "slug": "grafana"
+    },
+    "togetherai": {
+      "ats": "greenhouse",
+      "slug": "togetherai"
+    },
+    "together-ai": {
+      "ats": "greenhouse",
+      "slug": "togetherai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:03.595Z"
+    },
+    "abnormalsecurity": {
+      "ats": "greenhouse",
+      "slug": "abnormalsecurity"
+    },
+    "uberfreight": {
+      "ats": "greenhouse",
+      "slug": "uberfreight"
+    },
+    "uber-freight": {
+      "ats": "greenhouse",
+      "slug": "uberfreight",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T06:02:41.315Z"
+    },
+    "coupang": {
+      "ats": "greenhouse",
+      "slug": "coupang"
+    },
+    "natera": {
+      "ats": "greenhouse",
+      "slug": "natera"
+    },
+    "palantir": {
+      "ats": "lever",
+      "slug": "palantir"
+    },
+    "palantir-technologies": {
+      "ats": "lever",
+      "slug": "palantir",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:45.029Z"
+    },
+    "mistral": {
+      "ats": "lever",
+      "slug": "mistral"
+    },
+    "wandb": {
+      "ats": "manual"
+    },
+    "weights-and-biases": {
+      "ats": "smartrecruiters",
+      "slug": "weights-and-biases",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:35.035Z"
+    },
+    "clari": {
+      "ats": "lever",
+      "slug": "clari"
+    },
+    "highspot": {
+      "ats": "lever",
+      "slug": "highspot"
+    },
+    "character-ai": {
+      "ats": "ashby",
+      "slug": "character"
+    },
+    "dbtlabs": {
+      "ats": "manual"
+    },
+    "dbt-labs": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "pave": {
+      "ats": "ashby",
+      "slug": "pave"
+    },
+    "salesforce": {
+      "ats": "smartrecruiters",
+      "slug": "salesforce",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:28.048Z"
+    },
+    "adobe": {
+      "ats": "workday",
+      "host": "adobe.wd5.myworkdayjobs.com",
+      "tenant": "adobe",
+      "site": "en-US",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:44.114Z"
+    },
+    "servicenow": {
+      "ats": "smartrecruiters",
+      "slug": "servicenow",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:35.830Z"
+    },
+    "workday": {
+      "ats": "workday",
+      "host": "workday.wd5.myworkdayjobs.com",
+      "tenant": "workday",
+      "site": "en-US",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:12.012Z"
+    },
+    "nike": {
+      "ats": "workday",
+      "host": "nike.wd1.myworkdayjobs.com",
+      "tenant": "nike",
+      "site": "nike"
+    },
+    "target": {
+      "ats": "workday",
+      "host": "target.wd5.myworkdayjobs.com",
+      "tenant": "target",
+      "site": "Public_Site"
+    },
+    "nielsen": {
+      "ats": "workday",
+      "host": "nielsen.wd1.myworkdayjobs.com",
+      "tenant": "nielsen",
+      "site": "Nielsen_Global_External_Career_Site"
+    },
+    "linkedin": {
+      "ats": "greenhouse",
+      "slug": "linkedin"
+    },
+    "microsoft": {
+      "ats": "manual"
+    },
+    "apple": {
+      "ats": "manual"
+    },
+    "tiktok": {
+      "ats": "smartrecruiters",
+      "slug": "tiktok",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.479Z"
+    },
+    "intuit": {
+      "ats": "smartrecruiters",
+      "slug": "intuit",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.652Z"
+    },
+    "capital-one": {
+      "ats": "workday",
+      "host": "capitalone.wd12.myworkdayjobs.com",
+      "tenant": "capitalone",
+      "site": "Capital_One",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:24.953Z"
+    },
+    "1password": {
+      "ats": "ashby",
+      "slug": "1password",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:33.911Z"
+    },
+    "15five": {
+      "ats": "lever",
+      "slug": "15five",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:34.148Z"
+    },
+    "23andme": {
+      "ats": "workday",
+      "host": "23andme.wd5.myworkdayjobs.com",
+      "tenant": "23andme",
+      "site": "23",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:34.152Z"
+    },
+    "2u-and-edx": {
+      "ats": "greenhouse",
+      "slug": "2uedx",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:03.780Z"
+    },
+    "7ai": {
+      "ats": "ashby",
+      "slug": "sevenai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:37.278Z"
+    },
+    "8x8": {
+      "ats": "smartrecruiters",
+      "slug": "8x8",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:38.301Z"
+    },
+    "abridge": {
+      "ats": "ashby",
+      "slug": "Abridge",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:39.090Z"
+    },
+    "abnormal-security": {
+      "ats": "greenhouse",
+      "slug": "abnormalsecurity",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:06.702Z"
+    },
+    "accenture-ai-practice": {
+      "ats": "workday",
+      "host": "accenture.wd103.myworkdayjobs.com",
+      "tenant": "accenture",
+      "site": "AccentureCareers",
+      "pageSize": 20
+    },
+    "adept": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "activision-blizzard": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "aegis-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "aembit": {
+      "ats": "bamboohr",
+      "slug": "aembit",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:59:41.703Z"
+    },
+    "ai21-labs": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.positions",
+        "title": "a.position",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:47:42.965Z"
+    },
+    "age-of-learning": {
+      "ats": "lever",
+      "slug": "aofl",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:49.433Z"
+    },
+    "airbase": {
+      "ats": "smartrecruiters",
+      "slug": "airbase",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:53.387Z"
+    },
+    "alation": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "airbyte": {
+      "ats": "ashby",
+      "slug": "airbyte",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:51.824Z"
+    },
+    "alguna": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "alphabet-and-google": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "alloy": {
+      "ats": "greenhouse",
+      "slug": "alloy",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:50.453Z"
+    },
+    "alto-pharmacy": {
+      "ats": "workday",
+      "host": "alto.wd1.myworkdayjobs.com",
+      "tenant": "alto",
+      "site": "FuzeHealthCareerSite",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:58.492Z"
+    },
+    "amazon-web-services": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "ambience-healthcare": {
+      "ats": "ashby",
+      "slug": "ambiencehealthcare",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:02:59.286Z"
+    },
+    "amd": {
+      "ats": "manual",
+      "slug": "amd",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "icims",
+      "_discovered_at": "2026-05-02T06:34:17.508Z"
+    },
+    "anchorage-digital": {
+      "ats": "lever",
+      "slug": "anchorage",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:04.108Z"
+    },
+    "american-express": {
+      "ats": "manual",
+      "slug": "american-express",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "eightfold",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "angi": {
+      "ats": "ashby",
+      "slug": "angi",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:51.366Z"
+    },
+    "apolloio": {
+      "ats": "greenhouse",
+      "slug": "apolloio",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:08.801Z"
+    },
+    "anjuna": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "appdynamics": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "applied-intuition": {
+      "ats": "greenhouse",
+      "slug": "appliedintuition",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:14.178Z"
+    },
+    "appian": {
+      "ats": "greenhouse",
+      "slug": "appian"
+    },
+    "apriora": {
+      "ats": "ashby",
+      "slug": "alexai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:15.197Z"
+    },
+    "aqua-security": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "aqua": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "arcade-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "arcadia": {
+      "ats": "greenhouse",
+      "slug": "arcadiacareers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:19.704Z"
+    },
+    "archer-aviation": {
+      "ats": "smartrecruiters",
+      "slug": "archer-aviation",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:09.705Z"
+    },
+    "arctic-wolf": {
+      "ats": "workday",
+      "host": "arcticwolf.wd1.myworkdayjobs.com",
+      "tenant": "arcticwolf",
+      "site": "External",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:59:50.869Z"
+    },
+    "arize-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "armis": {
+      "ats": "greenhouse",
+      "slug": "armissecurity",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:25.122Z"
+    },
+    "ascend": {
+      "ats": "ashby",
+      "slug": "ascend-io",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:25.119Z"
+    },
+    "ashby": {
+      "ats": "ashby",
+      "slug": "ashby",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:28.321Z"
+    },
+    "assemblyai": {
+      "ats": "greenhouse",
+      "slug": "assemblyai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.704Z"
+    },
+    "astranis": {
+      "ats": "greenhouse",
+      "slug": "astranis",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:52.519Z"
+    },
+    "athelas": {
+      "ats": "ashby",
+      "slug": "Commure",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:30.362Z"
+    },
+    "athletic-greens-and-ag1": {
+      "ats": "smartrecruiters",
+      "slug": "athletic-greens-and-ag1",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:11.912Z"
+    },
+    "atlan": {
+      "ats": "ashby",
+      "slug": "atlan",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:33.627Z"
+    },
+    "atomwise": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.et_builder_inner_content.et_pb_gutters3",
+        "title": "div.et_pb_module.et_pb_text",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:56:44.922Z"
+    },
+    "augment-code": {
+      "ats": "greenhouse",
+      "slug": "augmentcomputing",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:35.462Z"
+    },
+    "automation-anywhere": {
+      "ats": "smartrecruiters",
+      "slug": "automation-anywhere",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:39.153Z"
+    },
+    "aurora-innovation": {
+      "ats": "greenhouse",
+      "slug": "aurorainnovation",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:09.398Z"
+    },
+    "aurora-solar": {
+      "ats": "ashby",
+      "slug": "aurorasolar",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:38.766Z"
+    },
+    "autonomous": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "babylist": {
+      "ats": "greenhouse",
+      "slug": "babylist",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:40.888Z"
+    },
+    "baseten": {
+      "ats": "ashby",
+      "slug": "baseten",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:43.168Z"
+    },
+    "bereal": {
+      "ats": "smartrecruiters",
+      "slug": "bereal",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:41.726Z"
+    },
+    "beautifulai": {
+      "ats": "greenhouse",
+      "slug": "beautifulai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.738Z"
+    },
+    "bcg-x": {
+      "ats": "smartrecruiters",
+      "slug": "bcg-x",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:36.159Z"
+    },
+    "betterup": {
+      "ats": "ashby",
+      "slug": "betterup",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:58.717Z"
+    },
+    "beyond-identity": {
+      "ats": "greenhouse",
+      "slug": "beyondidentity",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:49.879Z"
+    },
+    "betterment": {
+      "ats": "greenhouse",
+      "slug": "betterment",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:45.845Z"
+    },
+    "bigeye": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "bilt-rewards": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.framer-1086e4t-container",
+        "title": "div.framer-TkwHy.framer-MRPhV",
+        "location": "div.framer-TkwHy.framer-MRPhV",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:54:52.421Z"
+    },
+    "black-forest-labs": {
+      "ats": "greenhouse",
+      "slug": "blackforestlabs",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:51.197Z"
+    },
+    "blackrock": {
+      "ats": "smartrecruiters",
+      "slug": "blackrock",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:28.339Z"
+    },
+    "bloomberg": {
+      "ats": "smartrecruiters",
+      "slug": "bloomberg",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.445Z"
+    },
+    "bloom-institute-of-tech": {
+      "ats": "smartrecruiters",
+      "slug": "bloom-institute-of-tech",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.479Z"
+    },
+    "bluecargo": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "boldvoice": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div",
+        "title": "div.notion-selectable.notion-page-block",
+        "location": "div.notion-selectable.notion-page-block",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T06:03:58.440Z"
+    },
+    "bloomreach": {
+      "ats": "greenhouse",
+      "slug": "bloomreach",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:03:56.491Z"
+    },
+    "bookingcom": {
+      "ats": "smartrecruiters",
+      "slug": "bookingcom",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:54.811Z"
+    },
+    "booksy": {
+      "ats": "manual",
+      "slug": "booksy",
+      "_discovery_method": "workable-blocked",
+      "_discovered_at": "2026-05-02T06:39:42.941Z"
+    },
+    "boomi": {
+      "ats": "greenhouse",
+      "slug": "boomilp",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:00.971Z"
+    },
+    "boston-metal": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "boulevard": {
+      "ats": "greenhouse",
+      "slug": "boulevard",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:04.195Z"
+    },
+    "braintrust": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "brickanta": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "bridge": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "brightline": {
+      "ats": "ashby",
+      "slug": "hellobrightline",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:09.807Z"
+    },
+    "brilliant": {
+      "ats": "lever",
+      "slug": "brilliant",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:10.852Z"
+    },
+    "broadcom-and-vmware": {
+      "ats": "workday",
+      "host": "broadcom.wd1.myworkdayjobs.com",
+      "tenant": "broadcom",
+      "site": "External_Career",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:12.410Z"
+    },
+    "browserbase": {
+      "ats": "ashby",
+      "slug": "browserbase",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:13.262Z"
+    },
+    "bubble": {
+      "ats": "ashby",
+      "slug": "bubble",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:15.324Z"
+    },
+    "bumble": {
+      "ats": "lever",
+      "slug": "bumbleinc",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:15.362Z"
+    },
+    "bunkerhill-health": {
+      "ats": "ashby",
+      "slug": "bunkerhillhealth",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:15.826Z"
+    },
+    "calendly": {
+      "ats": "greenhouse",
+      "slug": "calendly",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:05.554Z"
+    },
+    "bytedance": {
+      "ats": "smartrecruiters",
+      "slug": "bytedance",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:32.098Z"
+    },
+    "calm": {
+      "ats": "greenhouse",
+      "slug": "calm",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:57.372Z"
+    },
+    "cameo": {
+      "ats": "greenhouse",
+      "slug": "cameo",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:42.408Z"
+    },
+    "capchase": {
+      "ats": "ashby",
+      "slug": "capchase",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:20.532Z"
+    },
+    "capsule": {
+      "ats": "ashby",
+      "slug": "capsule",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:59.632Z"
+    },
+    "captions": {
+      "ats": "ashby",
+      "slug": "mirage",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:24.939Z"
+    },
+    "carbon-health": {
+      "ats": "lever",
+      "slug": "carbonhealth",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:00.001Z"
+    },
+    "careforce": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "carrot-fertility": {
+      "ats": "greenhouse",
+      "slug": "carrotfertility",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:03.096Z"
+    },
+    "cartesia": {
+      "ats": "ashby",
+      "slug": "cartesia",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:29.752Z"
+    },
+    "casetext": {
+      "ats": "workday",
+      "host": "thomsonreuters.wd5.myworkdayjobs.com",
+      "tenant": "thomsonreuters",
+      "site": "en-US",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:34.273Z"
+    },
+    "carecom": {
+      "ats": "greenhouse",
+      "slug": "carecom"
+    },
+    "celonis": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.table-row.load-more-item",
+        "title": "div.table-cell",
+        "location": "div.table-cell",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:53:00.703Z"
+    },
+    "census": {
+      "ats": "greenhouse",
+      "slug": "fivetran",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:35.939Z"
+    },
+    "centaur": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "cerebras-systems": {
+      "ats": "greenhouse",
+      "slug": "cerebrassystems",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:33.598Z"
+    },
+    "chainalysis": {
+      "ats": "smartrecruiters",
+      "slug": "chainalysis",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:06.400Z"
+    },
+    "chainguard": {
+      "ats": "greenhouse",
+      "slug": "chainguard",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:39.767Z"
+    },
+    "chaos-industries": {
+      "ats": "manual",
+      "_note": "dead URL"
+    },
+    "chargepoint": {
+      "ats": "greenhouse",
+      "slug": "chargepoint",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:08.385Z"
+    },
+    "charm-industrial": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "chegg": {
+      "ats": "smartrecruiters",
+      "slug": "chegg",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:03.375Z"
+    },
+    "chroma": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "circle": {
+      "ats": "smartrecruiters",
+      "slug": "circle",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:46.337Z"
+    },
+    "circleso": {
+      "ats": "greenhouse",
+      "slug": "circleso",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:48.876Z"
+    },
+    "cisco": {
+      "ats": "smartrecruiters",
+      "slug": "cisco",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:32.243Z"
+    },
+    "citrix": {
+      "ats": "workday",
+      "host": "tibco.wd5.myworkdayjobs.com",
+      "tenant": "tibco",
+      "site": "Cloud_Software_Group",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:53.724Z"
+    },
+    "clarify-health": {
+      "ats": "lever",
+      "slug": "clarifyhealth",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:00.359Z"
+    },
+    "classdojo": {
+      "ats": "ashby",
+      "slug": "ClassDojo",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:53.838Z"
+    },
+    "classpass": {
+      "ats": "greenhouse",
+      "slug": "classpass",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:55.980Z"
+    },
+    "clerk": {
+      "ats": "ashby",
+      "slug": "Clerk",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:58.348Z"
+    },
+    "clay": {
+      "ats": "ashby",
+      "slug": "claylabs",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:04:58.614Z"
+    },
+    "climeworks": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "closure": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "coalition": {
+      "ats": "greenhouse",
+      "slug": "coalition",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:48.463Z"
+    },
+    "cockroach-labs": {
+      "ats": "greenhouse",
+      "slug": "cockroachlabs",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:54.249Z"
+    },
+    "codecademy": {
+      "ats": "smartrecruiters",
+      "slug": "codecademy",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.336Z"
+    },
+    "codeium-and-windsurf": {
+      "ats": "ashby",
+      "slug": "cognition",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:08.756Z"
+    },
+    "cognition-labs": {
+      "ats": "ashby",
+      "slug": "cognition",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:10.538Z"
+    },
+    "cognizant-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "cogram": {
+      "ats": "manual",
+      "_note": "Posts via Y Combinator job board - no standard ATS"
+    },
+    "cohere-health": {
+      "ats": "greenhouse",
+      "slug": "coherehealth",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:51.594Z"
+    },
+    "cohesity": {
+      "ats": "smartrecruiters",
+      "slug": "cohesity",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:07.570Z"
+    },
+    "collibra": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "color-health": {
+      "ats": "ashby",
+      "slug": "color-health",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:01.726Z"
+    },
+    "column": {
+      "ats": "ashby",
+      "slug": "column",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:18.429Z"
+    },
+    "confido": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "comet-ml": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "commonwealth-fusion-systems": {
+      "ats": "lever",
+      "slug": "cfsenergy",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:20.271Z"
+    },
+    "confluent": {
+      "ats": "ashby",
+      "slug": "confluent",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:37.692Z"
+    },
+    "conjecture": {
+      "ats": "smartrecruiters",
+      "slug": "conjecture",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:10.800Z"
+    },
+    "convex": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "copado": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "copyai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "corelight": {
+      "ats": "greenhouse",
+      "slug": "corelight",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:51.198Z"
+    },
+    "coreweave": {
+      "ats": "greenhouse",
+      "slug": "coreweave",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:27.498Z"
+    },
+    "corgi-insurance": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "counsel-health": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "course-hero": {
+      "ats": "greenhouse",
+      "slug": "learneo",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:32.157Z"
+    },
+    "coval": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "coupa-software": {
+      "ats": "smartrecruiters",
+      "slug": "coupa-software",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:40.635Z"
+    },
+    "cresta": {
+      "ats": "greenhouse",
+      "slug": "cresta",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:34.994Z"
+    },
+    "crogl": {
+      "ats": "ashby",
+      "slug": "crogl",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:36.741Z"
+    },
+    "crowdstrike": {
+      "ats": "workday",
+      "host": "crowdstrike.wd5.myworkdayjobs.com",
+      "tenant": "crowdstrike",
+      "site": "crowdstrikecareers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:37.854Z"
+    },
+    "cruise": {
+      "ats": "smartrecruiters",
+      "slug": "cruise",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:09.295Z"
+    },
+    "crusoe-energy": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "cube-dev": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "culture-amp": {
+      "ats": "greenhouse",
+      "slug": "cultureamp",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:41.461Z"
+    },
+    "cursor": {
+      "ats": "ashby",
+      "slug": "cursor",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:35.179Z"
+    },
+    "customerio": {
+      "ats": "greenhouse",
+      "slug": "customerio",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:42.768Z"
+    },
+    "cyera": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "datafold": {
+      "ats": "ashby",
+      "slug": "datafold",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:47.411Z"
+    },
+    "david-energy": {
+      "ats": "ashby",
+      "slug": "davidenergy",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:47.557Z"
+    },
+    "decagon": {
+      "ats": "ashby",
+      "slug": "decagon",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:51.162Z"
+    },
+    "dazn": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div",
+        "title": "div.rt-td.col-flex-grow-10",
+        "location": "div.col-sm-1-1",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:54:21.175Z"
+    },
+    "decart": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "deepgram": {
+      "ats": "ashby",
+      "slug": "Deepgram",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:54.621Z"
+    },
+    "deepscribe": {
+      "ats": "smartrecruiters",
+      "slug": "deepscribe",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:02.328Z"
+    },
+    "dell-technologies": {
+      "ats": "workday",
+      "host": "dell.wd1.myworkdayjobs.com",
+      "tenant": "dell",
+      "site": "External",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:05:58.300Z"
+    },
+    "dex": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "dili": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "docsend": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "domu-technology": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "distyl-ai": {
+      "ats": "ashby",
+      "slug": "Distyl",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:04.100Z"
+    },
+    "docusign": {
+      "ats": "manual",
+      "slug": "docusign",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "icims",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "doximity": {
+      "ats": "greenhouse",
+      "slug": "doximity",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:01.718Z"
+    },
+    "draftkings": {
+      "ats": "smartrecruiters",
+      "slug": "draftkings",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:43.339Z"
+    },
+    "dreambase": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "drata": {
+      "ats": "ashby",
+      "slug": "drata",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:08.134Z"
+    },
+    "drift": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "dremio": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "dynatrace": {
+      "ats": "manual",
+      "slug": "dynatrace",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "successfactors",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "easypost": {
+      "ats": "lever",
+      "slug": "easypost-2",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:17.908Z"
+    },
+    "ebay": {
+      "ats": "smartrecruiters",
+      "slug": "ebay",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.562Z"
+    },
+    "eight-sleep": {
+      "ats": "ashby",
+      "slug": "eightsleep",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:17.757Z"
+    },
+    "elevenlabs": {
+      "ats": "ashby",
+      "slug": "elevenlabs",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:34.953Z"
+    },
+    "electronic-arts": {
+      "ats": "smartrecruiters",
+      "slug": "electronic-arts",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:30.429Z"
+    },
+    "epic-games": {
+      "ats": "greenhouse",
+      "slug": "epicgames",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:44.775Z"
+    },
+    "eliseai": {
+      "ats": "ashby",
+      "slug": "EliseAI",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:26.093Z"
+    },
+    "epirus": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "embeddables": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "etsy": {
+      "ats": "smartrecruiters",
+      "slug": "etsy",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:43.314Z"
+    },
+    "eudia": {
+      "ats": "greenhouse",
+      "slug": "eudia",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:29.348Z"
+    },
+    "eve": {
+      "ats": "greenhouse",
+      "slug": "eve",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:30.209Z"
+    },
+    "evenup": {
+      "ats": "smartrecruiters",
+      "slug": "evenup",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:12.383Z"
+    },
+    "evgo": {
+      "ats": "smartrecruiters",
+      "slug": "evgo",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:08.790Z"
+    },
+    "evolutioniq": {
+      "ats": "greenhouse",
+      "slug": "evolutioniq",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:51.172Z"
+    },
+    "exa": {
+      "ats": "ashby",
+      "slug": "exa",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:33.855Z"
+    },
+    "fanatics": {
+      "ats": "manual",
+      "_note": "dead URL"
+    },
+    "fanduel": {
+      "ats": "greenhouse",
+      "slug": "fanduel",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:43.740Z"
+    },
+    "extern": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "fabric": {
+      "ats": "manual",
+      "_note": "Workable fabric-health - server-side blocked"
+    },
+    "falai": {
+      "ats": "greenhouse",
+      "slug": "fal",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:48:30.062Z"
+    },
+    "fervo-energy": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "fiddler-ai": {
+      "ats": "ashby",
+      "slug": "fiddler-ai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:40.909Z"
+    },
+    "firefliesai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "fireworks-ai": {
+      "ats": "greenhouse",
+      "slug": "fireworksai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:46.571Z"
+    },
+    "flock-safety": {
+      "ats": "smartrecruiters",
+      "slug": "flock-safety",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:12.333Z"
+    },
+    "fireblocks": {
+      "ats": "greenhouse",
+      "slug": "fireblocks",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.760Z"
+    },
+    "forterra": {
+      "ats": "manual",
+      "_note": "dead URL"
+    },
+    "forward-health": {
+      "ats": "smartrecruiters",
+      "slug": "forward-health",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:56.883Z"
+    },
+    "flyio": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "forge": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "form-energy": {
+      "ats": "ashby",
+      "slug": "formenergy",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:07.890Z"
+    },
+    "forter": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "fractional-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "found": {
+      "ats": "ashby",
+      "slug": "found",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:57.195Z"
+    },
+    "freed-ai": {
+      "ats": "smartrecruiters",
+      "slug": "freed-ai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:02.567Z"
+    },
+    "freightwaves": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "front": {
+      "ats": "ashby",
+      "slug": "frontcareers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:06:59.392Z"
+    },
+    "function-health": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.career_list",
+        "title": "div.career_item",
+        "location": "div.career_item-left",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:57:35.182Z"
+    },
+    "future": {
+      "ats": "greenhouse",
+      "slug": "future",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:01.026Z"
+    },
+    "gainsight": {
+      "ats": "ashby",
+      "slug": "gainsight",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:37.937Z"
+    },
+    "galileo": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "galileo-health": {
+      "ats": "smartrecruiters",
+      "slug": "galileo-health",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:52.690Z"
+    },
+    "gamma": {
+      "ats": "lever",
+      "slug": "gamma",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:35.028Z"
+    },
+    "garner-health": {
+      "ats": "greenhouse",
+      "slug": "garnerhealth",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:06.917Z"
+    },
+    "gemini": {
+      "ats": "greenhouse",
+      "slug": "gemini",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.734Z"
+    },
+    "general-assembly": {
+      "ats": "greenhouse",
+      "slug": "generalassembly",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:09.107Z"
+    },
+    "gesundai": {
+      "ats": "smartrecruiters",
+      "slug": "gesundai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:59.797Z"
+    },
+    "github": {
+      "ats": "manual",
+      "slug": "github",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "icims",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "goat": {
+      "ats": "smartrecruiters",
+      "slug": "goat",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:43.248Z"
+    },
+    "gogograndparent": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "goldbelly": {
+      "ats": "greenhouse",
+      "slug": "goldbelly",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:54.410Z"
+    },
+    "gong": {
+      "ats": "greenhouse",
+      "slug": "gongio",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:16.367Z"
+    },
+    "goodfire-ai": {
+      "ats": "greenhouse",
+      "slug": "goodfire",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:16.729Z"
+    },
+    "goodleap": {
+      "ats": "lever",
+      "slug": "goodleap"
+    },
+    "google-deepmind": {
+      "ats": "greenhouse",
+      "slug": "deepmind",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:21.409Z"
+    },
+    "gopuff": {
+      "ats": "lever",
+      "slug": "gopuff",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:54.765Z"
+    },
+    "grafana-labs": {
+      "ats": "greenhouse",
+      "slug": "grafanalabs",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:25.564Z"
+    },
+    "granola": {
+      "ats": "ashby",
+      "slug": "granola",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:24.190Z"
+    },
+    "greenboard": {
+      "ats": "ashby",
+      "slug": "Greenboard",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:24.602Z"
+    },
+    "greenhouse-software": {
+      "ats": "smartrecruiters",
+      "slug": "greenhouse-software",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:40.397Z"
+    },
+    "groq": {
+      "ats": "smartrecruiters",
+      "slug": "groq",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:33.200Z"
+    },
+    "guild-education": {
+      "ats": "smartrecruiters",
+      "slug": "guild-education",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:04.974Z"
+    },
+    "grow-therapy": {
+      "ats": "greenhouse",
+      "slug": "growtherapy",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:29.561Z"
+    },
+    "hackerrank": {
+      "ats": "greenhouse",
+      "slug": "hackerrank",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:31.434Z"
+    },
+    "harvey": {
+      "ats": "ashby",
+      "slug": "harvey",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:34.787Z"
+    },
+    "hashicorp": {
+      "ats": "smartrecruiters",
+      "slug": "hashicorp",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:38.088Z"
+    },
+    "havocai": {
+      "ats": "ashby",
+      "slug": "havocai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:36.731Z"
+    },
+    "headspace": {
+      "ats": "smartrecruiters",
+      "slug": "headspace",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:57.334Z"
+    },
+    "hebbia": {
+      "ats": "greenhouse",
+      "slug": "hebbia",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:40.767Z"
+    },
+    "heap": {
+      "ats": "smartrecruiters",
+      "slug": "heap",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:38.092Z"
+    },
+    "heirloom-carbon": {
+      "ats": "ashby",
+      "slug": "heirloomcarbon",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:41.713Z"
+    },
+    "helix": {
+      "ats": "smartrecruiters",
+      "slug": "helix",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:59.990Z"
+    },
+    "helion-energy": {
+      "ats": "ashby",
+      "slug": "helion",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:43.060Z"
+    },
+    "heroic-labs": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "hims-and-hers": {
+      "ats": "ashby",
+      "slug": "hims-and-hers",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:57.066Z"
+    },
+    "hewlett-packard-enterprise": {
+      "ats": "manual",
+      "_note": "Phenom People ATS frontend + HPE Workday private"
+    },
+    "heygen": {
+      "ats": "greenhouse",
+      "slug": "heygen",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:47.818Z"
+    },
+    "hiddenlayer": {
+      "ats": "greenhouse",
+      "slug": "hiddenlayer",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:49.672Z"
+    },
+    "hightouch": {
+      "ats": "greenhouse",
+      "slug": "hightouch",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:49.217Z"
+    },
+    "hipcamp": {
+      "ats": "smartrecruiters",
+      "slug": "hipcamp",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:54.233Z"
+    },
+    "hippo-insurance": {
+      "ats": "greenhouse",
+      "slug": "hippo70",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:51.265Z"
+    },
+    "hippocratic-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "honeybook": {
+      "ats": "greenhouse",
+      "slug": "honeybook",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:54.272Z"
+    },
+    "hopper": {
+      "ats": "ashby",
+      "slug": "hopper",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:54.812Z"
+    },
+    "houghton-mifflin-harcourt": {
+      "ats": "workday",
+      "host": "hmhw.wd12.myworkdayjobs.com",
+      "tenant": "hmhw",
+      "site": "HMH_Careers",
+      "pageSize": 20
+    },
+    "hp-inc": {
+      "ats": "manual",
+      "slug": "hp-inc",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "eightfold",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "hugging-face": {
+      "ats": "manual",
+      "slug": "hugging-face",
+      "_discovery_method": "workable-blocked",
+      "_discovered_at": "2026-05-02T06:39:42.975Z"
+    },
+    "hyperbolic": {
+      "ats": "ashby",
+      "slug": "hyperbolic",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:07:59.620Z"
+    },
+    "hypr": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "imbue": {
+      "ats": "greenhouse",
+      "slug": "imbue",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:02.879Z"
+    },
+    "ibm": {
+      "ats": "manual",
+      "slug": "ibm",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "avature",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "imperfect-foods": {
+      "ats": "greenhouse",
+      "slug": "misfitsmarket",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:03.901Z"
+    },
+    "increase": {
+      "ats": "lever",
+      "slug": "increase",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:46.438Z"
+    },
+    "imply": {
+      "ats": "greenhouse",
+      "slug": "imply",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:49.961Z"
+    },
+    "indeed": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.slider_container.css-weo834",
+        "title": "div.slider_list.css-1bej0z4",
+        "location": "div.slider_list.css-1bej0z4",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:46:13.340Z"
+    },
+    "inngest": {
+      "ats": "ashby",
+      "slug": "inngest",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:08.447Z"
+    },
+    "inflection-ai": {
+      "ats": "greenhouse",
+      "slug": "inflectionai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:50.549Z"
+    },
+    "insitro": {
+      "ats": "ashby",
+      "slug": "insitro",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:11.368Z"
+    },
+    "innovaccer": {
+      "ats": "smartrecruiters",
+      "slug": "innovaccer",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:00.944Z"
+    },
+    "instrumentl": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "intel": {
+      "ats": "workday",
+      "host": "intel.wd1.myworkdayjobs.com",
+      "tenant": "intel",
+      "site": "External",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:13.991Z"
+    },
+    "iodine-software": {
+      "ats": "smartrecruiters",
+      "slug": "iodine-software",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:00.700Z"
+    },
+    "ironclad": {
+      "ats": "ashby",
+      "slug": "ironcladhq",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:19.249Z"
+    },
+    "islandio": {
+      "ats": "manual",
+      "_note": "Comeet ATS - not supported"
+    },
+    "iterative-health": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "iterable": {
+      "ats": "greenhouse",
+      "slug": "iterable",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.720Z"
+    },
+    "ixl-learning": {
+      "ats": "greenhouse",
+      "slug": "ixllearning",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:12.633Z"
+    },
+    "jasper": {
+      "ats": "ashby",
+      "slug": "Jasper%20AI",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:23.935Z"
+    },
+    "joby-aviation": {
+      "ats": "manual",
+      "slug": "joby-aviation",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "icims",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "iron-grid": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "jiga": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "justworks": {
+      "ats": "greenhouse",
+      "slug": "justworks",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:28.090Z"
+    },
+    "khan-academy": {
+      "ats": "greenhouse",
+      "slug": "khanacademy",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:32.256Z"
+    },
+    "kalshi": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.flex.flex-col",
+        "title": "div.flex.flex-col",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:54:10.022Z"
+    },
+    "kettle": {
+      "ats": "manual",
+      "slug": "kettle",
+      "_discovery_method": "workable-blocked",
+      "_discovered_at": "2026-05-02T06:39:42.975Z"
+    },
+    "knock": {
+      "ats": "ashby",
+      "slug": "knock",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:33.650Z"
+    },
+    "klarna": {
+      "ats": "smartrecruiters",
+      "slug": "klarna",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:45.591Z"
+    },
+    "komodo-health": {
+      "ats": "greenhouse",
+      "slug": "komodohealth",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:37.942Z"
+    },
+    "kombo": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "kraken": {
+      "ats": "ashby",
+      "slug": "kraken.com",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:38.116Z"
+    },
+    "krisp": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.mb_48",
+        "title": "div.subtitle.mb_8",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:50:03.879Z"
+    },
+    "knowbe4": {
+      "ats": "greenhouse",
+      "slug": "knowbe4",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:43.815Z"
+    },
+    "kyber": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "kyruus-health": {
+      "ats": "lever",
+      "slug": "kyruushealth",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:43.206Z"
+    },
+    "lacework": {
+      "ats": "smartrecruiters",
+      "slug": "lacework",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:07.409Z"
+    },
+    "labelbox": {
+      "ats": "greenhouse",
+      "slug": "labelbox",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:43.572Z"
+    },
+    "ladder": {
+      "ats": "greenhouse",
+      "slug": "ladder33",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:47.247Z"
+    },
+    "lambda-labs": {
+      "ats": "ashby",
+      "slug": "lambda",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:47.868Z"
+    },
+    "langchain": {
+      "ats": "ashby",
+      "slug": "langchain",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:48.301Z"
+    },
+    "leantaas": {
+      "ats": "lever",
+      "slug": "leantaas",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:53.054Z"
+    },
+    "lanzatech": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "lemonade": {
+      "ats": "ashby",
+      "slug": "lemonade",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:52.305Z"
+    },
+    "leolabs": {
+      "ats": "greenhouse",
+      "slug": "leolabsinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:53.163Z"
+    },
+    "lever": {
+      "ats": "lever",
+      "slug": "lever",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:08:56.274Z"
+    },
+    "levels": {
+      "ats": "smartrecruiters",
+      "slug": "levels",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:11.063Z"
+    },
+    "lightup": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "lila-sciences": {
+      "ats": "greenhouse",
+      "slug": "lilasciences",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.926Z"
+    },
+    "liquid-ai": {
+      "ats": "ashby",
+      "slug": "liquid-ai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:01.140Z"
+    },
+    "living-carbon": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "llamaindex": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "loadsmart": {
+      "ats": "lever",
+      "slug": "loadsmart",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:04.036Z"
+    },
+    "looker": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "lucid-motors": {
+      "ats": "manual",
+      "_note": "dead URL"
+    },
+    "loom": {
+      "ats": "manual",
+      "_note": "Atlassian Workday wd5 - private board (401)"
+    },
+    "loops": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "loop-returns": {
+      "ats": "lever",
+      "slug": "loopreturns",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:07.777Z"
+    },
+    "lovable": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "luma-ai": {
+      "ats": "smartrecruiters",
+      "slug": "luma-ai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:35.837Z"
+    },
+    "magic-school-ai": {
+      "ats": "ashby",
+      "slug": "magicschool",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:12.345Z"
+    },
+    "magicdev": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "li.border-b",
+        "title": "a.relative.z-10",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:47:47.015Z"
+    },
+    "lyra-health": {
+      "ats": "lever",
+      "slug": "lyrahealth",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:58.343Z"
+    },
+    "maintouch": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "make": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "marqeta": {
+      "ats": "greenhouse",
+      "slug": "marqeta",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:45.900Z"
+    },
+    "mason": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "masterclass": {
+      "ats": "greenhouse",
+      "slug": "masterclass",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:01.067Z"
+    },
+    "mastercard": {
+      "ats": "workday",
+      "host": "mastercard.wd1.myworkdayjobs.com",
+      "tenant": "mastercard",
+      "site": "CorporateCareers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:45:49.172Z"
+    },
+    "match-group-and-tinder-and-hinge": {
+      "ats": "smartrecruiters",
+      "slug": "match-group-and-tinder-and-hinge",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:41.615Z"
+    },
+    "material-security": {
+      "ats": "ashby",
+      "slug": "materialsecurity",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:21.960Z"
+    },
+    "maven-clinic": {
+      "ats": "greenhouse",
+      "slug": "mavenclinic",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:23.919Z"
+    },
+    "mcgraw-hill": {
+      "ats": "manual",
+      "slug": "mcgraw-hill",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "icims",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "medium": {
+      "ats": "greenhouse",
+      "slug": "medium",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:25.322Z"
+    },
+    "mem": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "mercari": {
+      "ats": "greenhouse",
+      "slug": "mercari",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:51.334Z"
+    },
+    "mercor": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "merlin": {
+      "ats": "lever",
+      "slug": "merlinlabs",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:30.136Z"
+    },
+    "mesh-payments": {
+      "ats": "smartrecruiters",
+      "slug": "mesh-payments",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:47.868Z"
+    },
+    "metabase": {
+      "ats": "lever",
+      "slug": "metabase",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:40.601Z"
+    },
+    "midjourney": {
+      "ats": "smartrecruiters",
+      "slug": "midjourney",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:35.446Z"
+    },
+    "mimecast": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "mindbloom": {
+      "ats": "lever",
+      "slug": "mindbloom",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:59.387Z"
+    },
+    "mindbody": {
+      "ats": "greenhouse",
+      "slug": "mindbody",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:55.603Z"
+    },
+    "mintlify": {
+      "ats": "ashby",
+      "slug": "Mintlify",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:39.476Z"
+    },
+    "misfits-market": {
+      "ats": "greenhouse",
+      "slug": "misfitsmarket",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:41.225Z"
+    },
+    "modal": {
+      "ats": "ashby",
+      "slug": "modal",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:45.485Z"
+    },
+    "mistral-ai": {
+      "ats": "lever",
+      "slug": "mistral",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:42.427Z"
+    },
+    "mode": {
+      "ats": "smartrecruiters",
+      "slug": "mode",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:40.961Z"
+    },
+    "modern-health": {
+      "ats": "greenhouse",
+      "slug": "modernhealth",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:58.874Z"
+    },
+    "modern-treasury": {
+      "ats": "ashby",
+      "slug": "moderntreasury",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:47.036Z"
+    },
+    "monte-carlo": {
+      "ats": "ashby",
+      "slug": "montecarlodata",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:52.035Z"
+    },
+    "mondaycom": {
+      "ats": "smartrecruiters",
+      "slug": "mondaycom",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:36.639Z"
+    },
+    "motherduck": {
+      "ats": "ashby",
+      "slug": "MotherDuck",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:50.853Z"
+    },
+    "motion": {
+      "ats": "ashby",
+      "slug": "motion",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:51.552Z"
+    },
+    "moveworks": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "mozilla": {
+      "ats": "greenhouse",
+      "slug": "mozilla",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.073Z"
+    },
+    "mparticle": {
+      "ats": "smartrecruiters",
+      "slug": "mparticle",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:40.570Z"
+    },
+    "mulesoft": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "multiverse": {
+      "ats": "ashby",
+      "slug": "multiverse",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:04.386Z"
+    },
+    "mx-technologies": {
+      "ats": "greenhouse",
+      "slug": "mxtechnologiesinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:48.650Z"
+    },
+    "n8n": {
+      "ats": "ashby",
+      "slug": "n8n",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:09:59.713Z"
+    },
+    "nabla": {
+      "ats": "ashby",
+      "slug": "nabla",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:01.119Z"
+    },
+    "nearpod": {
+      "ats": "greenhouse",
+      "slug": "renaissancelearning-nam",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:02.577Z"
+    },
+    "nebius": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "new-relic": {
+      "ats": "greenhouse",
+      "slug": "newrelic",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:06.495Z"
+    },
+    "next-insurance": {
+      "ats": "smartrecruiters",
+      "slug": "next-insurance",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:53.214Z"
+    },
+    "nextdoor": {
+      "ats": "greenhouse",
+      "slug": "nextdoor",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.692Z"
+    },
+    "newsela": {
+      "ats": "greenhouse",
+      "slug": "newsela",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:03.702Z"
+    },
+    "niantic": {
+      "ats": "greenhouse",
+      "slug": "scopely",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:12.253Z"
+    },
+    "nice-incontact": {
+      "ats": "smartrecruiters",
+      "slug": "nice-incontact",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:38.845Z"
+    },
+    "nirvana-insurance": {
+      "ats": "smartrecruiters",
+      "slug": "nirvana-insurance",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:53.171Z"
+    },
+    "notable-health": {
+      "ats": "ashby",
+      "slug": "notable",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:14.808Z"
+    },
+    "novo": {
+      "ats": "ashby",
+      "slug": "novo",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:16.180Z"
+    },
+    "nuance": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "numerade": {
+      "ats": "smartrecruiters",
+      "slug": "numerade",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:53.729Z"
+    },
+    "numero": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "nuro": {
+      "ats": "greenhouse",
+      "slug": "nuro"
+    },
+    "nvidia": {
+      "ats": "workday",
+      "host": "nvidia.wd5.myworkdayjobs.com",
+      "tenant": "nvidia",
+      "site": "nvidiaexternalcareersite",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:20.785Z"
+    },
+    "octoai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "octopus-energy": {
+      "ats": "lever",
+      "slug": "octoenergy",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:24.005Z"
+    },
+    "okteto": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "offerup": {
+      "ats": "greenhouse",
+      "slug": "offerup",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:50.983Z"
+    },
+    "okx": {
+      "ats": "greenhouse",
+      "slug": "okx",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:45.368Z"
+    },
+    "onesignal": {
+      "ats": "smartrecruiters",
+      "slug": "onesignal",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:10.670Z"
+    },
+    "one-medical": {
+      "ats": "greenhouse",
+      "slug": "onemedical",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:57.575Z"
+    },
+    "onlyfans": {
+      "ats": "smartrecruiters",
+      "slug": "onlyfans",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:42.127Z"
+    },
+    "openevidence": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "oracle": {
+      "ats": "manual",
+      "slug": "oracle",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "oraclecloud",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "orangewood-labs": {
+      "ats": "manual",
+      "_note": "dead URL"
+    },
+    "ori": {
+      "ats": "ashby",
+      "slug": "radiant",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:35.706Z"
+    },
+    "orca-security": {
+      "ats": "greenhouse",
+      "slug": "orcasecurity",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:08.008Z"
+    },
+    "otterai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "oura": {
+      "ats": "greenhouse",
+      "slug": "oura",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:40.209Z"
+    },
+    "outdoorsy": {
+      "ats": "smartrecruiters",
+      "slug": "outdoorsy",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:51.616Z"
+    },
+    "outschool": {
+      "ats": "greenhouse",
+      "slug": "outschool",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:40.619Z"
+    },
+    "outsetai": {
+      "ats": "ashby",
+      "slug": "outset",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:42.103Z"
+    },
+    "pachama": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "palmetto": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "parallel-bio": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "palo-alto-networks": {
+      "ats": "workday",
+      "host": "paloaltonetworks.wd5.myworkdayjobs.com",
+      "tenant": "paloaltonetworks",
+      "site": "en-US",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:49.307Z"
+    },
+    "patch": {
+      "ats": "ashby",
+      "slug": "patch.io",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:49.917Z"
+    },
+    "patreon": {
+      "ats": "ashby",
+      "slug": "patreon",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:50.128Z"
+    },
+    "paypal": {
+      "ats": "manual",
+      "slug": "paypal",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "eightfold",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "peloton": {
+      "ats": "greenhouse",
+      "slug": "peloton",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:44.534Z"
+    },
+    "persefoni": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "pearson": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "ul.nav.nav-tabs",
+        "title": "a.we-mega-menu-li",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:58:22.834Z"
+    },
+    "persona": {
+      "ats": "ashby",
+      "slug": "persona",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:58.120Z"
+    },
+    "photoroom": {
+      "ats": "ashby",
+      "slug": "photoroom",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:58.699Z"
+    },
+    "pie-insurance": {
+      "ats": "greenhouse",
+      "slug": "pieinsurance",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:49.427Z"
+    },
+    "pika-labs": {
+      "ats": "ashby",
+      "slug": "pika",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:10:59.612Z"
+    },
+    "pinecone": {
+      "ats": "ashby",
+      "slug": "pinecone",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:03.006Z"
+    },
+    "pine-park-health": {
+      "ats": "greenhouse",
+      "slug": "pineparkhealth",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:54.784Z"
+    },
+    "pointone": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "pinwheel": {
+      "ats": "greenhouse",
+      "slug": "pinwheelapi",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:04.535Z"
+    },
+    "pipe": {
+      "ats": "smartrecruiters",
+      "slug": "pipe",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:15.120Z"
+    },
+    "policygenius": {
+      "ats": "smartrecruiters",
+      "slug": "policygenius",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:11.853Z"
+    },
+    "polymarket": {
+      "ats": "ashby",
+      "slug": "polymarket",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:09.207Z"
+    },
+    "polymath-robotics": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "polytomic": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "poolside": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "li.group",
+        "title": "a.text-inline",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:49:25.947Z"
+    },
+    "predibase": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "poshmark": {
+      "ats": "ashby",
+      "slug": "poshmark",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:12.477Z"
+    },
+    "postal": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "postscript": {
+      "ats": "greenhouse",
+      "slug": "postscript",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:53.650Z"
+    },
+    "power-bi": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "privy": {
+      "ats": "smartrecruiters",
+      "slug": "privy",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:45.830Z"
+    },
+    "preset": {
+      "ats": "smartrecruiters",
+      "slug": "preset",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:40.681Z"
+    },
+    "proofpoint": {
+      "ats": "workday",
+      "host": "proofpoint.wd5.myworkdayjobs.com",
+      "tenant": "proofpoint",
+      "site": "proofpointcareers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:22.624Z"
+    },
+    "publiccom": {
+      "ats": "greenhouse",
+      "slug": "public",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:23.693Z"
+    },
+    "pulley": {
+      "ats": "greenhouse",
+      "slug": "pulley",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:23.323Z"
+    },
+    "qdrant": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "qualcomm": {
+      "ats": "manual",
+      "slug": "qualcomm",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "eightfold",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "quantumscape": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "quizlet": {
+      "ats": "smartrecruiters",
+      "slug": "quizlet",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:03.535Z"
+    },
+    "questflow": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "railway": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "readai": {
+      "ats": "ashby",
+      "slug": "read-ai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:32.624Z"
+    },
+    "rad-ai": {
+      "ats": "ashby",
+      "slug": "radai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:29.525Z"
+    },
+    "recharge": {
+      "ats": "greenhouse",
+      "slug": "recharge",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:34.243Z"
+    },
+    "reclaimai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "recorded-future": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "recursion": {
+      "ats": "smartrecruiters",
+      "slug": "recursion",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:51.211Z"
+    },
+    "reflection-ai": {
+      "ats": "ashby",
+      "slug": "reflectionai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:38.765Z"
+    },
+    "reframe": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "reka-ai": {
+      "ats": "ashby",
+      "slug": "Reka",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:41.013Z"
+    },
+    "render": {
+      "ats": "ashby",
+      "slug": "render",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:42.140Z"
+    },
+    "replicate": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "replit": {
+      "ats": "ashby",
+      "slug": "replit",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:43.638Z"
+    },
+    "ringcentral": {
+      "ats": "smartrecruiters",
+      "slug": "ringcentral",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:37.978Z"
+    },
+    "rescale": {
+      "ats": "ashby",
+      "slug": "rescale",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:46.566Z"
+    },
+    "resend": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "rho": {
+      "ats": "ashby",
+      "slug": "rho",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:48.841Z"
+    },
+    "riipen": {
+      "ats": "smartrecruiters",
+      "slug": "riipen",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:03.759Z"
+    },
+    "ro": {
+      "ats": "lever",
+      "slug": "ro",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:52.182Z"
+    },
+    "rover": {
+      "ats": "lever",
+      "slug": "rover",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:51.928Z"
+    },
+    "rove": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "rula-health": {
+      "ats": "ashby",
+      "slug": "rula",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:11:58.248Z"
+    },
+    "runpod": {
+      "ats": "greenhouse",
+      "slug": "runpod",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:01.336Z"
+    },
+    "runway": {
+      "ats": "ashby",
+      "slug": "runway-ml",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:01.621Z"
+    },
+    "rytr": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "saildrone": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sakana-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sambanova-systems": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sardine": {
+      "ats": "ashby",
+      "slug": "sardine",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:11.705Z"
+    },
+    "saronic-technologies": {
+      "ats": "ashby",
+      "slug": "saronic",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:14.124Z"
+    },
+    "salient": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "scale-ai": {
+      "ats": "greenhouse",
+      "slug": "scaleai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:11.038Z"
+    },
+    "schmidt-sciences": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "scribe": {
+      "ats": "ashby",
+      "slug": "scribe",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:20.467Z"
+    },
+    "schrdinger": {
+      "ats": "greenhouse",
+      "slug": "schrdinger",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:57.025Z"
+    },
+    "secureframe": {
+      "ats": "lever",
+      "slug": "secureframe",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:22.855Z"
+    },
+    "sentinelone": {
+      "ats": "smartrecruiters",
+      "slug": "sentinelone",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:06.171Z"
+    },
+    "segment": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "robust-intelligence": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "shaped": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "servicetitan": {
+      "ats": "workday",
+      "host": "servicetitan.wd1.myworkdayjobs.com",
+      "tenant": "servicetitan",
+      "site": "ServiceTitan",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:28.471Z"
+    },
+    "shield-ai": {
+      "ats": "lever",
+      "slug": "shieldai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:29.968Z"
+    },
+    "shipbob": {
+      "ats": "greenhouse",
+      "slug": "shipbobinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:10.616Z"
+    },
+    "shiru": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "shippo": {
+      "ats": "smartrecruiters",
+      "slug": "shippo",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:10.356Z"
+    },
+    "shortwave": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "shopify": {
+      "ats": "smartrecruiters",
+      "slug": "shopify",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.424Z"
+    },
+    "sierra-ai": {
+      "ats": "ashby",
+      "slug": "Sierra",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:38.038Z"
+    },
+    "sift": {
+      "ats": "ashby",
+      "slug": "sift",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:38.259Z"
+    },
+    "sigma-computing": {
+      "ats": "greenhouse",
+      "slug": "sigmacomputing",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:39.523Z"
+    },
+    "saturn": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sila-nanotechnologies": {
+      "ats": "greenhouse",
+      "slug": "silananotechnologies",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:52.594Z"
+    },
+    "slack": {
+      "ats": "workday",
+      "host": "salesforce.wd12.myworkdayjobs.com",
+      "tenant": "salesforce",
+      "site": "Slack",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:43.152Z"
+    },
+    "skydio": {
+      "ats": "ashby",
+      "slug": "skydio",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:10.162Z"
+    },
+    "slalom-ai": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "ul",
+        "title": "div.text.cmp-text__subnav",
+        "location": null,
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:52:01.222Z"
+    },
+    "slingshot-aerospace": {
+      "ats": "greenhouse",
+      "slug": "slingshotaerospace",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:45.859Z"
+    },
+    "solidigm": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "snorkel-ai": {
+      "ats": "greenhouse",
+      "slug": "snorkelai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:48.284Z"
+    },
+    "socure": {
+      "ats": "ashby",
+      "slug": "socure",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:50.440Z"
+    },
+    "snyk": {
+      "ats": "ashby",
+      "slug": "snyk",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:06.283Z"
+    },
+    "solugen": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sonder": {
+      "ats": "workday",
+      "host": "sonder.wd1.myworkdayjobs.com",
+      "tenant": "sonder",
+      "site": "Join_Sonder",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:12:55.652Z"
+    },
+    "sourceful": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sony-interactive-and-playstation": {
+      "ats": "smartrecruiters",
+      "slug": "sony-interactive-and-playstation",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:33.067Z"
+    },
+    "sourcegraph": {
+      "ats": "greenhouse",
+      "slug": "sourcegraph91",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:00.269Z"
+    },
+    "spanio": {
+      "ats": "smartrecruiters",
+      "slug": "spanio",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:52.385Z"
+    },
+    "speak": {
+      "ats": "ashby",
+      "slug": "speak",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:02.198Z"
+    },
+    "splunk": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "spotify": {
+      "ats": "lever",
+      "slug": "spotify",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:32.727Z"
+    },
+    "spring-health": {
+      "ats": "smartrecruiters",
+      "slug": "spring-health",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:58.662Z"
+    },
+    "springboard": {
+      "ats": "greenhouse",
+      "slug": "springboard",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:04.919Z"
+    },
+    "squire": {
+      "ats": "smartrecruiters",
+      "slug": "squire",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:55.285Z"
+    },
+    "stackblitz": {
+      "ats": "greenhouse",
+      "slug": "stackblitz",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:49:24.146Z"
+    },
+    "starcloud": {
+      "ats": "manual",
+      "_note": "dead URL"
+    },
+    "stability-ai": {
+      "ats": "greenhouse",
+      "slug": "stabilityai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:14.533Z"
+    },
+    "statsig": {
+      "ats": "ashby",
+      "slug": "statsig",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:13.256Z"
+    },
+    "stockx": {
+      "ats": "greenhouse",
+      "slug": "stockx",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:43.228Z"
+    },
+    "stoke-space": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "stord": {
+      "ats": "workday",
+      "host": "stord.wd503.myworkdayjobs.com",
+      "tenant": "stord",
+      "site": "Stord_External_Career",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:17.732Z"
+    },
+    "sohar-health": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "strava": {
+      "ats": "ashby",
+      "slug": "strava",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:18.392Z"
+    },
+    "structured-ai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "substack": {
+      "ats": "ashby",
+      "slug": "substack",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:23.431Z"
+    },
+    "suki-ai": {
+      "ats": "smartrecruiters",
+      "slug": "suki-ai",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:02.936Z"
+    },
+    "sullyai": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "sumo-logic": {
+      "ats": "greenhouse",
+      "slug": "sumologic",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.822Z"
+    },
+    "suno": {
+      "ats": "ashby",
+      "slug": "suno",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:28.136Z"
+    },
+    "sunsama": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "superhuman": {
+      "ats": "ashby",
+      "slug": "superhuman",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:05.794Z"
+    },
+    "supabase": {
+      "ats": "ashby",
+      "slug": "supabase",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:31.204Z"
+    },
+    "surge-ai": {
+      "ats": "custom-playwright",
+      "selectors": {
+        "jobCard": "div.career-hero-main-cms-item.w-dyn-item",
+        "title": "a.job-item.w-inline-block",
+        "location": "div.job-remote",
+        "applyUrl": "a[href]"
+      },
+      "_discovery_method": "dom-inferred",
+      "_discovered_at": "2026-05-02T05:49:13.282Z"
+    },
+    "sweep": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "synthesia": {
+      "ats": "ashby",
+      "slug": "synthesia",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:36.158Z"
+    },
+    "syncari": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "tabapay": {
+      "ats": "greenhouse",
+      "slug": "tabapay",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:48.163Z"
+    },
+    "tability": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "tableau": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "tailscale": {
+      "ats": "greenhouse",
+      "slug": "tailscale",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:42.670Z"
+    },
+    "tabnine": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "talkdesk": {
+      "ats": "greenhouse",
+      "slug": "talkdesk2",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:45.580Z"
+    },
+    "take-two-interactive": {
+      "ats": "smartrecruiters",
+      "slug": "take-two-interactive",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:32.756Z"
+    },
+    "talkspace": {
+      "ats": "greenhouse",
+      "slug": "talkspace",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:49.700Z"
+    },
+    "tally": {
+      "ats": "manual",
+      "slug": "tally",
+      "_discovery_method": "bamboohr-redirect",
+      "_discovered_at": "2026-05-02T06:38:53.621Z"
+    },
+    "stubhub": {
+      "ats": "greenhouse",
+      "slug": "stubhubinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:29.664Z"
+    },
+    "taskrabbit": {
+      "ats": "greenhouse",
+      "slug": "taskrabbit",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:50.278Z"
+    },
+    "tanium": {
+      "ats": "greenhouse",
+      "slug": "tanium",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:48.302Z"
+    },
+    "tavily": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "tecton": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "tempus-ai": {
+      "ats": "workday",
+      "host": "tempus.wd5.myworkdayjobs.com",
+      "tenant": "tempus",
+      "site": "Tempus_Careers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:53.634Z"
+    },
+    "tennr": {
+      "ats": "ashby",
+      "slug": "tennr",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:53.281Z"
+    },
+    "tensorwave": {
+      "ats": "ashby",
+      "slug": "tensorwave",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:55.249Z"
+    },
+    "tesla": {
+      "ats": "smartrecruiters",
+      "slug": "tesla",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:31.733Z"
+    },
+    "tenstorrent": {
+      "ats": "greenhouse",
+      "slug": "tenstorrent",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:13:56.891Z"
+    },
+    "thumbtack": {
+      "ats": "ashby",
+      "slug": "thumbtack",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:52.410Z"
+    },
+    "tines": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "tinybird": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "tipalti": {
+      "ats": "smartrecruiters",
+      "slug": "tipalti",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:45.605Z"
+    },
+    "tonal": {
+      "ats": "ashby",
+      "slug": "tonal",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:06.830Z"
+    },
+    "topaz-labs": {
+      "ats": "lever",
+      "slug": "topazlabs",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:06.490Z"
+    },
+    "toptal": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "trayio": {
+      "ats": "ashby",
+      "slug": "tray-ai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:09.346Z"
+    },
+    "tortoise": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "triggerdev": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "triple-whale": {
+      "ats": "greenhouse",
+      "slug": "triplewhale",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:11.452Z"
+    },
+    "true-anomaly": {
+      "ats": "greenhouse",
+      "slug": "trueanomalyinc",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:12.586Z"
+    },
+    "truepill": {
+      "ats": "greenhouse",
+      "slug": "truepill",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:13.638Z"
+    },
+    "truveta": {
+      "ats": "greenhouse",
+      "slug": "truveta",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:14.648Z"
+    },
+    "turing": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "turo": {
+      "ats": "smartrecruiters",
+      "slug": "turo",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:53.593Z"
+    },
+    "twelve": {
+      "ats": "ashby",
+      "slug": "twelve",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:17.468Z"
+    },
+    "typeface": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "twitch": {
+      "ats": "manual",
+      "_note": "subsidiary \u2014 covered by parent"
+    },
+    "udacity": {
+      "ats": "greenhouse",
+      "slug": "udacity",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:24.022Z"
+    },
+    "uipath": {
+      "ats": "ashby",
+      "slug": "uipath",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:25.422Z"
+    },
+    "underdog-fantasy": {
+      "ats": "greenhouse",
+      "slug": "underdogfantasy",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:26.141Z"
+    },
+    "unit": {
+      "ats": "ashby",
+      "slug": "unit",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:28.028Z"
+    },
+    "upstash": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "v0": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "vagaro": {
+      "ats": "smartrecruiters",
+      "slug": "vagaro",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:56.150Z"
+    },
+    "vanta": {
+      "ats": "ashby",
+      "slug": "vanta",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:34.223Z"
+    },
+    "vast-data": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "vatn-systems": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "vahan": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "veho": {
+      "ats": "smartrecruiters",
+      "slug": "veho",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.493Z"
+    },
+    "vetcove": {
+      "ats": "ashby",
+      "slug": "Vetcove",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:45.419Z"
+    },
+    "vigilance-security": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "veeam": {
+      "ats": "smartrecruiters",
+      "slug": "veeam",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.422Z"
+    },
+    "voltron-data": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "veracross": {
+      "ats": "manual",
+      "slug": "veracross",
+      "_discovery_method": "workable-blocked",
+      "_discovered_at": "2026-05-02T06:39:42.975Z"
+    },
+    "visa": {
+      "ats": "smartrecruiters",
+      "slug": "visa",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:30.579Z"
+    },
+    "vouch": {
+      "ats": "smartrecruiters",
+      "slug": "vouch",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:48.364Z"
+    },
+    "vrbo": {
+      "ats": "workday",
+      "host": "expedia.wd108.myworkdayjobs.com",
+      "tenant": "expedia",
+      "site": "search",
+      "pageSize": 20
+    },
+    "wag": {
+      "ats": "manual",
+      "slug": "wag",
+      "_discovery_method": "bamboohr-redirect",
+      "_discovered_at": "2026-05-02T06:38:53.628Z"
+    },
+    "warner-bros-discovery": {
+      "ats": "smartrecruiters",
+      "slug": "warner-bros-discovery",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:31.535Z"
+    },
+    "wayve": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "wealthfront": {
+      "ats": "lever",
+      "slug": "wealthfront",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:56.828Z"
+    },
+    "weaviate": {
+      "ats": "ashby",
+      "slug": "weaviate",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:14:57.178Z"
+    },
+    "weekend": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "whatnot": {
+      "ats": "ashby",
+      "slug": "whatnot",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:42.963Z"
+    },
+    "wheels-up": {
+      "ats": "manual",
+      "slug": "wheels-up",
+      "_discovery_method": "unsupported-ats",
+      "_original_ats": "icims",
+      "_discovered_at": "2026-05-02T06:34:17.512Z"
+    },
+    "varos": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "whoop": {
+      "ats": "lever",
+      "slug": "whoop",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:06.375Z"
+    },
+    "whylabs": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "wisk-aero": {
+      "ats": "workday",
+      "host": "wisk.wd108.myworkdayjobs.com",
+      "tenant": "wisk",
+      "site": "Wisk_Careers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:07.381Z"
+    },
+    "wise": {
+      "ats": "smartrecruiters",
+      "slug": "wise",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:46.122Z"
+    },
+    "wiz": {
+      "ats": "greenhouse",
+      "slug": "wizinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:06.133Z"
+    },
+    "wonderschool": {
+      "ats": "greenhouse",
+      "slug": "wonderschool",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:12.278Z"
+    },
+    "workato": {
+      "ats": "greenhouse",
+      "slug": "workato",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:11.463Z"
+    },
+    "world-labs": {
+      "ats": "greenhouse",
+      "slug": "worldlabs",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:13.244Z"
+    },
+    "writer": {
+      "ats": "ashby",
+      "slug": "writer",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:13.245Z"
+    },
+    "x": {
+      "ats": "greenhouse",
+      "slug": "xai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:14.974Z"
+    },
+    "yahoo": {
+      "ats": "workday",
+      "host": "ouryahoo.wd5.myworkdayjobs.com",
+      "tenant": "ouryahoo",
+      "site": "careers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:17.221Z"
+    },
+    "xai": {
+      "ats": "greenhouse",
+      "slug": "xai",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:16.317Z"
+    },
+    "yelp": {
+      "ats": "smartrecruiters",
+      "slug": "yelp",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:32.173Z"
+    },
+    "yotpo": {
+      "ats": "greenhouse",
+      "slug": "yotpo",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:24:12.199Z"
+    },
+    "youshift": {
+      "ats": "manual",
+      "_note": "too small / no PM hiring"
+    },
+    "yellowbrick": {
+      "ats": "smartrecruiters",
+      "slug": "yellowbrick",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:51.398Z"
+    },
+    "youcom": {
+      "ats": "greenhouse",
+      "slug": "youcom",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:36:48.724Z"
+    },
+    "yugabyte": {
+      "ats": "greenhouse",
+      "slug": "yugabyte",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T06:03:00.539Z"
+    },
+    "zapier": {
+      "ats": "ashby",
+      "slug": "zapier",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:25.901Z"
+    },
+    "zenefits": {
+      "ats": "smartrecruiters",
+      "slug": "zenefits",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:39.721Z"
+    },
+    "zendesk": {
+      "ats": "workday",
+      "host": "zendesk.wd1.myworkdayjobs.com",
+      "tenant": "zendesk",
+      "site": "en-US",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:52:23.651Z"
+    },
+    "zeta-global": {
+      "ats": "greenhouse",
+      "slug": "zetaglobal",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:30.562Z"
+    },
+    "zoom": {
+      "ats": "smartrecruiters",
+      "slug": "zoom",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:23:37.390Z"
+    },
+    "zoox": {
+      "ats": "lever",
+      "slug": "zoox",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:30.697Z"
+    },
+    "zynga": {
+      "ats": "greenhouse",
+      "slug": "zyngacareers",
+      "_discovery_method": "network-intercept",
+      "_discovered_at": "2026-05-02T05:15:33.235Z"
+    },
+    "snap": {
+      "ats": "smartrecruiters",
+      "slug": "snap",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:12.160Z"
+    },
+    "doordash": {
+      "ats": "smartrecruiters",
+      "slug": "doordash",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:12.106Z"
+    },
+    "uber": {
+      "ats": "smartrecruiters",
+      "slug": "uber",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:12.315Z"
+    },
+    "cohere": {
+      "ats": "ashby",
+      "slug": "cohere",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:10.718Z"
+    },
+    "glean": {
+      "ats": "smartrecruiters",
+      "slug": "glean",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:12.370Z"
+    },
+    "tome": {
+      "ats": "smartrecruiters",
+      "slug": "tome",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:13.296Z"
+    },
+    "descript": {
+      "ats": "greenhouse",
+      "slug": "descript",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:14.710Z"
+    },
+    "coda": {
+      "ats": "smartrecruiters",
+      "slug": "coda",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:13.750Z"
+    },
+    "miro": {
+      "ats": "smartrecruiters",
+      "slug": "miro",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:14.755Z"
+    },
+    "box": {
+      "ats": "greenhouse",
+      "slug": "boxinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:14.723Z"
+    },
+    "procore": {
+      "ats": "smartrecruiters",
+      "slug": "procore",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:14.926Z"
+    },
+    "rippling": {
+      "ats": "smartrecruiters",
+      "slug": "rippling",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:14.996Z"
+    },
+    "hex": {
+      "ats": "smartrecruiters",
+      "slug": "hex",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:15.084Z"
+    },
+    "navan": {
+      "ats": "smartrecruiters",
+      "slug": "navan",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:16.492Z"
+    },
+    "rivian": {
+      "ats": "smartrecruiters",
+      "slug": "rivian",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.454Z"
+    },
+    "anduril": {
+      "ats": "smartrecruiters",
+      "slug": "anduril",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.432Z"
+    },
+    "harness": {
+      "ats": "greenhouse",
+      "slug": "harnessinc",
+      "_discovery_method": "api-probe",
+      "_discovered_at": "2026-05-02T06:50:17.435Z"
+    }
+  },
+  "unmapped_default": "custom-playwright"
+}

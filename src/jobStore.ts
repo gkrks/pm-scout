@@ -17,6 +17,8 @@ import * as path from "path";
 import { Job } from "./state";
 
 const STORE_PATH = path.join(process.cwd(), "data", "jobStore.json");
+const JOBS_PATH  = path.join(process.cwd(), "data", "jobs.json");
+const RESUME_PATH = path.join(process.cwd(), "data", "resume.json");
 const NEW_JOB_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
 interface JobRecord {
@@ -104,4 +106,57 @@ export function applyJobDiff(jobs: Job[]): Job[] {
   console.log(`[jobStore] ${newCount} new / ${result.length} total jobs this scan`);
 
   return result;
+}
+
+// ── Full job list persistence ─────────────────────────────────────────────────
+
+function ensureDataDir(): void {
+  const dir = path.dirname(JOBS_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+export function saveJobs(jobs: Job[]): void {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(JOBS_PATH, JSON.stringify(jobs, null, 2), "utf8");
+  } catch (e) {
+    console.warn("[jobStore] failed to save jobs:", e instanceof Error ? e.message : e);
+  }
+}
+
+export function loadJobs(): Job[] {
+  try {
+    if (!fs.existsSync(JOBS_PATH)) return [];
+    const jobs = JSON.parse(fs.readFileSync(JOBS_PATH, "utf8")) as Job[];
+    console.log(`[jobStore] Loaded ${jobs.length} jobs from disk`);
+    return jobs;
+  } catch {
+    return [];
+  }
+}
+
+// ── Uploaded resume persistence ───────────────────────────────────────────────
+
+export function saveResume(text: string, name: string): void {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(RESUME_PATH, JSON.stringify({ text, name }), "utf8");
+  } catch (e) {
+    console.warn("[jobStore] failed to save resume:", e instanceof Error ? e.message : e);
+  }
+}
+
+export function loadResume(): { text: string; name: string } | null {
+  try {
+    if (!fs.existsSync(RESUME_PATH)) return null;
+    return JSON.parse(fs.readFileSync(RESUME_PATH, "utf8")) as { text: string; name: string };
+  } catch {
+    return null;
+  }
+}
+
+export function clearResume(): void {
+  try {
+    if (fs.existsSync(RESUME_PATH)) fs.unlinkSync(RESUME_PATH);
+  } catch { /* ignore */ }
 }

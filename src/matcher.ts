@@ -75,12 +75,55 @@ async function callMatcher(requirement: string, resume: ResumeData): Promise<Mat
   return { requirement, ...parsed };
 }
 
-const CONCURRENCY = 10;
+// Groq free tier: 6000 TPM. Each call costs ~2200 input + ~150 output ≈ 2350 tokens.
+// 2 concurrent calls = ~4700 tokens/burst — stays under the limit.
+const CONCURRENCY = 2;
+
+/**
+ * Parse Groq's rate-limit error and return how many ms to wait before retrying.
+ * Groq includes "Please try again in X.XXs" in the 429 message.
+ */
+function parseRateLimitWaitMs(err: unknown): number | null {
+  const msg = String(err);
+  if (!msg.includes("429") && !msg.includes("rate_limit_exceeded")) return null;
+  const match = msg.match(/try again in ([\d.]+)s/i);
+  return match ? Math.ceil(parseFloat(match[1]) * 1000) + 500 : 10_000;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Call the matcher with automatic rate-limit backoff.
+ * On 429: waits the time Groq specifies, then retries (up to maxRetries times).
+ * On other errors: throws immediately.
+ */
+async function callMatcherWithBackoff(
+  requirement: string,
+  resume: ResumeData,
+  maxRetries = 4,
+): Promise<MatchResult> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callMatcher(requirement, resume);
+    } catch (err) {
+      const waitMs = parseRateLimitWaitMs(err);
+      if (waitMs !== null && attempt < maxRetries) {
+        console.warn(`  [matcher] Rate limit hit — waiting ${(waitMs / 1000).toFixed(1)}s (attempt ${attempt + 1}/${maxRetries})`);
+        await sleep(waitMs);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("callMatcherWithBackoff: exceeded max retries");
+}
 
 /**
  * Match each requirement against the resume with up to CONCURRENCY requests in
  * flight at once. Results are returned in the original requirement order.
- * Retries once on failure; falls back to { status: "missing" } on second failure.
+ * Retries with backoff on rate limits; falls back to { status: "missing" } on hard failure.
  */
 export async function matchRequirements(
   requirements: string[],
@@ -106,14 +149,10 @@ export async function matchRequirements(
     try {
       let result: MatchResult;
       try {
-        result = await callMatcher(req, resume);
-      } catch {
-        try {
-          result = await callMatcher(req, resume);
-        } catch (retryErr) {
-          console.error(`  [matcher] Failed for requirement "${req}": ${retryErr}`);
-          result = { requirement: req, ...FALLBACK_RESULT, proof: "Parse error" };
-        }
+        result = await callMatcherWithBackoff(req, resume);
+      } catch (retryErr) {
+        console.error(`  [matcher] Failed for requirement "${req}": ${retryErr}`);
+        result = { requirement: req, ...FALLBACK_RESULT };
       }
       completed++;
       if (onProgress) onProgress(completed, total);

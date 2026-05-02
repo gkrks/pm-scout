@@ -10,25 +10,10 @@ import { parseResume } from "./parser";
 import { matchRequirements } from "./matcher";
 import { generateReport } from "./reporter";
 
-// ── Server mode ───────────────────────────────────────────────────────────────
-// Starts when: `node dist/index.js serve`, `node dist/index.js`, or NODE_ENV=production
-// This ensures Render's default `node dist/index.js` (no args) starts the web UI.
-
-const firstArg = process.argv[2];
-const isServerMode =
-  !firstArg || firstArg === "serve" || process.env.NODE_ENV === "production";
-
-if (isServerMode) {
-  // Dynamic require keeps the server module out of the CLI hot path
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { startServer } = require("./server") as { startServer: () => Promise<void> };
-  startServer().catch((err: unknown) => {
-    console.error("Server failed to start:", err);
-    process.exit(1);
-  });
-} else {
-
-// ── CLI mode ──────────────────────────────────────────────────────────────────
+// ── CLI ───────────────────────────────────────────────────────────────────────
+// One command: `resume-matcher match --job <url> --resume <file>`
+// The scanner itself runs via `npm run scan:once` (scripts/runScan.ts) or
+// on a schedule via GitHub Actions (.github/workflows/scan.yml).
 
 const program = new Command();
 
@@ -144,5 +129,3 @@ program.parse(process.argv);
 if (process.argv.length < 3) {
   program.help();
 }
-
-} // end CLI mode

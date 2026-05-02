@@ -1,0 +1,374 @@
+[
+  {
+    "id": 1,
+    "label": "Clean 0–2 range",
+    "description": "We're looking for a PM with 0-2 years of experience.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 0,
+    "expectedYoeMax": 2,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 2,
+    "label": "Clean 1–3 range",
+    "description": "Ideal candidate has 1-3 years of product experience.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 1,
+    "expectedYoeMax": 3,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 3,
+    "label": "Clean 2–3 range",
+    "description": "2-3 years of experience preferred.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 2,
+    "expectedYoeMax": 3,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 4,
+    "label": "Clean 0–3 range",
+    "description": "Looking for someone with 0-3 years of professional experience.",
+    "title": "Associate Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 0,
+    "expectedYoeMax": 3,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 5,
+    "label": "Exact 2 years of experience (no plus)",
+    "description": "2 years of product experience required.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 2,
+    "expectedYoeMax": 2,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 6,
+    "label": "Exact 3 years of experience (no plus)",
+    "description": "3 years of professional experience.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 3,
+    "expectedYoeMax": 3,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 7,
+    "label": "2–5 year range — lower bound ≤ 3, KEEP",
+    "description": "Requires 2-5 years of experience in product management.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 2,
+    "expectedYoeMax": 5,
+    "expectedConfidence": "extracted",
+    "note": "yoe_min=2 ≤ 3: company accepts 2-year candidates; upper end is a preference not a floor"
+  },
+  {
+    "id": 8,
+    "label": "3–7 year range — lower bound ≤ 3, KEEP",
+    "description": "We need someone with 3-7 years building consumer products.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 3,
+    "expectedYoeMax": 7,
+    "expectedConfidence": "extracted",
+    "note": "yoe_min=3 ≤ 3: company accepts 3-year candidates"
+  },
+  {
+    "id": 9,
+    "label": "5+ years explicit — yoe_min > 3",
+    "description": "We require 5+ years of product experience.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 5
+  },
+  {
+    "id": 10,
+    "label": "4+ years — yoe_min > 3",
+    "description": "Must have 4+ years working on mobile products.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 4
+  },
+  {
+    "id": 11,
+    "label": "3+ years of experience — plus suffix, open-ended",
+    "description": "3+ years of experience in product.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 3
+  },
+  {
+    "id": 12,
+    "label": "3+ years bare suffix — open-ended, reject",
+    "description": "Join our PM team with 3+ years under your belt.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 3
+  },
+  {
+    "id": 13,
+    "label": "Minimum 4 years — hard floor > 3",
+    "description": "Minimum of 4 years of professional experience required.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 4
+  },
+  {
+    "id": 14,
+    "label": "At least 5 years — hard floor > 3",
+    "description": "At least 5 years of product management experience.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 5
+  },
+  {
+    "id": 15,
+    "label": "At least 2 years — floor ≤ 3, KEEP",
+    "description": "At least 2 years of product experience.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 2,
+    "expectedYoeMax": null,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 16,
+    "label": "Minimum 3 years — floor ≤ 3, KEEP",
+    "description": "Minimum 3 years in a PM or similar role.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 3,
+    "expectedYoeMax": null,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 17,
+    "label": "Pure new grad — no numbers",
+    "description": "Great opportunity for new grad candidates. No prior experience necessary.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": null,
+    "expectedYoeMax": null,
+    "expectedConfidence": "inferred-junior",
+    "expectedIsNewGradLanguage": true
+  },
+  {
+    "id": 18,
+    "label": "Entry-level language",
+    "description": "This is an entry-level position suitable for recent graduates.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior",
+    "expectedIsNewGradLanguage": true
+  },
+  {
+    "id": 19,
+    "label": "Early career language",
+    "description": "We welcome early-career candidates who are passionate about product.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior",
+    "expectedIsNewGradLanguage": true
+  },
+  {
+    "id": 20,
+    "label": "University grad language",
+    "description": "Open to university graduates with strong analytical skills.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior",
+    "expectedIsNewGradLanguage": true
+  },
+  {
+    "id": 21,
+    "label": "Internship keyword",
+    "description": "Previous internship experience is a plus.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior",
+    "expectedIsNewGradLanguage": true
+  },
+  {
+    "id": 22,
+    "label": "Ambiguous — experienced PM, no numbers",
+    "description": "Looking for an experienced product manager to drive roadmap strategy.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-unclear-and-not-junior"
+  },
+  {
+    "id": 23,
+    "label": "Ambiguous — vague PM role, no YOE signal",
+    "description": "Join our growing product team and help us build the future.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-unclear-and-not-junior"
+  },
+  {
+    "id": 24,
+    "label": "Senior PM with 2 years — seniority overrides low YOE",
+    "description": "We're looking for a Senior Product Manager who can lead strategic initiatives. Ideally 2 years of PM experience.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior"
+  },
+  {
+    "id": 25,
+    "label": "Senior PM phrase — no YOE numbers",
+    "description": "This is a Senior Product Manager role focused on platform strategy.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior"
+  },
+  {
+    "id": 26,
+    "label": "Works with senior PM — collaboration context, not seniority",
+    "description": "You will work with senior product managers and designers to ship features. 1-2 years experience preferred.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 1,
+    "expectedYoeMax": 2,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 27,
+    "label": "APM title + senior-sounding description — title overrides",
+    "description": "Seeking a senior-level hire to own the platform roadmap. Must have extensive product experience.",
+    "title": "Associate Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior"
+  },
+  {
+    "id": 28,
+    "label": "APM title — no description at all",
+    "description": null,
+    "title": "APM",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior"
+  },
+  {
+    "id": 29,
+    "label": "Non-APM title — no description",
+    "description": null,
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-unclear-and-not-junior"
+  },
+  {
+    "id": 30,
+    "label": "Up to 2 years — no junior language, max ≤ 3",
+    "description": "Up to 2 years of experience preferred.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": null,
+    "expectedYoeMax": 2,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 31,
+    "label": "Up to 5 years with entry-level language — max > 3 rejects first",
+    "description": "Up to 5 years of experience. Entry level welcome.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMax": 5
+  },
+  {
+    "id": 32,
+    "label": "5-8 years — both ends above 3",
+    "description": "5-8 years of relevant product experience required.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "expectedYoeMin": 5,
+    "expectedYoeMax": 8
+  },
+  {
+    "id": 33,
+    "label": "0-1 years explicit text in description",
+    "description": "Perfect for candidates with 0-1 years of work experience post-graduation.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedYoeMin": 0,
+    "expectedYoeMax": 1,
+    "expectedConfidence": "extracted"
+  },
+  {
+    "id": 34,
+    "label": "New grad language overrides 5+ years in description",
+    "description": "We are launching our new grad program. 5+ years experience listed in error — roles are for new grads.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior",
+    "note": "yoe_min=5 > 3 triggers explicit REJECT before junior-language check"
+  },
+  {
+    "id": 35,
+    "label": "Principal PM — senior language without numbers",
+    "description": "We are hiring a Principal Product Manager to own infrastructure strategy.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior"
+  },
+  {
+    "id": 36,
+    "label": "Lead PM role description",
+    "description": "Join as a Lead PM on our platform team and drive company-wide initiatives.",
+    "title": "Product Manager",
+    "expectedKept": false,
+    "expectedReason": "experience-too-senior"
+  },
+  {
+    "id": 37,
+    "label": "APM with exact 'apm' case",
+    "description": null,
+    "title": "APM - Rotation Program",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior"
+  },
+  {
+    "id": 38,
+    "label": "No prior experience required phrase",
+    "description": "No prior experience required. We will train you on the job.",
+    "title": "Product Manager",
+    "expectedKept": true,
+    "expectedReason": null,
+    "expectedConfidence": "inferred-junior",
+    "expectedIsNewGradLanguage": true
+  }
+]

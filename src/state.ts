@@ -28,6 +28,12 @@ export interface Job {
   earlyCareer: boolean;
   description: string; // raw HTML — never sent to frontend
 
+  tier?: "T0" | "T1" | "T2" | "T3" | "T3R"; // Company's target-list tier (legacy)
+  pmTier?: 1 | 2 | 3;                         // PM job tier (1=apply today, 2=this week, 3=review)
+  category?: string;                           // Company category from JSON (e.g. "AI Labs")
+  domainTags?: string[];                       // e.g. ["ai", "fintech"]
+  sponsorshipOffered?: boolean | null;         // true=yes, false=no, null=unclear
+
   // Scan diffing (set by jobStore after each scan)
   firstSeenAt?: string;  // ISO timestamp of first scan this job appeared in
   isNew?: boolean;       // true if firstSeenAt is within the last 3 days
@@ -38,7 +44,7 @@ export interface Job {
   summary?: RequirementsSummary;
   resumeAction?: string; // "apply_as_is" | "tailor_then_apply" | "skip"
   scoredWith?: string;   // "generic" | "uploaded"
-  sourceLabel?: string;  // undefined = official ATS, "LinkedIn" = aggregator fallback
+  sourceLabel?: string;  // undefined = official ATS, "scraper-failed" = primary scrape failed
 }
 
 // ── Scan / score status ───────────────────────────────────────────────────────
@@ -54,10 +60,16 @@ export interface ScanStatus {
   progress: number;
   total: number;
   currentCompany: string;
+  currentPool: string;    // "api" | "playwright" | "" — which pool is active
   completedAt: string;
   jobCount: number;
   errors: number;
   companyErrors: CompanyError[];
+  // Live counters updated each time a company result arrives
+  companiesScanned: number;
+  companiesFailed: number;
+  listingsFound: number;
+  runStartedAt: string;   // ISO timestamp of current run start
   // Scoring phase
   scoreProgress: number;
   scoreTotal: number;
@@ -87,10 +99,15 @@ class AppState {
     progress: 0,
     total: 0,
     currentCompany: "",
+    currentPool: "",
     completedAt: "",
     jobCount: 0,
     errors: 0,
     companyErrors: [],
+    companiesScanned: 0,
+    companiesFailed: 0,
+    listingsFound: 0,
+    runStartedAt: "",
     scoreProgress: 0,
     scoreTotal: 0,
     scoreLabel: "",
@@ -122,10 +139,15 @@ class AppState {
       progress:           this.status.progress,
       total:              this.status.total,
       currentCompany:     this.status.currentCompany,
+      currentPool:        this.status.currentPool,
       completedAt:        this.status.completedAt,
       jobCount:           this.status.jobCount,
       errors:             this.status.errors,
       companyErrors:      this.status.companyErrors,
+      companiesScanned:   this.status.companiesScanned,
+      companiesFailed:    this.status.companiesFailed,
+      listingsFound:      this.status.listingsFound,
+      runStartedAt:       this.status.runStartedAt,
       scoreProgress:      this.status.scoreProgress,
       scoreTotal:         this.status.scoreTotal,
       scoreLabel:         this.status.scoreLabel,

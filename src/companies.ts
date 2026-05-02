@@ -1,16 +1,44 @@
 export interface Company {
   name: string;
   slug: string;
-  platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta" | "linkedin";
+  platform: "greenhouse" | "lever" | "ashby" | "amazon" | "google" | "meta" | "unsupported";
   careersUrl: string;
-  linkedInId?: string;       // LinkedIn numeric company ID — aggregator fallback
   earlyCareerUrl?: string;   // Dedicated early-careers / university portal URL
+  tier?: "T0" | "T1" | "T2" | "T3" | "T3R"; // Target-list tier (undefined = not in curated 75)
 }
+
+// Slug → tier mapping for the curated 75-company target list.
+const TIER_MAP: Record<string, Company["tier"]> = {
+  // T0 — FAANG
+  meta: "T0", amazon: "T0", apple: "T0", netflix: "T0", google: "T0",
+  // T1 — MAANG-adjacent
+  microsoft: "T1", "msft-careers": "T1", nvidia: "T1", oracle: "T1",
+  // T2 — Public / Late-stage
+  salesforce: "T2", adobe: "T2", intuit: "T2", atlassian: "T2",
+  visa: "T2", mastercard: "T2", amex: "T2", capitalone: "T2",
+  servicenow: "T2", workday: "T2", databricks: "T2", snowflake: "T2",
+  cisco: "T2", ibm: "T2", qualcomm: "T2", pinterest: "T2",
+  uber: "T2", airbnb: "T2", doordash: "T2", instacart: "T2",
+  lyft: "T2", spotify: "T2", snap: "T2", palantir: "T2",
+  paloaltonetworks: "T2", crowdstrike: "T2", okta: "T2", asana: "T2",
+  // T3 — High-growth startups
+  perplexity: "T3", gleanwork: "T3", algolia: "T3", elastic: "T3",
+  vercel: "T3", anthropic: "T3", openai: "T3", scaleai: "T3",
+  notion: "T3", figma: "T3", linear: "T3", mongodb: "T3",
+  hubspotjobs: "T3", stripe: "T3", block: "T3", coinbase: "T3",
+  webflow: "T3", retool: "T3",
+  // T3R — Rabois-formula startups
+  ramp: "T3R", brex: "T3R", mercury: "T3R", flexport: "T3R",
+  project44: "T3R", samsara: "T3R", andurilindustries: "T3R",
+  headway: "T3R", cedar: "T3R", alma: "T3R", opendoor: "T3R",
+  gusto: "T3R", rippling: "T3R", toast: "T3R", uberfreight: "T3R",
+  carta: "T3R", plaid: "T3R",
+};
 
 /**
  * ~150 top US tech companies.
  * GH/LV slugs are verified against the public API before inclusion.
- * Companies on Workday or custom ATS fall back to LinkedIn guest scraping.
+ * Companies on Workday or custom ATS are marked "unsupported" and skipped by the scanner.
  */
 export function allCompanies(): Company[] {
   const gh = (name: string, slug: string, url: string, ecUrl?: string): Company =>
@@ -19,8 +47,12 @@ export function allCompanies(): Company[] {
     ({ name, slug, platform: "lever", careersUrl: url, ...(ecUrl ? { earlyCareerUrl: ecUrl } : {}) });
   const as = (name: string, slug: string, url: string, ecUrl?: string): Company =>
     ({ name, slug, platform: "ashby" as const, careersUrl: url, ...(ecUrl ? { earlyCareerUrl: ecUrl } : {}) });
-  const li = (name: string, slug: string, url: string, linkedInId?: string, ecUrl?: string): Company =>
-    ({ name, slug, platform: "linkedin" as const, careersUrl: url, ...(linkedInId ? { linkedInId } : {}), ...(ecUrl ? { earlyCareerUrl: ecUrl } : {}) });
+  // "unsupported" platform — these companies previously used a third-party aggregator.
+  // They are kept in the static list for UI display purposes only; scrapeAll()
+  // will skip them with an error. Migrate them to config/targets.json with
+  // ats: "custom-playwright" or a supported ATS to re-enable scraping.
+  const unsupported = (name: string, slug: string, url: string, ecUrl?: string): Company =>
+    ({ name, slug, platform: "unsupported" as const, careersUrl: url, ...(ecUrl ? { earlyCareerUrl: ecUrl } : {}) });
 
   // Merge static list with user-added companies (loaded lazily to avoid circular deps).
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -132,8 +164,17 @@ export function allCompanies(): Company[] {
     gh("Grafana Labs",        "grafana",           "https://grafana.com/about/careers"),
     gh("Navan",               "navan",             "https://navan.com/careers"),
     gh("Harness",             "harness",           "https://harness.io/company/careers"),
+    // New Greenhouse additions (verified 2026-04-20)
+    gh("Alma",                "alma",              "https://helloalma.com/careers"),
+    gh("Anduril",             "andurilindustries", "https://www.andurilindustries.com/careers"),
+    gh("Glean",               "gleanwork",         "https://glean.com/careers"),
+    gh("Headway",             "headway",           "https://headway.co/careers"),
+    gh("Project44",           "project44",         "https://project44.com/careers"),
+    gh("Uber Freight",        "uberfreight",       "https://uberfreight.com/careers"),
 
     // ── Lever ───────────────────────────────────────────────────────────────── (14)
+    // New Lever addition (verified 2026-04-20)
+    lv("Atlassian",           "atlassian",         "https://www.atlassian.com/company/careers"),
     lv("Plaid",               "plaid",             "https://plaid.com/careers"),
     lv("Outreach",            "outreach",          "https://outreach.io/company/careers"),
     lv("Netflix",             "netflix",           "https://jobs.netflix.com"),
@@ -166,6 +207,10 @@ export function allCompanies(): Company[] {
     as("dbt Labs",            "dbtlabs",           "https://www.getdbt.com/careers"),
     as("Anyscale",            "anyscale",          "https://www.anyscale.com/careers"),
     as("Character AI",        "characterai",       "https://character.ai/careers"),
+    // New Ashby additions (verified 2026-04-20)
+    as("Cedar",               "cedar",             "https://cedar.com/careers"),
+    as("OpenAI",              "openai",            "https://openai.com/careers"),
+    as("Snowflake",           "snowflake",         "https://www.snowflake.com/en/company/careers/"),
 
     // ── Custom scrapers ──────────────────────────────────────────────────────── (3)
     {
@@ -176,37 +221,51 @@ export function allCompanies(): Company[] {
     {
       name: "Google",  slug: "google",  platform: "google" as const,
       careersUrl: "https://careers.google.com",
-      linkedInId: "1441",
       earlyCareerUrl: "https://careers.google.com/students/",
     },
     {
       name: "Meta",    slug: "meta",    platform: "meta" as const,
       careersUrl: "https://www.metacareers.com/jobs",
-      linkedInId: "10667",
       earlyCareerUrl: "https://www.metacareers.com/earlycareer/",
     },
 
-    // ── LinkedIn-scraped (Workday or custom ATS — no public API) ────────────── (15)
-    li("IBM",                 "ibm",        "https://www.ibm.com/us-en/employment",                       "1009"),
-    li("Microsoft",           "microsoft",  "https://careers.microsoft.com",                               "1035",  "https://careers.microsoft.com/students/us/en/usuniversity"),
-    li("Target",              "target",     "https://corporate.target.com/careers",                        "2068"),
-    li("BlackRock",           "blackrock",  "https://careers.blackrock.com",                               "162479"),
-    li("Zebra Technologies",  "zebra",      "https://www.zebra.com/us/en/about-zebra/careers.html",        "1038"),
-    // New LinkedIn additions (Workday / custom ATS)
-    li("Apple",               "apple",      "https://jobs.apple.com",                                      undefined, "https://jobs.apple.com/en-us/search?team=early-career-programs-STDNT-ICEC"),
-    li("Salesforce",          "salesforce", "https://careers.salesforce.com"),
-    li("Nvidia",              "nvidia",     "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"),
-    li("Adobe",               "adobe",      "https://adobe.wd5.myworkdayjobs.com/external_experienced"),
-    li("Tesla",               "tesla",      "https://www.tesla.com/careers"),
-    li("Spotify",             "spotify",    "https://www.lifeatspotify.com/jobs"),
-    li("ServiceNow",          "servicenow", "https://careers.servicenow.com"),
-    li("Intuit",              "intuit",     "https://jobs.intuit.com"),
-    li("PayPal",              "paypal",     "https://careers.pymnts.com"),
-    li("Workday",             "workday",    "https://workday.wd5.myworkdayjobs.com/Workday"),
+    // ── Unsupported (custom ATS — migrate to config/targets.json) ────────────── (25)
+    // These companies previously used a third-party aggregator as fallback.
+    // Add them to config/targets.json with ats: "custom-playwright" to re-enable.
+    unsupported("IBM",                 "ibm",              "https://www.ibm.com/us-en/employment"),
+    unsupported("Microsoft",           "microsoft",        "https://careers.microsoft.com",     "https://careers.microsoft.com/students/us/en/usuniversity"),
+    unsupported("Target",              "target",           "https://corporate.target.com/careers"),
+    unsupported("BlackRock",           "blackrock",        "https://careers.blackrock.com"),
+    unsupported("Zebra Technologies",  "zebra",            "https://www.zebra.com/us/en/about-zebra/careers.html"),
+    unsupported("Apple",               "apple",            "https://jobs.apple.com",              "https://jobs.apple.com/en-us/search?team=early-career-programs-STDNT-ICEC"),
+    unsupported("Salesforce",          "salesforce",       "https://careers.salesforce.com"),
+    unsupported("Nvidia",              "nvidia",           "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"),
+    unsupported("Adobe",               "adobe",            "https://adobe.wd5.myworkdayjobs.com/external_experienced"),
+    unsupported("Tesla",               "tesla",            "https://www.tesla.com/careers"),
+    unsupported("Spotify",             "spotify",          "https://www.lifeatspotify.com/jobs"),
+    unsupported("ServiceNow",          "servicenow",       "https://careers.servicenow.com"),
+    unsupported("Intuit",              "intuit",           "https://jobs.intuit.com"),
+    unsupported("PayPal",              "paypal",           "https://careers.pymnts.com"),
+    unsupported("Workday",             "workday",          "https://workday.wd5.myworkdayjobs.com/Workday"),
+    unsupported("Capital One",         "capitalone",       "https://www.capitalonecareers.com"),
+    unsupported("Cisco",               "cisco",            "https://jobs.cisco.com"),
+    unsupported("Microsoft Careers",   "msft-careers",      "https://careers.microsoft.com"),
+    unsupported("Mastercard",          "mastercard",       "https://careers.mastercard.com"),
+    unsupported("Oracle",              "oracle",           "https://oracle.com/careers"),
+    unsupported("American Express",    "amex",             "https://careers.americanexpress.com"),
+    unsupported("CrowdStrike",         "crowdstrike",      "https://www.crowdstrike.com/careers"),
+    unsupported("Palo Alto Networks",  "paloaltonetworks", "https://jobs.paloaltonetworks.com"),
+    unsupported("Qualcomm",            "qualcomm",         "https://careers.qualcomm.com"),
+    unsupported("Visa",                "visa",             "https://corporate.visa.com/en/jobs.html"),
   ];
 
+  // Stamp tier onto each company
+  const tiered = staticList.map((c) =>
+    TIER_MAP[c.slug] ? { ...c, tier: TIER_MAP[c.slug] } : c
+  );
+
   // Merge: custom companies override static entries with same slug
-  const staticSlugs = new Set(staticList.map((c) => c.slug));
+  const staticSlugs = new Set(tiered.map((c) => c.slug));
   const newCustom = custom.filter((c) => !staticSlugs.has(c.slug));
-  return [...staticList, ...newCustom];
+  return [...tiered, ...newCustom];
 }

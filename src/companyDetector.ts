@@ -8,7 +8,9 @@
  *   1. Greenhouse boards-api
  *   2. Lever postings API
  *   3. Ashby posting-api
- *   4. LinkedIn guest search (company name as keyword — no company ID needed)
+ *
+ * If none of the above are found, throws with a suggestion to use
+ * ats: "custom-playwright" in targets.json.
  */
 
 import fetch from "node-fetch";
@@ -78,39 +80,13 @@ async function probeAshby(slug: string): Promise<number | null> {
   }
 }
 
-// ── LinkedIn keyword probe ────────────────────────────────────────────────────
-// When no ATS is found we verify the company has PM listings on LinkedIn by
-// doing a keyword search (company name + "product manager"). We don't get a
-// company ID, so the slug is used as the keyword identifier.
-
-const LI_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
-  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-
-async function probeLinkedInKeyword(companyName: string): Promise<boolean> {
-  try {
-    const kw = encodeURIComponent(`product manager ${companyName}`);
-    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${kw}&location=United+States&start=0&count=5`;
-    const r = await (fetch as any)(url, {
-      headers: { "User-Agent": LI_UA },
-      timeout: FETCH_TIMEOUT,
-    });
-    if (!r.ok) return false;
-    const html: string = await r.text();
-    // Check if any results contain the company name
-    return html.toLowerCase().includes(companyName.toLowerCase().split(/\s+/)[0]);
-  } catch {
-    return false;
-  }
-}
 
 // ── Main detector ─────────────────────────────────────────────────────────────
 
 export interface DetectionResult {
-  platform: Company["platform"];
+  platform: "greenhouse" | "lever" | "ashby";
   slug: string;
   careersUrl: string;
-  linkedInId?: string;
   jobCount: number;
   source: string; // human-readable label for UI
 }
@@ -157,23 +133,11 @@ export async function detectCompany(
     };
   }
 
-  // LinkedIn keyword fallback
-  const hasLinkedIn = await probeLinkedInKeyword(name);
-  if (hasLinkedIn) {
-    const slug = slugs[0];
-    return {
-      platform: "linkedin",
-      slug,
-      careersUrl: careersUrlHint ?? `https://www.linkedin.com/company/${slug}/jobs/`,
-      jobCount: -1, // unknown until scraped
-      source: "LinkedIn (keyword search)",
-    };
-  }
-
-  // Nothing found
+  // Nothing found via known ATS probes
   throw new Error(
-    `No accessible job feed found for "${name}". ` +
-    `The company may use a proprietary ATS or block automated access.`
+    `No Greenhouse, Lever, or Ashby board found for "${name}". ` +
+    `If this company uses a different ATS, add it manually to config/targets.json ` +
+    `using ats: "custom-playwright" with the appropriate CSS selectors.`,
   );
 }
 

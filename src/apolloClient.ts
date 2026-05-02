@@ -69,7 +69,6 @@ export async function searchApollo(
   );
 
   const body: Record<string, unknown> = {
-    api_key:             process.env.APOLLO_API_KEY,
     q_organization_name: company,
     person_titles:       titleArray,
     per_page:            opts.perPage ?? 25,
@@ -80,7 +79,7 @@ export async function searchApollo(
 
   const resp = await fetch(APOLLO_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-cache", "X-Api-Key": process.env.APOLLO_API_KEY ?? "" },
     body: JSON.stringify(body),
   });
 

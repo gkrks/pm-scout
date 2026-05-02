@@ -8,34 +8,38 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js serve",
-    "serve": "node dist/index.js serve",
-    "dev": "ts-node src/index.ts",
-    "dev:serve": "ts-node src/index.ts serve",
-    "match": "ts-node src/index.ts match",
-    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium || true"
+    "build":           "tsc",
+    "match":           "ts-node src/index.ts match",
+    "scan":            "ts-node scripts/runScan.ts",
+    "scan:once":       "IGNORE_BLACKOUT=true ts-node scripts/runScan.ts",
+    "sync:companies":  "ts-node scripts/syncCompanies.ts",
+    "discover:ats":    "node scripts/discoverATS.js",
+    "replay:pending":  "ts-node scripts/replayPendingBuffer.ts",
+    "postinstall":     "PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium || true"
   },
   "bin": {
     "resume-matcher": "dist/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
+    "@supabase/supabase-js": "^2.105.1",
     "@types/dotenv": "^6.1.1",
-    "@types/express": "^5.0.6",
+    "airtable": "^0.12.2",
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0",
     "commander": "^12.1.0",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
     "groq-sdk": "^1.1.2",
     "node-fetch": "^2.7.0",
+    "nodemailer": "^6.9.16",
     "pdf-parse": "^1.1.1",
-    "playwright": "^1.59.1"
+    "playwright": "^1.59.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/node-fetch": "^2.6.11",
+    "@types/nodemailer": "^6.4.17",
     "@types/pdf-parse": "^1.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"

@@ -213,8 +213,9 @@ async function categorizeProfiles(
 
 // ── LinkedIn search shortcuts ─────────────────────────────────────────────────
 
-function liSearch(company: string, keywords: string): string {
-  const q = encodeURIComponent(`"${company}" ${keywords}`);
+function liSearch(company: string, keywords: string, team?: string): string {
+  const teamPart = team ? `"${team}" ` : "";
+  const q = encodeURIComponent(`"${company}" ${teamPart}${keywords}`);
   return `https://www.linkedin.com/search/results/people/?keywords=${q}&origin=GLOBAL_SEARCH_HEADER`;
 }
 
@@ -227,58 +228,74 @@ export async function findHiringManager(job: Job): Promise<PFResult> {
   const strat   = signals.searchStrategy;
 
   // Pass 2: 3 parallel Apollo searches (hiring managers, recruiters, peers)
+  // Falls back gracefully to LinkedIn-only if Apollo plan doesn't permit API access.
+  let allProfiles: ApolloPerson[] = [];
+  let apolloUnavailable = false;
+
   console.log(`[people-finder] Pass 2 — Apollo searches (team: "${signals.team}")`);
-  const [hmProfiles, recProfiles, peerProfiles] = await Promise.all([
-    searchApollo(job.company, {
-      titles:      strat.hiringManager.titles,
-      seniorities: strat.hiringManager.seniorities,
-      departments: ["Product Management"],
-      teamArea:    signals.team,
-      perPage:     15,
-    }),
-    searchApollo(job.company, {
-      titles:      strat.recruiter.titles,
-      departments: ["Human Resources"],
-      perPage:     10,
-    }),
-    searchApollo(job.company, {
-      titles:      strat.peers.titles,
-      seniorities: strat.peers.seniorities,
-      departments: ["Product Management"],
-      teamArea:    signals.team,
-      perPage:     15,
-    }),
-  ]);
+  try {
+    const [hmProfiles, recProfiles, peerProfiles] = await Promise.all([
+      searchApollo(job.company, {
+        titles:      strat.hiringManager.titles,
+        seniorities: strat.hiringManager.seniorities,
+        departments: ["Product Management"],
+        teamArea:    signals.team,
+        perPage:     15,
+      }),
+      searchApollo(job.company, {
+        titles:      strat.recruiter.titles,
+        departments: ["Human Resources"],
+        perPage:     10,
+      }),
+      searchApollo(job.company, {
+        titles:      strat.peers.titles,
+        seniorities: strat.peers.seniorities,
+        departments: ["Product Management"],
+        teamArea:    signals.team,
+        perPage:     15,
+      }),
+    ]);
 
-  // Deduplicate across all three pools (prefer HM > peer > recruiter)
-  const seenUrls = new Set<string>();
-  const seenNames = new Set<string>();
-  function dedup(profiles: ApolloPerson[]): ApolloPerson[] {
-    return profiles.filter((p) => {
-      const urlKey  = p.linkedInUrl?.trim();
-      const nameKey = p.name.toLowerCase().trim();
-      if (urlKey  && seenUrls.has(urlKey))   return false;
-      if (seenNames.has(nameKey))             return false;
-      if (urlKey)  seenUrls.add(urlKey);
-      seenNames.add(nameKey);
-      return true;
-    });
+    // Deduplicate across all three pools (prefer HM > peer > recruiter)
+    const seenUrls = new Set<string>();
+    const seenNames = new Set<string>();
+    function dedup(profiles: ApolloPerson[]): ApolloPerson[] {
+      return profiles.filter((p) => {
+        const urlKey  = p.linkedInUrl?.trim();
+        const nameKey = p.name.toLowerCase().trim();
+        if (urlKey  && seenUrls.has(urlKey))   return false;
+        if (seenNames.has(nameKey))             return false;
+        if (urlKey)  seenUrls.add(urlKey);
+        seenNames.add(nameKey);
+        return true;
+      });
+    }
+    allProfiles = [
+      ...dedup(hmProfiles),
+      ...dedup(peerProfiles),
+      ...dedup(recProfiles),
+    ];
+
+    console.log(
+      `[people-finder] Pass 2 done — ${hmProfiles.length} HMs, ` +
+      `${recProfiles.length} recruiters, ${peerProfiles.length} peers ` +
+      `(${allProfiles.length} unique total)`,
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("403") || msg.includes("API_INACCESSIBLE") || msg.includes("not accessible")) {
+      console.warn("[people-finder] Apollo unavailable on current plan — falling back to LinkedIn searches only");
+      apolloUnavailable = true;
+    } else {
+      throw err;
+    }
   }
-  const allProfiles = [
-    ...dedup(hmProfiles),
-    ...dedup(peerProfiles),
-    ...dedup(recProfiles),
-  ];
 
-  console.log(
-    `[people-finder] Pass 2 done — ${hmProfiles.length} HMs, ` +
-    `${recProfiles.length} recruiters, ${peerProfiles.length} peers ` +
-    `(${allProfiles.length} unique total)`,
-  );
-
-  // Pass 3: Groq categorizes + scores every profile
+  // Pass 3: Groq categorizes + scores every profile (skipped if Apollo unavailable)
   console.log(`[people-finder] Pass 3 — categorizing ${allProfiles.length} profiles`);
-  const pass3 = await categorizeProfiles(signals, allProfiles, job);
+  const pass3 = apolloUnavailable
+    ? { candidates: [] as PFCandidate[], eliminated: ["Apollo API not available on current plan — use LinkedIn searches below"] }
+    : await categorizeProfiles(signals, allProfiles, job);
 
   // Build boolean search strings from titles
   const hmBool   = strat.hiringManager.titles.map((t) => `"${t}"`).join(" OR ");
@@ -308,7 +325,11 @@ export async function findHiringManager(job: Job): Promise<PFResult> {
     linkedInSearches: [
       {
         label: `${job.company} — ${signals.team} Hiring Managers`,
-        url:   liSearch(job.company, strat.hiringManager.titles.slice(0, 3).join(" OR ")),
+        url:   liSearch(
+          job.company,
+          `(${strat.hiringManager.titles.map((t) => `"${t}"`).join(" OR ")})`,
+          signals.team,
+        ),
       },
       {
         label: `${job.company} — Product Recruiters`,
@@ -316,7 +337,11 @@ export async function findHiringManager(job: Job): Promise<PFResult> {
       },
       {
         label: `${job.company} — ${signals.team} PMs`,
-        url:   liSearch(job.company, `"${signals.team}" Product Manager`),
+        url:   liSearch(
+          job.company,
+          `(${strat.peers.titles.map((t) => `"${t}"`).join(" OR ")})`,
+          signals.team,
+        ),
       },
     ],
   };

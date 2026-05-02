@@ -1,67 +1,87 @@
 # PM Scout
 
-An automated job search pipeline that discovers early-career Product Manager roles across 100 top tech companies, scores your resume against each posting using Claude, and surfaces exactly where you match — and where you don't.
+An automated job search pipeline that watches 754 US tech and AI companies for Product Manager and Associate Product Manager openings, applies a strict filter pipeline, and notifies you via email and Telegram when new roles appear.
 
 ---
 
-## What it does
+## How it runs
 
-1. **Scrapes** Greenhouse and Lever APIs across 100 companies in parallel
-2. **Filters** for early-career PM roles (title, experience level, US location, recency)
-3. **Scores** your resume against every job description using Claude AI
-4. **Displays** match scores, per-requirement breakdowns, and apply recommendations in a web UI
+The scanner runs on GitHub Actions, hourly from 5 AM PST through 4 PM PST (12 runs/day). It is silent during 5 PM PST → 4:59 AM PST. Daylight Saving Time is handled automatically — the blackout window is defined in Pacific local time, not UTC.
 
----
+### Manual scan
 
-## Tech Stack
+**From GitHub:** Actions tab → Hourly Job Scan → Run workflow → (optional) tick "Run even if currently in the blackout window" → Run workflow.
 
-| Layer | Tools |
-|-------|-------|
-| Language | TypeScript (Node 20+) |
-| AI | Claude (`claude-opus-4-5`) via `@anthropic-ai/sdk` |
-| Web server | Express 5 |
-| HTML parsing | Cheerio |
-| PDF parsing | pdf-parse |
-| HTTP | node-fetch v2 |
-| CLI | Commander |
-| Terminal output | Chalk v4 |
-| Config | dotenv |
+**From your laptop:**
+```bash
+npm run scan:once
+```
+
+### Where the data goes
+
+- **Email digest** (this is the product): arrives shortly after each run if there are new tier-1 or tier-2 jobs.
+- **Supabase**: the `job_listings` table is the full database. Use Supabase's built-in table editor to mark jobs as Reviewed / Applied / Rejected and add notes. There is no separate UI — Supabase is the UI.
+- **Telegram**: real-time digest + health alerts for scraper errors.
+
+### How it doesn't run
+
+- No server. Nothing is awake except during the ~5–7 minutes per hour the workflow is executing.
+- No webhook listener.
+- No status polling endpoint.
+
+### Monitoring
+
+- GitHub Actions tab shows every run, green or red. Red runs upload logs as artifacts (7-day retention).
+- Telegram health channel pings you when companies fail at the run level.
+- Supabase `parser_runs` table has the full audit trail.
 
 ---
 
 ## Setup
 
+### 1. Clone and install
+
 ```bash
-git clone https://github.com/gkrks/pm-scout.git
+git clone https://github.com/your-org/pm-scout.git
 cd pm-scout
 npm install
 ```
 
-Create a `.env` file:
+### 2. Configure GitHub Secrets
 
-```
-ANTHROPIC_API_KEY=sk-ant-...
+In your repo → Settings → Secrets and variables → Actions, add:
+
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (not anon) |
+| `TELEGRAM_BOT_TOKEN` | From @BotFather |
+| `TELEGRAM_DIGEST_CHAT_ID` | Chat ID for new-job digest |
+| `TELEGRAM_HEALTH_CHAT_ID` | Chat ID for error alerts (can be same) |
+| `SMTP_USER` | Gmail address |
+| `SMTP_PASS` | Gmail App Password |
+| `EMAIL_FROM` | Sender address |
+| `EMAIL_TO` | Recipient address |
+
+### 3. Sync company config to Supabase
+
+```bash
+cp .env.example .env   # fill in SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+npm run sync:companies
 ```
 
-Optionally set a default resume path (used as the generic fallback):
+### 4. Enable GitHub Actions
 
-```
-GENERIC_RESUME_PATH=/path/to/your/resume.pdf
-```
+Push to `main`. The workflow at `.github/workflows/scan.yml` starts automatically.
 
 ---
 
-## Running
-
-### Web UI (recommended)
+## Local development
 
 ```bash
-npm run dev:serve       # dev mode (ts-node, no build needed)
-# or
-npm run build && npm run serve   # production
+cp .env.example .env   # fill in credentials
+npm run scan:once      # run immediately, bypasses blackout window
 ```
-
-Open `http://localhost:8080`.
 
 ### CLI — single job match
 
@@ -73,183 +93,49 @@ npx ts-node src/index.ts match --job <url> --resume <file> [--verbose]
 
 ---
 
-## End-to-End Flow
+## Tech Stack
 
-```
-Browser                     Express (server.ts)            External / AI
-  │                               │                              │
-  │── POST /api/scan ────────────>│                              │
-  │                        scrapeAll()                           │
-  │                         ┌─ Semaphore(8) ─────────────────── │
-  │                         │  scrapeGreenhouse(slug)  ─────────>│ boards-api.greenhouse.io
-  │                         │  scrapeLever(slug)       ─────────>│ api.lever.co
-  │                         │  filter + deduplicate              │
-  │                         └────────────────────────────────────│
-  │<─── poll /api/status ────────<│ (jobs added to appState)     │
-  │                               │                              │
-  │── POST /api/resume/upload ───>│                              │
-  │   { pdf_base64, file_name }   │                              │
-  │                         extract_text_from_bytes()            │
-  │                         appState.resume.uploadedText = text  │
-  │                               │                              │
-  │── POST /api/run-ats ─────────>│                              │
-  │                        scoreAllJobs()                        │
-  │                         Semaphore(1): one job at a time      │
-  │                         for each job:                        │
-  │                          strip HTML from description         │
-  │                          extractRequirements() ─────────────>│ Claude
-  │                          matchRequirements()                 │
-  │                           Semaphore(10): 10 reqs parallel ──>│ Claude ×10
-  │                          score = (met + partial×0.5) / total │
-  │                          resumeAction = apply/tailor/skip    │
-  │<─── poll /api/status ────────<│ (scores fill in live)        │
-  │                               │                              │
-  │── click row ─────────────────>│                              │
-  │<── modal: req breakdown ──────│                              │
-```
-
-### Per-job resume flow
-
-Each row in the table has independent upload and matching controls:
-
-```
-Upload button clicked
-  → browser file picker → FileReader → base64
-  → POST /api/jobs/:id/resume  { pdf_base64, file_name }
-  → extract_text_from_bytes() → appState.jobResumes[id]
-  → localStorage stores { name, base64 } for persistence across reloads
-
-Run Match clicked
-  → POST /api/jobs/:id/score
-  → server responds 200 immediately (runs async)
-  → appState.scoringJobIds.add(id)  ← spinner appears in UI via poll
-  → resolves per-job resume (falls back to global if none uploaded)
-  → write resume text to /tmp/resume-job-{id}.txt
-  → parseResume() → extractRequirements() → matchRequirements()
-  → appState.scoringJobIds.delete(id)  ← spinner gone, score appears
-```
+| Layer | Tools |
+|-------|-------|
+| Language | TypeScript (Node 20+) |
+| Scheduling | GitHub Actions (hourly cron) |
+| Scrapers | Greenhouse, Lever, Ashby, Workday, Amazon, Google, Meta, Custom Playwright |
+| Persistence | Supabase (Postgres via `@supabase/supabase-js`) |
+| Notifications | Nodemailer (SMTP) + Telegram Bot API |
+| HTML parsing | Cheerio |
+| PDF parsing | pdf-parse |
+| HTTP | node-fetch v2 |
+| CLI | Commander |
+| Terminal output | Chalk v4 |
 
 ---
 
-## Pipeline Stages
-
-### Stage 1 — Job Discovery (`src/jobScraper.ts`)
-
-Fetches all jobs from each company's ATS API and applies five filters:
-
-**Title inclusion** — must match one of:
-- Associate Product Manager / APM / Associate PM
-- Product Manager / Product Manager I / Product Manager 1
-
-**Title exclusion** — rejected if title contains:
-`senior` · `sr` · `lead` · `principal` · `director` · `head` · `VP` · `vice president` · `staff` · `group PM/product` · `engineering manager`
-
-**Experience filter** — rejects if description mentions:
-- Any single value `> 3` years (e.g. "4+ years", "5 years")
-- Any range whose upper bound `> 3` (e.g. "2–5 years", "3–6 years")
-
-**Location filter** — drops ~50 non-US city / country / region tokens.
-
-**Date filter** — keeps jobs posted within the last 6 months (uses `first_published` for Greenhouse, `createdAt` epoch for Lever).
-
-After scraping: deduplication by `company + title`, keeping the entry with the most specific location.
-
----
-
-### Stage 2 — Requirement Extraction (`src/extractor.ts`)
+## Pipeline
 
 ```
-plainText (up to 6000 chars)
-  └─ Claude claude-opus-4-5 (temp=0, max_tokens=1000)
-       prompt: extract atomic requirement phrases, strip filler
-       response: JSON string[]
-       retry once on parse failure
+pm_apm_companies.json (754 companies)
+  └─ sync:companies → Supabase: companies table
+
+GitHub Actions (hourly)
+  └─ scripts/runScan.ts
+       └─ src/scheduler.ts → src/orchestrator/runScan.ts
+            ├─ API pool    (concurrency 12): Greenhouse, Lever, Ashby, Workday, Amazon
+            └─ Playwright pool (concurrency 3): Google, Meta, custom-playwright
+
+            for each company:
+              scrape → filter pipeline → Supabase upsert
+              ├─ title filter    (include/exclude keywords)
+              ├─ location filter (SF, NYC, LA, Seattle, Remote US, Hybrid)
+              ├─ experience filter (reject if yoe_min > 3)
+              ├─ freshness filter (reject if > 30 days old)
+              ├─ sponsorship filter
+              ├─ salary filter (optional)
+              └─ tier ranking   (tier 1 = apply today, tier 2 = this week, tier 3 = dropped)
+
+            → Supabase: job_listings upsert (dedup by company + role_url)
+            → Telegram digest + health alert
+            → Email digest
 ```
-
-Returns 5–20 short phrases like:
-`"3+ years product management experience"`, `"SQL or equivalent query language"`, `"Bachelor's degree or equivalent"`
-
----
-
-### Stage 3 — Resume Parser (`src/parser.ts`)
-
-```
-.pdf  → pdf-parse → raw text
-.txt / .md → fs.readFile
-
-splitSections()
-  detect headings: ALL-CAPS lines, known names, dash-underlined lines
-  → ResumeSection[]
-
-parseExperience()
-  find Experience section
-  for each line:
-    date range? → normalizeDate() → "YYYY-MM"
-    bullet?     → bullets[]
-    other?      → company / title
-  → WorkEntry[]  (company, title, startDate, endDate, bullets[])
-
-parseEducation() → string[]
-parseSkills()    → string[]
-```
-
-`"Present"` / `"Current"` normalises to today's `YYYY-MM` for accurate date arithmetic.
-
----
-
-### Stage 4 — Matching (`src/matcher.ts`)
-
-Up to 10 requirements matched in parallel (semaphore-capped to avoid rate limits):
-
-```
-for each requirement:
-  Claude claude-opus-4-5 (temp=0, max_tokens=500)
-    system: resume analyst prompt with two special rules:
-      • "X+ years" → calculate from WorkEntry date math, don't guess
-      • degree requirement → check Education section first
-    user: REQUIREMENT: {req}
-          RESUME: {raw text}
-          EXPERIENCE ENTRIES (parsed): {JSON}
-    response: { status, proof, location, confidence }
-    retry once on failure → fallback { status:"missing", proof:"" }
-```
-
-**Scoring:**
-```
-score = (met × 1.0 + partial × 0.5) / total × 100
-
-≥ 70%  →  apply_as_is
-≥ 40%  →  tailor_then_apply
-< 40%  →  skip
-```
-
----
-
-### Stage 5 — Reporter (`src/reporter.ts`) — CLI only
-
-Writes a colour-coded terminal report (Chalk) and `match-report.json`:
-
-```
-✅  met     → green  + proof excerpt + location
-⚠️  partial → yellow + proof excerpt + location
-❌  missing → red    (no proof — never hallucinated)
-```
-
----
-
-## API Reference
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/` | Serve web UI |
-| `GET` | `/api/status` | Poll scan/score state + all jobs |
-| `GET` | `/api/companies` | List all 100 companies |
-| `POST` | `/api/scan` | Start job scrape (async) |
-| `POST` | `/api/resume/upload` | Upload global resume `{ pdf_base64, file_name }` |
-| `POST` | `/api/resume/use-generic` | Switch active resume to generic |
-| `POST` | `/api/run-ats` | Score all jobs against active resume (async) |
-| `POST` | `/api/jobs/:id/resume` | Upload resume for a specific job `{ pdf_base64, file_name }` |
-| `POST` | `/api/jobs/:id/score` | Score one job (uses per-job resume or falls back to global) |
 
 ---
 
@@ -257,17 +143,32 @@ Writes a colour-coded terminal report (Chalk) and `match-report.json`:
 
 ```
 src/
-  companies.ts   100 company slugs (Greenhouse + Lever)
-  jobScraper.ts  Fetch + filter jobs from ATS APIs
-  extractor.ts   Claude: raw text → requirement phrases
-  parser.ts      PDF/text → structured ResumeData
-  matcher.ts     Claude: match each requirement (≤10 parallel)
-  reporter.ts    CLI chalk output + match-report.json
-  scraper.ts     CLI-mode: scrape a single job page URL
-  state.ts       Singleton app state (jobs, resumes, status)
-  server.ts      Express API + inline web UI
-  pdfUtil.ts     pdf-parse wrapper
-  index.ts       CLI entrypoint (commander)
+  scheduler.ts          Entry point for scan runs
+  orchestrator/         Two-pool orchestration logic
+  scrapers/             Per-ATS scraper implementations
+  filters/              Title, location, experience, freshness, sponsorship, salary
+  ranking/              Tier assignment (tier.ts)
+  storage/              Supabase persistence layer
+  notify/               Telegram + email digest builders
+  lib/                  Shared utilities (blackout guard, logging)
+  config/               Config loader for pm_apm_companies.json
+  extractor.ts          Claude: raw text → requirement phrases (CLI match command)
+  matcher.ts            Claude: match each requirement against resume (CLI)
+  state.ts              Singleton scan status (used during a run)
+  index.ts              CLI entrypoint (commander)
+
+scripts/
+  runScan.ts            One-shot scan entry point (called by GitHub Actions)
+  syncCompanies.ts      Sync pm_apm_companies.json → Supabase companies table
+  discoverATS.js        Manual helper: detect which ATS a company's careers page uses
+  replayPendingBuffer.ts Replay any Supabase writes that failed during a run
+
+config/
+  pm_apm_companies.json Source of truth: 754 companies, filters, ranking rules
+  ats_routing.json      slug → ATS mapping (Greenhouse/Lever/Ashby/Workday/Playwright)
+
+.github/workflows/
+  scan.yml              Hourly cron + workflow_dispatch trigger
 ```
 
 ---
@@ -276,19 +177,9 @@ src/
 
 | Phase | Feature | Status |
 |-------|---------|--------|
-| 1 | Job Discovery Engine | ✅ Complete |
-| 2 | ATS Resume Matching | ✅ Complete |
+| 1 | Job Discovery Engine | Complete |
+| 2 | Custom Deterministic ATS Tool | In Progress |
 | 3 | Resume Tailoring | Planned |
 | 4 | People Finder | Planned |
 | 5 | Personalised Email Generation | Planned |
 | 6 | Send & Follow-up Scheduler | Planned |
-
----
-
-## Key Design Decisions
-
-- **Semaphore-capped parallelism** — jobs scored one at a time; requirements within a job matched 10 at a time. Keeps Claude API usage within rate limits while being ~10× faster than fully sequential.
-- **HTML stripped before Claude** — Greenhouse descriptions are raw HTML. Tags are stripped before sending to the extractor so Claude sees clean requirement text.
-- **Date math, not impression** — the matcher prompt instructs Claude to sum months from parsed `WorkEntry` dates for "X+ years" requirements rather than guessing from context.
-- **No hallucinated proof** — `missing` status always sets `proof = ""`, enforced in code regardless of what Claude returns.
-- **Per-job resume persistence** — uploaded resumes are stored as base64 in `localStorage` and silently re-uploaded on page load so the server always has them ready.

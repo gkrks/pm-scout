@@ -1,8 +1,14 @@
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import { allCompanies } from "./companies";
-import { applyJobDiff } from "./jobStore";
+import { applyJobDiff, saveJobs } from "./jobStore";
 import { appState, Job } from "./state";
+import { loadTargetsConfig, TargetsConfig, CompanyConfig } from "./config/targets";
+import { loadRoutingConfig, resolveRouting } from "./config/loadRouting";
+import { workdayScraper } from "./scrapers/workday";
+import { smartRecruitersScraper } from "./scrapers/smartrecruiters";
+import { workableScraper } from "./scrapers/workable";
+import { bambooHRScraper } from "./scrapers/bamboohr";
 
 const UA = "Mozilla/5.0 (compatible; JobSearchBot/1.0)";
 const FETCH_TIMEOUT_MS = 15_000;
@@ -29,6 +35,24 @@ const TITLE_EXCLUDE = [
 function isPmRole(title: string): boolean {
   if (!TITLE_INCLUDE.some((re) => re.test(title))) return false;
   return !TITLE_EXCLUDE.some((re) => re.test(title));
+}
+
+/**
+ * Title filter that incorporates a per-company role allow-list from targets.json.
+ * A job is kept when its title contains at least one role string from the config
+ * array OR matches the standard PM inclusion regex — AND is not excluded.
+ * An empty roles array falls back to the standard PM filter.
+ */
+function isPmRoleForConfig(title: string, roles: string[]): boolean {
+  const excluded = TITLE_EXCLUDE.some((re) => re.test(title));
+  if (excluded) return false;
+  if (roles.length === 0) return TITLE_INCLUDE.some((re) => re.test(title));
+  const matchesRole = roles.some((r) => title.toLowerCase().includes(r.toLowerCase()));
+  return matchesRole || TITLE_INCLUDE.some((re) => re.test(title));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 // ── Early-career detection ────────────────────────────────────────────────────
@@ -498,99 +522,11 @@ async function scrapeAmazon(careersUrl: string, earlyCareerUrl?: string): Promis
   return [...main, ...newUniversity];
 }
 
-// ── LinkedIn guest-API scraper ────────────────────────────────────────────────
-// LinkedIn's public guest job-search endpoint returns HTML job cards without
-// requiring authentication. Used as an aggregator fallback for companies whose
-// own career sites are JS-rendered SPAs (Google, Meta).
-//
-// Endpoint: /jobs-guest/jobs/api/seeMoreJobPostings/search
-// Key params: keywords, location, f_C (company ID), start, count
-// Rate limit: 1 req/s is safe; we stay well under that per scan.
-
+// User-agent used for headless browser contexts (Google, Meta, custom-playwright)
 export const LI_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
   "AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/120.0.0.0 Safari/537.36";
-
-async function scrapeLinkedIn(
-  companyName: string,
-  linkedInId: string,
-  careersUrl: string,
-): Promise<Job[]> {
-  const base = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search";
-  const jobs: Job[] = [];
-  const seen = new Set<string>(); // deduplicate by job URL
-  const cutoff = getDateCutoff();
-  const pageSize = 25;
-  let start = 0;
-
-  for (let page = 0; page < 4; page++) { // max 100 results (4 × 25)
-    const params = new URLSearchParams({
-      keywords: "product manager",
-      location: "United States",
-      f_C:      linkedInId,
-      start:    String(start),
-      count:    String(pageSize),
-    });
-
-    const resp = await (fetch as any)(`${base}?${params}`, {
-      headers: { "User-Agent": LI_UA },
-      timeout: FETCH_TIMEOUT_MS,
-    });
-
-    if (resp.status === 429) {
-      console.warn(`[scraper] LinkedIn rate-limited for ${companyName}, stopping pagination`);
-      break;
-    }
-    if (!resp.ok) throw new Error(`LinkedIn (${companyName}): HTTP ${resp.status}`);
-
-    const html: string = await resp.text();
-    if (!html.trim() || html.trim() === "<!DOCTYPE html>") break; // empty page
-
-    const $ = cheerio.load(html);
-    let pageCount = 0;
-
-    $(".base-search-card").each((_i, el) => {
-      const title = $(el).find(".base-search-card__title").text().trim();
-      const loc   = $(el).find(".job-search-card__location").text().trim();
-      const dt    = $(el).find("time").attr("datetime") ?? "";
-      const href  = $(el).find("a.base-card__full-link").attr("href") ?? "";
-
-      // Strip tracking params from LinkedIn URL
-      const cleanUrl = href.split("?")[0];
-      if (!cleanUrl || seen.has(cleanUrl)) return;
-      seen.add(cleanUrl);
-      pageCount++;
-
-      if (!isPmRole(title)) return;
-      if (!isUsLocation(loc)) return;
-
-      const datePosted = dt ? dt.slice(0, 10) : "—";
-      if (datePosted !== "—" && datePosted < cutoff) return;
-
-      // No description text available from LinkedIn search cards — experience
-      // filter is skipped here (fetching each detail page would hammer LinkedIn).
-      jobs.push({
-        id:          makeId(companyName, cleanUrl.replace(/[^a-z0-9]/gi, "-").slice(-30)),
-        company:     companyName,
-        title,
-        location:    loc,
-        workType:    workTypeFrom(loc),
-        datePosted,
-        applyUrl:    cleanUrl,    // LinkedIn job page — has "Apply on company website" button
-        careersUrl,
-        earlyCareer: isEarlyCareer(title, ""),
-        description: "",          // not available without individual page fetch
-        sourceLabel: "LinkedIn",  // marks this as aggregator-sourced
-      });
-    });
-
-    if (pageCount < pageSize) break; // last page
-    start += pageSize;
-  }
-
-  return jobs;
-}
 
 // ── Playwright serializer ─────────────────────────────────────────────────────
 // Only one Chromium instance at a time — each needs ~150-200 MB RAM which
@@ -676,13 +612,67 @@ export async function launchChromium() {
   throw new Error("No Chromium available — all install attempts failed");
 }
 
+// ── Description fetcher (shared by Google + Meta) ────────────────────────────
+// Visits each individual job page within an already-open browser context and
+// extracts the description HTML. Runs up to 2 pages concurrently.
+// Returns empty string on any failure — scraping continues without description.
+
+const DESC_SELECTORS = [
+  // Google Careers
+  ".aG5W3", ".KwJkGe", ".gc-formatted-body",
+  // Meta Careers
+  "._job_requirements", "._6nq", "._1n3p",
+  // Generic fallbacks
+  "[itemprop='description']", "[data-testid='job-description']",
+  "main article", "main section", "article",
+];
+
+async function fetchJobDescription(
+  context: import("playwright").BrowserContext,
+  applyUrl: string,
+): Promise<string> {
+  const page = await context.newPage();
+  try {
+    await page.goto(applyUrl, { waitUntil: "load", timeout: 15_000 });
+    const html = await page.evaluate((selectors: string[]) => {
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && (el.textContent ?? "").trim().length > 150) return el.innerHTML;
+      }
+      return "";
+    }, DESC_SELECTORS);
+    return html;
+  } catch {
+    return "";
+  } finally {
+    await page.close();
+  }
+}
+
+async function fetchDescriptions(
+  context: import("playwright").BrowserContext,
+  jobs: Job[],
+  label: string,
+): Promise<void> {
+  let done = 0;
+  const BATCH = 2;
+  for (let i = 0; i < jobs.length; i += BATCH) {
+    const batch = jobs.slice(i, i + BATCH);
+    await Promise.all(batch.map(async (job) => {
+      job.description = await fetchJobDescription(context, job.applyUrl);
+      done++;
+    }));
+    console.log(`[scraper] ${label}: fetched descriptions ${done}/${jobs.length}`);
+  }
+}
+
 // ── Google scraper ────────────────────────────────────────────────────────────
 // Google Careers is a JS-rendered Angular SPA with no public API.
 // NOTE: Google does not expose posting dates anywhere (confirmed via DOM, HTML
 //       source, and JSON-LD inspection) — datePosted will be "—".
 // Strategy:
 //   1. Playwright Chromium headless — renders the real page, extracts DOM cards
-//   2. LinkedIn guest API           — fallback if Playwright unavailable/fails
+//   2. Retry once after 5s if Playwright fails — no fallback scraper
 //
 // Confirmed selectors (verified 2026-04-15):
 //   Cards:    li.lLd3Je
@@ -779,7 +769,12 @@ async function scrapeGooglePlaywright(careersUrl: string, earlyCareerUrl?: strin
     // Merge — student page jobs that already appear on main page are deduplicated
     const mainIds = new Set(mainJobs.map((j) => j.id));
     const newStudentJobs = studentJobs.filter((j) => !mainIds.has(j.id));
-    return [...mainJobs, ...newStudentJobs];
+    const allJobs = [...mainJobs, ...newStudentJobs];
+
+    // Fetch full descriptions within the same browser session
+    if (allJobs.length > 0) await fetchDescriptions(context, allJobs, "Google");
+
+    return allJobs;
 
   } finally {
     await browser.close();
@@ -787,21 +782,29 @@ async function scrapeGooglePlaywright(careersUrl: string, earlyCareerUrl?: strin
   }); // end withPlaywright
 }
 
-async function scrapeGoogle(linkedInId: string, careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
-  try {
-    const jobs = await scrapeGooglePlaywright(careersUrl, earlyCareerUrl);
-    if (jobs.length > 0) {
-      console.log(`[scraper] Google: ${jobs.length} jobs via headless browser`);
-      return jobs;
+async function scrapeGoogle(careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const jobs = await scrapeGooglePlaywright(careersUrl, earlyCareerUrl);
+      if (jobs.length > 0) {
+        console.log(`[scraper] Google: ${jobs.length} jobs via headless browser`);
+        return jobs;
+      }
+      if (attempt === 0) {
+        console.warn("[scraper] Google headless returned 0 results — retrying in 5s");
+        await sleep(5_000);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (attempt === 0) {
+        console.warn(`[scraper] Google Playwright failed (attempt 1): ${msg} — retrying in 5s`);
+        await sleep(5_000);
+      } else {
+        throw new Error(`Google Playwright failed after 2 attempts: ${msg}`);
+      }
     }
-    console.warn("[scraper] Google headless returned 0 results — using LinkedIn fallback");
-  } catch (err) {
-    console.warn(
-      `[scraper] Google careers requires JS rendering — fallback triggered: ${err instanceof Error ? err.message : err}`,
-    );
   }
-  console.log("[scraper] Google: using LinkedIn fallback");
-  return scrapeLinkedIn("Google", linkedInId, careersUrl);
+  throw new Error("Google Playwright returned 0 results after 2 attempts");
 }
 
 // ── Meta scraper ──────────────────────────────────────────────────────────────
@@ -810,7 +813,7 @@ async function scrapeGoogle(linkedInId: string, careersUrl: string, earlyCareerU
 // NOTE: Meta does not expose posting dates anywhere — datePosted will be "—".
 // Strategy:
 //   1. Playwright — loads the page, intercepts the GraphQL response, extracts jobs
-//   2. LinkedIn guest API — fallback if Playwright unavailable/fails
+//   2. Retry once after 5s if Playwright fails — no fallback scraper
 //
 // GraphQL response shape (verified 2026-04-15):
 //   data.job_search_with_featured_jobs.all_jobs[]
@@ -918,7 +921,12 @@ async function scrapeMetaPlaywright(careersUrl: string, earlyCareerUrl?: string)
     // Deduplicate early-career results that are already in main
     const mainIds = new Set(mainJobs.map((j) => j.id));
     const newEarlyJobs = earlyJobs.filter((j) => !mainIds.has(j.id));
-    return [...mainJobs, ...newEarlyJobs];
+    const allJobs = [...mainJobs, ...newEarlyJobs];
+
+    // Fetch full descriptions within the same browser session
+    if (allJobs.length > 0) await fetchDescriptions(context, allJobs, "Meta");
+
+    return allJobs;
 
   } finally {
     await browser.close();
@@ -926,92 +934,31 @@ async function scrapeMetaPlaywright(careersUrl: string, earlyCareerUrl?: string)
   }); // end withPlaywright
 }
 
-async function scrapeMeta(linkedInId: string, careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
-  try {
-    const jobs = await scrapeMetaPlaywright(careersUrl, earlyCareerUrl);
-    if (jobs.length > 0) {
-      console.log(`[scraper] Meta: ${jobs.length} jobs via headless browser`);
-      return jobs;
+async function scrapeMeta(careersUrl: string, earlyCareerUrl?: string): Promise<Job[]> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const jobs = await scrapeMetaPlaywright(careersUrl, earlyCareerUrl);
+      if (jobs.length > 0) {
+        console.log(`[scraper] Meta: ${jobs.length} jobs via headless browser`);
+        return jobs;
+      }
+      if (attempt === 0) {
+        console.warn("[scraper] Meta headless returned 0 results — retrying in 5s");
+        await sleep(5_000);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (attempt === 0) {
+        console.warn(`[scraper] Meta Playwright failed (attempt 1): ${msg} — retrying in 5s`);
+        await sleep(5_000);
+      } else {
+        throw new Error(`Meta Playwright failed after 2 attempts: ${msg}`);
+      }
     }
-    console.warn("[scraper] Meta headless returned 0 results — using LinkedIn fallback");
-  } catch (err) {
-    console.warn(`[scraper] Meta scraper failed: ${err instanceof Error ? err.message : err} — using LinkedIn fallback`);
   }
-  console.log("[scraper] Meta: using LinkedIn fallback");
-  return scrapeLinkedIn("Meta", linkedInId, careersUrl);
+  throw new Error("Meta Playwright returned 0 results after 2 attempts");
 }
 
-// ── LinkedIn keyword scraper ──────────────────────────────────────────────────
-// Used for user-added companies where we don't have a LinkedIn company ID.
-// Searches "product manager {companyName}" and filters results by company name.
-
-export async function scrapeLinkedInByKeyword(
-  companyName: string,
-  careersUrl: string,
-): Promise<Job[]> {
-  const base = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search";
-  const jobs: Job[] = [];
-  const seen = new Set<string>();
-  const cutoff = getDateCutoff();
-  const nameLower = companyName.toLowerCase();
-
-  const params = new URLSearchParams({
-    keywords: `product manager ${companyName}`,
-    location: "United States",
-    start:    "0",
-    count:    "25",
-  });
-
-  const resp = await (fetch as any)(`${base}?${params}`, {
-    headers: { "User-Agent": LI_UA },
-    timeout: FETCH_TIMEOUT_MS,
-  });
-
-  if (resp.status === 429) throw new Error(`LinkedIn rate-limited for ${companyName}`);
-  if (!resp.ok) throw new Error(`LinkedIn keyword search (${companyName}): HTTP ${resp.status}`);
-
-  const html: string = await resp.text();
-  const $ = cheerio.load(html);
-
-  $(".base-search-card").each((_i, el) => {
-    const title   = $(el).find(".base-search-card__title").text().trim();
-    const company = $(el).find(".base-search-card__subtitle").text().trim();
-    const loc     = $(el).find(".job-search-card__location").text().trim();
-    const dt      = $(el).find("time").attr("datetime") ?? "";
-    const href    = $(el).find("a.base-card__full-link").attr("href") ?? "";
-
-    // Only keep results that actually belong to this company
-    if (!company.toLowerCase().includes(nameLower.split(/\s+/)[0])) return;
-
-    const cleanUrl = href.split("?")[0];
-    if (!cleanUrl || seen.has(cleanUrl)) return;
-    seen.add(cleanUrl);
-
-    if (!isPmRole(title)) return;
-    if (!isUsLocation(loc)) return;
-
-    const datePosted = dt ? dt.slice(0, 10) : "—";
-    if (datePosted !== "—" && datePosted < cutoff) return;
-
-    jobs.push({
-      id:          makeId(companyName, cleanUrl.replace(/[^a-z0-9]/gi, "-").slice(-30)),
-      company:     companyName,
-      title,
-      location:    loc,
-      workType:    workTypeFrom(loc),
-      datePosted,
-      applyUrl:    cleanUrl,
-      careersUrl,
-      earlyCareer: isEarlyCareer(title, ""),
-      description: "",
-      sourceLabel: "LinkedIn",
-    });
-  });
-
-  return jobs;
-}
-
-// ── Meta scraper ──────────────────────────────────────────────────────────────
 // ── Semaphore ─────────────────────────────────────────────────────────────────
 
 class Semaphore {
@@ -1035,39 +982,432 @@ export async function scrapeCompany(
   slug: string,
   name: string,
   careersUrl: string,
-  linkedInId?: string,
+  _legacyId?: string,     // kept for API compatibility — no longer used
   earlyCareerUrl?: string,
 ): Promise<Job[]> {
-  if (platform === "greenhouse") return scrapeGreenhouse(name, slug, careersUrl);
-  if (platform === "lever")      return scrapeLever(name, slug, careersUrl);
-  if (platform === "ashby")      return scrapeAshby(name, slug, careersUrl);
-  if (platform === "amazon")     return scrapeAmazon(careersUrl, earlyCareerUrl);
-  if (platform === "google")     return scrapeGoogle(linkedInId ?? "", careersUrl, earlyCareerUrl);
-  if (platform === "meta")       return scrapeMeta(linkedInId ?? "", careersUrl, earlyCareerUrl);
-  // "linkedin" — with or without company ID
-  if (linkedInId) return scrapeLinkedIn(name, linkedInId, careersUrl);
-  return scrapeLinkedInByKeyword(name, careersUrl);
+  if (platform === "greenhouse")       return scrapeGreenhouse(name, slug, careersUrl);
+  if (platform === "lever")            return scrapeLever(name, slug, careersUrl);
+  if (platform === "ashby")            return scrapeAshby(name, slug, careersUrl);
+  if (platform === "amazon")           return scrapeAmazon(careersUrl, earlyCareerUrl);
+  if (platform === "google")           return scrapeGoogle(careersUrl, earlyCareerUrl);
+  if (platform === "meta")             return scrapeMeta(careersUrl, earlyCareerUrl);
+  if (platform === "google-playwright") return scrapeGoogle(careersUrl, earlyCareerUrl);
+  if (platform === "meta-playwright")   return scrapeMeta(careersUrl, earlyCareerUrl);
+  throw new Error(
+    `Unsupported ATS platform: "${platform}". ` +
+    `Supported values: greenhouse, lever, ashby, amazon, google, meta, ` +
+    `google-playwright, meta-playwright, custom-playwright. ` +
+    `Add this company to config/targets.json with a supported ats value.`,
+  );
+}
+
+/**
+ * Dispatch a scrape for a single company using its CompanyConfig.
+ * Used by the orchestrator's two-pool executor (src/orchestrator/pools.ts).
+ * Throws on any error — the caller is responsible for retry and timeout wrapping.
+ */
+export async function scrapeCompanyByConfig(company: CompanyConfig): Promise<Job[]> {
+  if (company.ats === "greenhouse")        return scrapeGreenhouse(company.name, company.slug!, company.careersUrl);
+  if (company.ats === "lever")             return scrapeLever(company.name, company.slug!, company.careersUrl);
+  if (company.ats === "ashby")             return scrapeAshby(company.name, company.slug!, company.careersUrl);
+  if (company.ats === "workday")           return scrapeWorkdayCompany(company);
+  if (company.ats === "smartrecruiters")   return scrapeSmartRecruitersCompany(company);
+  if (company.ats === "workable")          return scrapeApiCompany(company, workableScraper, "workable");
+  if (company.ats === "bamboohr")          return scrapeApiCompany(company, bambooHRScraper, "bamboohr");
+  if (company.ats === "amazon")            return scrapeAmazon(company.careersUrl, company.earlyCareerUrl);
+  if (company.ats === "google-playwright") return scrapeGoogle(company.careersUrl, company.earlyCareerUrl);
+  if (company.ats === "meta-playwright")   return scrapeMeta(company.careersUrl, company.earlyCareerUrl);
+  if (company.ats === "custom-playwright") return scrapeCustomPlaywright(company);
+  throw new Error(`Unsupported ATS platform: "${company.ats}"`);
+}
+
+async function scrapeWorkdayCompany(company: CompanyConfig): Promise<Job[]> {
+  const routingFile = loadRoutingConfig();
+  const routing = resolveRouting(company.slug ?? "", routingFile);
+  if (!routing?.host) {
+    throw new Error(
+      `Workday: missing host/tenant/site in ats_routing.json for "${company.name}" ` +
+      `(slug: ${company.slug})`,
+    );
+  }
+
+  const result = await workdayScraper.scrape(
+    {
+      id:         company.id,
+      slug:       company.slug ?? "",
+      name:       company.name,
+      careers_url: company.careersUrl,
+    },
+    routing,
+    { timeoutMs: 25_000 },
+  );
+
+  const cutoff = getDateCutoff();
+  const roles  = company.roles ?? [];
+  const jobs: Job[] = [];
+
+  for (const j of result.jobs) {
+    if (!isPmRoleForConfig(j.title, roles)) continue;
+    if (!isUsLocation(j.location_raw)) continue;
+    const datePosted = j.posted_date ?? "—";
+    if (datePosted !== "—" && datePosted < cutoff) continue;
+
+    jobs.push({
+      id:          makeId(company.name, j.role_url),
+      company:     company.name,
+      title:       j.title,
+      location:    j.location_raw,
+      workType:    workTypeFrom(j.location_raw),
+      datePosted,
+      applyUrl:    j.role_url,
+      careersUrl:  company.careersUrl,
+      earlyCareer: isEarlyCareer(j.title, ""),
+      description: j.description ?? "",
+    });
+  }
+
+  return jobs;
+}
+
+// ── SmartRecruiters adapter ───────────────────────────────────────────────────
+
+async function scrapeSmartRecruitersCompany(company: CompanyConfig): Promise<Job[]> {
+  const routingFile = loadRoutingConfig();
+  const routing = resolveRouting(company.slug ?? "", routingFile);
+
+  const result = await smartRecruitersScraper.scrape(
+    {
+      id:          company.id,
+      slug:        company.slug ?? "",
+      name:        company.name,
+      careers_url: company.careersUrl,
+    },
+    routing ?? { ats: "smartrecruiters", slug: company.slug ?? "" },
+    { timeoutMs: 15_000 },
+  );
+
+  const cutoff = getDateCutoff();
+  const roles  = company.roles ?? [];
+  const jobs: Job[] = [];
+
+  for (const j of result.jobs) {
+    if (!isPmRoleForConfig(j.title, roles)) continue;
+    if (!isUsLocation(j.location_raw)) continue;
+    const datePosted = j.posted_date ?? "—";
+    if (datePosted !== "—" && datePosted < cutoff) continue;
+
+    jobs.push({
+      id:          makeId(company.name, j.role_url),
+      company:     company.name,
+      title:       j.title,
+      location:    j.location_raw,
+      workType:    workTypeFrom(j.location_raw),
+      datePosted,
+      applyUrl:    j.role_url,
+      careersUrl:  company.careersUrl,
+      earlyCareer: isEarlyCareer(j.title, j.description ?? ""),
+      description: j.description ?? "",
+    });
+  }
+
+  return jobs;
+}
+
+// ── Generic API scraper adapter ───────────────────────────────────────────────
+
+async function scrapeApiCompany(
+  company: CompanyConfig,
+  scraper: import("./scrapers/types").Scraper,
+  atsName: string,
+): Promise<Job[]> {
+  const routingFile = loadRoutingConfig();
+  const routing = resolveRouting(company.slug ?? "", routingFile);
+
+  const result = await scraper.scrape(
+    {
+      id:          company.id,
+      slug:        company.slug ?? "",
+      name:        company.name,
+      careers_url: company.careersUrl,
+    },
+    routing ?? { ats: atsName, slug: company.slug ?? "" },
+    { timeoutMs: 15_000 },
+  );
+
+  const cutoff = getDateCutoff();
+  const roles  = company.roles ?? [];
+  const jobs: Job[] = [];
+
+  for (const j of result.jobs) {
+    if (!isPmRoleForConfig(j.title, roles)) continue;
+    if (!isUsLocation(j.location_raw)) continue;
+    const datePosted = j.posted_date ?? "—";
+    if (datePosted !== "—" && datePosted < cutoff) continue;
+
+    jobs.push({
+      id:          makeId(company.name, j.role_url),
+      company:     company.name,
+      title:       j.title,
+      location:    j.location_raw,
+      workType:    workTypeFrom(j.location_raw),
+      datePosted,
+      applyUrl:    j.role_url,
+      careersUrl:  company.careersUrl,
+      earlyCareer: isEarlyCareer(j.title, j.description ?? ""),
+      description: j.description ?? "",
+    });
+  }
+
+  return jobs;
+}
+
+// ── Custom Playwright adapter ─────────────────────────────────────────────────
+// Generic scraper for companies with bespoke careers pages (ats: "custom-playwright").
+// See docs/custom-playwright-adapter.md for the full selector contract.
+
+async function scrapeCustomPlaywright(
+  company: CompanyConfig,
+): Promise<Job[]> {
+  const { selectors, careersUrl, name, roles } = company;
+  if (!selectors) {
+    // Company has no routing entry and couldn't be auto-detected. Throw a
+    // structured error so it shows up in run stats as "error" rather than
+    // being silently dropped. Run scripts/discoverATS.js --batch to fix.
+    throw new Error(
+      `${name}: ATS not yet discovered — run scripts/discoverATS.js --batch ` +
+      `to detect the correct ATS platform, then re-run the scan.`,
+    );
+  }
+
+  const timeoutMs = selectors.timeoutMs ?? 20_000;
+
+  return withPlaywright(async () => {
+    const browser = await launchChromium();
+    try {
+      const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
+      const page    = await context.newPage();
+
+      await page.goto(careersUrl, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+
+      if (selectors.scrollToLoad) {
+        for (let i = 0; i < 3; i++) {
+          await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+          await page.waitForTimeout(1_500);
+        }
+      }
+
+      const waitSel = selectors.waitForSelector ?? selectors.jobCard;
+      await page.waitForSelector(waitSel, { timeout: timeoutMs });
+
+      type RawCard = { title: string; location: string; applyHref: string; postedDate: string };
+
+      const cards: RawCard[] = await page.evaluate(
+        (opts: { jobCard: string; title: string; location?: string; applyUrl: string; postedDate?: string; postedDateAttr?: string; careersOrigin: string }) => {
+          const results: RawCard[] = [];
+          document.querySelectorAll(opts.jobCard).forEach((el) => {
+            const title    = el.querySelector(opts.title)?.textContent?.trim() ?? "";
+            const location = opts.location ? el.querySelector(opts.location)?.textContent?.trim() ?? "" : "";
+            const applyEl  = el.querySelector(opts.applyUrl) as HTMLAnchorElement | null;
+            const rawHref  = applyEl?.href ?? applyEl?.getAttribute("href") ?? "";
+            const applyHref = rawHref.startsWith("http") ? rawHref : opts.careersOrigin + rawHref;
+            let postedDate = "";
+            if (opts.postedDate) {
+              const dateEl = el.querySelector(opts.postedDate);
+              postedDate = opts.postedDateAttr
+                ? dateEl?.getAttribute(opts.postedDateAttr) ?? ""
+                : dateEl?.textContent?.trim() ?? "";
+            }
+            if (title && applyHref) results.push({ title, location, applyHref, postedDate });
+          });
+          return results;
+        },
+        {
+          jobCard:       selectors.jobCard,
+          title:         selectors.title,
+          location:      selectors.location,
+          applyUrl:      selectors.applyUrl,
+          postedDate:    selectors.postedDate,
+          postedDateAttr: selectors.postedDateAttr,
+          careersOrigin: new URL(careersUrl).origin,
+        },
+      );
+
+      const cutoff = getDateCutoff();
+      const jobs: Job[] = [];
+
+      for (const c of cards) {
+        if (!isPmRoleForConfig(c.title, roles)) continue;
+        if (!isUsLocation(c.location)) continue;
+
+        // Normalise date: ISO attr is fine; text content may need parsing
+        let datePosted = "—";
+        if (c.postedDate) {
+          const d = new Date(c.postedDate);
+          if (!isNaN(d.getTime())) datePosted = d.toISOString().slice(0, 10);
+        }
+        if (datePosted !== "—" && datePosted < cutoff) continue;
+
+        jobs.push({
+          id:          makeId(name, c.applyHref.replace(/[^a-z0-9]/gi, "-").slice(-30)),
+          company:     name,
+          title:       c.title,
+          location:    c.location,
+          workType:    workTypeFrom(c.location),
+          datePosted,
+          applyUrl:    c.applyHref,
+          careersUrl,
+          earlyCareer: isEarlyCareer(c.title, ""),
+          description: "",
+          sourceLabel: "custom",
+        });
+      }
+
+      return jobs;
+    } finally {
+      await browser.close();
+    }
+  });
+}
+
+// ── Config-driven scrape ──────────────────────────────────────────────────────
+// Used by the scheduler (runScanOnce). Reads targets.json instead of the
+// hardcoded allCompanies() list. Falls back to allCompanies() if no config.
+
+export interface ScrapeProgress {
+  done:        number;
+  company:     string;
+  errors:      number;
+  errorDetail?: { name: string; reason: string; careersUrl: string };
+}
+
+export async function scrapeFromConfig(
+  config: TargetsConfig,
+  onProgress?: (p: ScrapeProgress) => void,
+): Promise<Job[]> {
+  const enabled  = config.companies.filter((c) => c.enabled);
+  const allJobs: Job[]  = [];
+  let done   = 0;
+  let errors = 0;
+
+  const sem = new Semaphore(8);
+
+  await Promise.all(
+    enabled.map(async (company) => {
+      await sem.acquire();
+      try {
+        let jobs: Job[];
+
+        if (company.ats === "greenhouse") {
+          jobs = await scrapeGreenhouse(company.name, company.slug!, company.careersUrl);
+        } else if (company.ats === "lever") {
+          jobs = await scrapeLever(company.name, company.slug!, company.careersUrl);
+        } else if (company.ats === "ashby") {
+          jobs = await scrapeAshby(company.name, company.slug!, company.careersUrl);
+        } else if (company.ats === "amazon") {
+          jobs = await scrapeAmazon(company.careersUrl, company.earlyCareerUrl);
+        } else if (company.ats === "google-playwright") {
+          jobs = await scrapeGoogle(company.careersUrl, company.earlyCareerUrl);
+        } else if (company.ats === "meta-playwright") {
+          jobs = await scrapeMeta(company.careersUrl, company.earlyCareerUrl);
+        } else if (company.ats === "custom-playwright") {
+          jobs = await scrapeCustomPlaywright(company);
+        } else {
+          throw new Error(`Unsupported ats value: "${company.ats}"`);
+        }
+
+        // Apply per-company role filter on top of the standard PM filter
+        const filtered = jobs.filter((j) => isPmRoleForConfig(j.title, company.roles));
+
+        // Stamp tier if present in targets config (future extension point)
+        allJobs.push(...filtered);
+
+        if (filtered.length > 0) {
+          console.log(`[scraper] ${company.name}: ${filtered.length} PM role(s)`);
+        }
+      } catch (err) {
+        errors++;
+        const reason = err instanceof Error ? err.message : String(err);
+        console.error(`[scraper] ${company.name}: ${reason}`);
+        onProgress?.({ done, company: company.name, errors, errorDetail: { name: company.name, reason, careersUrl: company.careersUrl } });
+      } finally {
+        done++;
+        onProgress?.({ done, company: company.name, errors });
+        sem.release();
+      }
+    }),
+  );
+
+  // Deduplicate: same company + title → keep longer location string
+  const seen = new Map<string, Job>();
+  for (const job of allJobs) {
+    const key      = `${job.company.toLowerCase()}::${job.title.toLowerCase()}`;
+    const existing = seen.get(key);
+    if (!existing || job.location.length > existing.location.length) seen.set(key, job);
+  }
+
+  return [...seen.values()];
 }
 
 // ── Main entry ────────────────────────────────────────────────────────────────
 
 export async function scrapeAll(): Promise<void> {
+  // If a targets config is present, delegate to the config-driven path so
+  // the web UI scan and the scheduled scan share the same company list.
+  const config = (() => {
+    try { return loadTargetsConfig(); } catch (err) {
+      console.error("[scraper] Failed to load targets config — falling back to hardcoded list.");
+      console.error(err instanceof Error ? err.message : err);
+      return null;
+    }
+  })();
+
+  if (config) {
+    const enabled = config.companies.filter((c) => c.enabled);
+    appState.status = {
+      state: "scanning", progress: 0, total: enabled.length,
+      currentCompany: "", currentPool: "", completedAt: "", jobCount: 0, errors: 0,
+      companyErrors: [], companiesScanned: 0, companiesFailed: 0, listingsFound: 0,
+      runStartedAt: new Date().toISOString(),
+      scoreProgress: 0, scoreTotal: 0, scoreLabel: "", scoreCurrent: "",
+    };
+    appState.jobs = [];
+    const allJobs = await scrapeFromConfig(config, (p) => {
+      appState.status.progress       = p.done;
+      appState.status.currentCompany = p.company;
+      appState.status.errors         = p.errors;
+      if (p.errorDetail) appState.status.companyErrors.push(p.errorDetail);
+    });
+    appState.jobs = applyJobDiff(allJobs);
+    appState.status.jobCount    = appState.jobs.length;
+    appState.status.state       = "done";
+    appState.status.completedAt = new Date().toUTCString();
+    appState.status.currentCompany = "";
+    saveJobs(appState.jobs);
+    console.log(`[scraper] Done (config-driven). ${appState.jobs.length} jobs.`);
+    return;
+  }
+
   const companies = allCompanies();
   const total = companies.length;
 
   appState.status = {
-    state:         "scanning",
-    progress:      0,
+    state:            "scanning",
+    progress:         0,
     total,
-    currentCompany: "",
-    completedAt:   "",
-    jobCount:      0,
-    errors:        0,
-    companyErrors: [],
-    scoreProgress: 0,
-    scoreTotal:    0,
-    scoreLabel:    "",
-    scoreCurrent:  "",
+    currentCompany:   "",
+    currentPool:      "",
+    completedAt:      "",
+    jobCount:         0,
+    errors:           0,
+    companyErrors:    [],
+    companiesScanned: 0,
+    companiesFailed:  0,
+    listingsFound:    0,
+    runStartedAt:     new Date().toISOString(),
+    scoreProgress:    0,
+    scoreTotal:       0,
+    scoreLabel:       "",
+    scoreCurrent:     "",
   };
   appState.jobs = [];
 
@@ -1089,22 +1429,21 @@ export async function scrapeAll(): Promise<void> {
         } else if (company.platform === "amazon") {
           jobs = await scrapeAmazon(company.careersUrl, company.earlyCareerUrl);
         } else if (company.platform === "google") {
-          if (!company.linkedInId) throw new Error("Google: no LinkedIn ID configured");
-          jobs = await scrapeGoogle(company.linkedInId, company.careersUrl, company.earlyCareerUrl);
+          jobs = await scrapeGoogle(company.careersUrl, company.earlyCareerUrl);
         } else if (company.platform === "meta") {
-          if (!company.linkedInId) throw new Error("Meta: no LinkedIn ID configured");
-          jobs = await scrapeMeta(company.linkedInId, company.careersUrl, company.earlyCareerUrl);
+          jobs = await scrapeMeta(company.careersUrl, company.earlyCareerUrl);
         } else {
-          // platform === "linkedin" — Workday/custom ATS companies
-          if (company.linkedInId) {
-            // Known company ID: precise company-filtered search
-            jobs = await scrapeLinkedIn(company.name, company.linkedInId, company.careersUrl);
-          } else {
-            // User-added company: keyword search fallback
-            jobs = await scrapeLinkedInByKeyword(company.name, company.careersUrl);
-          }
+          // platform === "unsupported" — previously used third-party aggregator
+          throw new Error(
+            `${company.name} uses an unsupported ATS. ` +
+            `Add it to config/targets.json with ats: "custom-playwright" to re-enable.`,
+          );
         }
 
+        // Stamp tier so the frontend can filter/sort by target list
+        if (company.tier) {
+          jobs.forEach((j) => { j.tier = company.tier; });
+        }
         appState.jobs.push(...jobs);
         appState.status.jobCount = appState.jobs.length;
         if (jobs.length > 0) {
@@ -1139,6 +1478,7 @@ export async function scrapeAll(): Promise<void> {
   appState.status.state        = "done";
   appState.status.completedAt  = new Date().toUTCString();
   appState.status.currentCompany = "";
+  saveJobs(appState.jobs);
   console.log(
     `[scraper] Done. ${appState.jobs.length} unique jobs found across ` +
     `${total - appState.status.errors}/${total} companies ` +

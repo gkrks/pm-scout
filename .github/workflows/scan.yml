@@ -1,0 +1,101 @@
+name: Hourly Job Scan
+
+on:
+  schedule:
+    # Run at the top of every hour, every day.
+    # The runtime blackout guard in scripts/runScan.js exits cleanly during
+    # 17:00–04:59 America/Los_Angeles. Cron is UTC-only and cannot express a
+    # Pacific-local window across DST, so the guard lives in code.
+    - cron: "0 * * * *"
+
+  workflow_dispatch:
+    inputs:
+      ignore_blackout:
+        description: "Run even if currently in the blackout window (5 PM–5 AM Pacific)"
+        type: boolean
+        default: false
+      pool:
+        description: "Which scraper pool to run"
+        type: choice
+        options: [all, api, playwright]
+        default: all
+
+# If a run is in-flight when the next hour fires, queue — don't kill.
+# Killing mid-run leaves parser_runs.status = 'running' orphans in Supabase.
+concurrency:
+  group: hourly-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12   # hard kill if a run somehow exceeds budget
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run scanner
+        run: npx ts-node scripts/runScan.ts
+        env:
+          # Scheduling controls
+          IGNORE_BLACKOUT:     ${{ github.event.inputs.ignore_blackout || 'false' }}
+          SCAN_POOL:           ${{ github.event.inputs.pool || 'all' }}
+          BLACKOUT_TIMEZONE:   America/Los_Angeles
+          BLACKOUT_START_HOUR: '17'
+          BLACKOUT_END_HOUR:   '5'
+          # Display
+          DISPLAY_TIMEZONE:    America/Los_Angeles
+          # Persistence
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Notifications — all enabled in CI
+          NOTIFY_TELEGRAM_DIGEST:  'true'
+          NOTIFY_TELEGRAM_HEALTH:  'true'
+          NOTIFY_EMAIL_DIGEST:     'true'
+          TELEGRAM_BOT_TOKEN:       ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_DIGEST_CHAT_ID:  ${{ secrets.TELEGRAM_DIGEST_CHAT_ID }}
+          TELEGRAM_HEALTH_CHAT_ID:  ${{ secrets.TELEGRAM_HEALTH_CHAT_ID }}
+          SMTP_HOST:  smtp.gmail.com
+          SMTP_PORT:  '465'
+          SMTP_USER:  ${{ secrets.SMTP_USER }}
+          SMTP_PASS:  ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+          # Run identity
+          RUN_TRIGGER: ${{ github.event_name }}
+          RUN_ID_GH:   ${{ github.run_id }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-logs-${{ github.run_id }}
+          path: |
+            data/pending-supabase.json
+          retention-days: 7
+          if-no-files-found: ignore
