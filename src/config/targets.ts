@@ -38,15 +38,19 @@ export type AtsValue = typeof ATS_VALUES[number];
 
 export const CompanyConfigSchema = z.object({
   /** Deterministic UUID from the external targets JSON (uuidv5 from slug). */
-  id:             z.string().optional(),
-  name:           z.string().min(1),
-  ats:            z.enum(ATS_VALUES),
-  slug:           z.string().nullable(),
-  careersUrl:     z.string().url(),
-  roles:          z.array(z.string()).default([]),
-  enabled:        z.boolean().default(true),
-  earlyCareerUrl: z.string().url().optional(),
-  selectors:      SelectorsSchema.optional(),
+  id:                 z.string().optional(),
+  name:               z.string().min(1),
+  ats:                z.enum(ATS_VALUES),
+  slug:               z.string().nullable(),
+  careersUrl:         z.string().url(),
+  roles:              z.array(z.string()).default([]),
+  enabled:            z.boolean().default(true),
+  earlyCareerUrl:     z.string().url().optional(),
+  selectors:          SelectorsSchema.optional(),
+  // APM program metadata — used for apm_signal detection (Bug Fix 15)
+  has_apm_program:    z.boolean().optional(),
+  apm_program_name:   z.string().nullable().optional(),
+  apm_program_status: z.string().nullable().optional(),
 }).refine(
   (c) => c.ats !== "custom-playwright" || c.selectors !== undefined,
   { message: "selectors is required when ats is 'custom-playwright'" },
@@ -322,13 +326,17 @@ function adaptExternalConfig(
     const atsSlug = routingEntry?.slug ?? c.slug;
 
     const entry: CompanyConfig = {
-      id:         c.uuid,           // preserve UUID for Supabase FK lookups
-      name:       c.name,
-      ats:        effectiveAts,
-      slug:       atsSlug,
-      careersUrl: c.careers_url,
+      id:                 c.uuid,           // preserve UUID for Supabase FK lookups
+      name:               c.name,
+      ats:                effectiveAts,
+      slug:               atsSlug,
+      careersUrl:         c.careers_url,
       roles,
-      enabled:    true,
+      enabled:            true,
+      // Preserve APM program metadata for apm_signal detection (Bug Fix 15)
+      has_apm_program:    c.has_apm_program,
+      apm_program_name:   c.apm_program_name,
+      apm_program_status: c.apm_program_status,
     };
 
     // Use program_url as earlyCareerUrl if it looks like a real URL

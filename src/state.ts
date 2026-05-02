@@ -30,6 +30,7 @@ export interface Job {
 
   tier?: "T0" | "T1" | "T2" | "T3" | "T3R"; // Company's target-list tier (legacy)
   pmTier?: 1 | 2 | 3;                         // PM job tier (1=apply today, 2=this week, 3=review)
+  apmSignal?: "priority_apm" | "apm_company" | "none"; // APM priority lane (Bug Fix 15)
   category?: string;                           // Company category from JSON (e.g. "AI Labs")
   domainTags?: string[];                       // e.g. ["ai", "fintech"]
   sponsorshipOffered?: boolean | null;         // true=yes, false=no, null=unclear

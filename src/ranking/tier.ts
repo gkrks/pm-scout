@@ -34,10 +34,12 @@
 
 import type { Company } from "../scrapers/types";
 import type { JobEnrichment, FilterConfig } from "../filters/types";
+import { detectApmSignal, type ApmSignal } from "./apmSignal";
 
 export interface TierResult {
   tier: 1 | 2 | 3;
   domainBoosted: boolean;
+  apmSignal: ApmSignal;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,19 +96,37 @@ export function computeTier(
   const isRemoteUs   = e.is_remote && e.location_city === null;
   const domainBoosted = isDomainBoosted(company, filterConfig.preferred_domains);
 
-  // ── Tier 1 base ──────────────────────────────────────────────────────────
+  // Compute APM signal once — used for both tier assignment and the return value.
+  const apmSignal = detectApmSignal({
+    title,
+    description: null,   // description not available at tier-compute time in the pipeline
+    company,
+  });
+
+  // ── Priority APM: always tier 1 — the user's highest-priority target ─────
+  if (apmSignal === "priority_apm") {
+    return { tier: 1, domainBoosted, apmSignal };
+  }
+
+  // ── APM company + junior signals: tier 1 ─────────────────────────────────
+  if (apmSignal === "apm_company" && (e.is_new_grad_language || (e.yoe_max !== null && e.yoe_max <= 2))) {
+    return { tier: 1, domainBoosted, apmSignal };
+  }
+
+  // ── Tier 1 base (non-APM path) ───────────────────────────────────────────
   const tier1Base =
     e.posted_within_7_days && yoeOkForTier1(e) && locationInCity;
 
-  // ── Tier 1 boost: APM title + active APM program ─────────────────────────
-  const apmTitle     = APM_TITLE_RE.test(title.trim());
-  const activeProgram =
-    (company.has_apm_program ?? false) &&
-    company.apm_program_status === "active";
-  const tier1Boost = apmTitle && activeProgram;
+  if (tier1Base) {
+    return { tier: 1, domainBoosted, apmSignal };
+  }
 
-  if (tier1Base || tier1Boost) {
-    return { tier: 1, domainBoosted };
+  // ── APM company: at least tier 2, even if other signals are weak ─────────
+  if (apmSignal === "apm_company") {
+    if (e.posted_within_30_days && e.yoe_max !== null && e.yoe_max <= 3) {
+      return { tier: 2, domainBoosted, apmSignal };
+    }
+    return { tier: 3, domainBoosted, apmSignal };
   }
 
   // ── Tier 2 ───────────────────────────────────────────────────────────────
@@ -117,10 +137,9 @@ export function computeTier(
     (locationInCity || isRemoteUs || e.is_hybrid);
 
   if (tier2) {
-    return { tier: 2, domainBoosted };
+    return { tier: 2, domainBoosted, apmSignal };
   }
 
   // ── Tier 3 — review when convenient ──────────────────────────────────────
-  // All jobs that passed the filters but don't meet Tier 1 or Tier 2 criteria.
-  return { tier: 3, domainBoosted };
+  return { tier: 3, domainBoosted, apmSignal };
 }

@@ -85,7 +85,7 @@ async function fetchAmazonPass(
 
       jobs.push({
         title:        j.title,
-        role_url:     `https://www.amazon.jobs${j.job_path}`,
+        role_url:     `https://www.amazon.jobs${j.job_path}`, // Public apply URL — see Bug Fix 13c.
         location_raw: loc,
         posted_date:  parseAmazonDate(j.posted_date),
         description:  desc,

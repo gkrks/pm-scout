@@ -19,7 +19,7 @@
 import * as nodemailer from "nodemailer";
 import type { Job } from "../state";
 import type { RunStats } from "./telegram";
-import { fmtDuration } from "./digest";
+import { fmtDuration, newestFirst, isPostedToday } from "./digest";
 import {
   loadCompanyMetaMap,
   type CompanyMetaMap,
@@ -32,7 +32,7 @@ import {
 
 // ── Subject ───────────────────────────────────────────────────────────────────
 
-function formatSubject(count: number, runStartedAt: Date): string {
+function formatSubject(newJobs: Job[], runStartedAt: Date): string {
   const tz      = process.env.DISPLAY_TIMEZONE || "America/Los_Angeles";
   const dateFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: tz, month: "long", day: "numeric", year: "numeric",
@@ -40,8 +40,14 @@ function formatSubject(count: number, runStartedAt: Date): string {
   const timeFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: tz, hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
   });
-  const noun = count === 1 ? "new job found" : "new jobs found";
-  return `[New PM/APM Roles] ${count} ${noun} — ${dateFmt.format(runStartedAt)} · ${timeFmt.format(runStartedAt)}`;
+  const count        = newJobs.length;
+  const priorityApm  = newJobs.filter((j) => j.apmSignal === "priority_apm").length;
+  const noun         = count === 1 ? "new job found" : "new jobs found";
+  let subject        = `[New PM/APM Roles] ${count} ${noun}`;
+  if (priorityApm > 0) {
+    subject += ` · 🎯 ${priorityApm} APM Program${priorityApm === 1 ? "" : "s"}`;
+  }
+  return `${subject} — ${dateFmt.format(runStartedAt)} · ${timeFmt.format(runStartedAt)}`;
 }
 
 // ── Per-job tier helper ───────────────────────────────────────────────────────
@@ -62,9 +68,24 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
     hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
   });
 
-  const tier1 = newJobs.filter((j) => jobPmTier(j) === 1);
-  const tier2 = newJobs.filter((j) => jobPmTier(j) === 2);
-  const tier3 = newJobs.filter((j) => jobPmTier(j) === 3);
+  // Sort: APM priority first, then tier, then newest-first (Bug Fix 14/15).
+  const sorted = [...newJobs].sort((a, b) => {
+    const apmOrder = (s: string | undefined) =>
+      s === "priority_apm" ? 0 : s === "apm_company" ? 1 : 2;
+    const apmDiff = apmOrder(a.apmSignal) - apmOrder(b.apmSignal);
+    if (apmDiff !== 0) return apmDiff;
+    const tierDiff = jobPmTier(a) - jobPmTier(b);
+    if (tierDiff !== 0) return tierDiff;
+    return newestFirst(a, b);
+  });
+
+  // APM-signal buckets (Bug Fix 15e)
+  const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
+  const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
+  const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
+  const tier1 = standard.filter((j) => jobPmTier(j) === 1);
+  const tier2 = standard.filter((j) => jobPmTier(j) === 2);
+  const tier3 = standard.filter((j) => jobPmTier(j) === 3);
 
   const duration  = fmtDuration(stats.startedAt, stats.completedAt);
   const runLine   = `${runFmt.format(now)} · ${stats.companiesScanned} companies scanned · ${stats.errors} error${stats.errors === 1 ? "" : "s"} · ${duration}`;
@@ -96,10 +117,11 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
       companyType ? `· ${companyType}` : "",
     ].filter(Boolean).join(" ");
 
+    const newBadge = isPostedToday(j.datePosted) ? `<span style="background:#22c55e;color:white;font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;vertical-align:middle;">NEW</span>` : "";
     return `
 <div style="border-left:4px solid ${accentColor};padding:12px 16px;margin:12px 0;background:#f9fafb;border-radius:0 6px 6px 0;">
   <div style="font-size:16px;font-weight:600;margin-bottom:4px;line-height:1.3;">
-    <a href="${j.applyUrl}" style="color:#1f2937;text-decoration:none;">${esc(j.title)}</a>
+    ${newBadge}<a href="${j.applyUrl}" style="color:#1f2937;text-decoration:none;">${esc(j.title)}</a>
   </div>
   <div style="color:#6b7280;font-size:13px;margin-bottom:10px;">${esc(subtitle)}</div>
   <table style="font-size:13px;color:#374151;border-collapse:collapse;">${rows.join("")}</table>
@@ -127,9 +149,11 @@ ${jobs.map((j) => card(j, accentColor)).join("")}`;
     ${newJobs.length} new PM/APM role${newJobs.length === 1 ? "" : "s"} found
   </h2>
   <p style="color:#6b7280;margin:0 0 24px 0;font-size:13px;">${esc(runLine)}</p>
-  ${section(tier1, "🥇 Apply today",              "#22c55e")}
-  ${section(tier2, "🥈 Apply this week",           "#3b82f6")}
-  ${section(tier3, "🥉 Review when convenient",    "#9ca3af")}
+  ${section(priorityApm, "🎯 APM Programs — your highest-priority targets", "#7c3aed")}
+  ${section(apmCompany,  "⭐ APM Companies — these companies run APM programs", "#0891b2")}
+  ${section(tier1, "🥇 Apply today — newest first",              "#22c55e")}
+  ${section(tier2, "🥈 Apply this week — newest first",           "#3b82f6")}
+  ${section(tier3, "🥉 Review when convenient — newest first",    "#9ca3af")}
   <hr style="margin-top:32px;border:none;border-top:1px solid #e5e7eb;">
   <p style="color:#6b7280;font-size:12px;margin-top:8px;">
     Configured to scan companies hourly.
@@ -145,15 +169,25 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
   const map    = metaMap ?? new Map();
   const now    = stats.completedAt;
   const tz     = process.env.DISPLAY_TIMEZONE || "America/Los_Angeles";
-  const subj   = formatSubject(newJobs.length, stats.startedAt);
+  const subj   = formatSubject(newJobs, stats.startedAt);
   const runFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: tz, month: "long", day: "numeric", year: "numeric",
     hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
   });
 
-  const tier1 = newJobs.filter((j) => jobPmTier(j) === 1);
-  const tier2 = newJobs.filter((j) => jobPmTier(j) === 2);
-  const tier3 = newJobs.filter((j) => jobPmTier(j) === 3);
+  const sorted = [...newJobs].sort((a, b) => {
+    const apmOrder = (s: string | undefined) =>
+      s === "priority_apm" ? 0 : s === "apm_company" ? 1 : 2;
+    const apmDiff = apmOrder(a.apmSignal) - apmOrder(b.apmSignal);
+    if (apmDiff !== 0) return apmDiff;
+    return newestFirst(a, b);
+  });
+  const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
+  const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
+  const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
+  const tier1 = standard.filter((j) => jobPmTier(j) === 1);
+  const tier2 = standard.filter((j) => jobPmTier(j) === 2);
+  const tier3 = standard.filter((j) => jobPmTier(j) === 3);
 
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
   const runLine  = `Run: ${runFmt.format(now)} · ${stats.companiesScanned} companies · ${stats.errors} errors · ${duration}`;
@@ -188,6 +222,8 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     }
   }
 
+  appendSection(priorityApm, "APM Programs — your highest-priority targets");
+  appendSection(apmCompany,  "APM Companies — these companies run APM programs");
   appendSection(tier1, "Apply today");
   appendSection(tier2, "Apply this week");
   appendSection(tier3, "Review when convenient");
@@ -226,7 +262,7 @@ export async function sendEmailDigest(newJobs: Job[], stats: RunStats): Promise<
   }
 
   const metaMap = loadCompanyMetaMap();
-  const subject = formatSubject(newJobs.length, stats.startedAt);
+  const subject = formatSubject(newJobs, stats.startedAt);
 
   const transport = nodemailer.createTransport({
     host,

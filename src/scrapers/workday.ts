@@ -197,6 +197,7 @@ export const workdayScraper: Scraper = {
           ?? j.externalPath?.split("/").pop()
           ?? "";
 
+        // Public apply URL — see Bug Fix 13c. Constructed from externalPath (relative).
         const role_url = j.externalPath
           ? `https://${host}${j.externalPath}`
           : company.careers_url;

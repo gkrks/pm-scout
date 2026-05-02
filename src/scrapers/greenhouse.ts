@@ -53,7 +53,7 @@ export const greenhouseScraper: Scraper = {
 
     const jobs: RawJob[] = raw.map((j): RawJob => ({
       title:        j.title,
-      role_url:     j.absolute_url,
+      role_url:     j.absolute_url, // Public apply URL — see Bug Fix 13c. NOT internal_url.
       location_raw: j.location?.name ?? "",
       // Prefer first_published (exact post date); fall back to updated_at
       posted_date: (j.first_published ?? j.updated_at ?? "").slice(0, 10) || null,

@@ -60,7 +60,7 @@ export const leverScraper: Scraper = {
 
       return {
         title:        j.text,
-        role_url:     j.hostedUrl,
+        role_url:     j.hostedUrl, // Public apply URL — see Bug Fix 13c. NOT applyUrl (deeplink to form).
         location_raw: j.categories?.location ?? "",
         posted_date:  j.createdAt
           ? new Date(j.createdAt).toISOString().slice(0, 10)

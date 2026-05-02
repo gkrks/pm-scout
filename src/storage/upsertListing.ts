@@ -24,6 +24,8 @@ export interface ListingToUpsert {
   company: Required<Pick<Company, "id">> & Company;
   enrichment: JobEnrichment;
   tier: 1 | 2 | 3;
+  /** APM priority signal — written to the apm_signal column (Bug Fix 15) */
+  apm_signal?: "priority_apm" | "apm_company" | "none";
 }
 
 export type SeenState = "new" | "existing" | "reactivated";
@@ -79,8 +81,21 @@ export async function upsertCompanyListings(
     ]),
   );
 
-  // 2. Build the row objects for the upsert.
-  const rows = listings.map((item) => buildRow(item));
+  // 2. Validate and build rows — skip listings with unusable apply URLs.
+  const validListings = listings.filter((item) => {
+    if (!isValidApplyUrl(item.job.role_url)) {
+      console.warn(
+        `[upsertListing] Invalid apply URL skipped — company=${item.company.slug} ` +
+        `title="${item.job.title}" url=${item.job.role_url}`,
+      );
+      return false;
+    }
+    return true;
+  });
+
+  if (validListings.length === 0) return [];
+
+  const rows = validListings.map((item) => buildRow(item));
 
   // 3. Upsert in batches of BATCH_SIZE, with limited concurrency.
   const allUpserted: Array<{ id: string; role_url: string }> = [];
@@ -144,6 +159,26 @@ export async function upsertCompanyListings(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Reject URLs that would produce a broken apply link in the email digest.
+ * Called before normalizeRoleUrl so we catch problems before they reach Supabase.
+ */
+function isValidApplyUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return (
+      (u.protocol === "https:" || u.protocol === "http:") &&
+      u.hostname.length > 0 &&
+      u.pathname.length > 1 &&            // not just '/'
+      !u.pathname.includes("undefined") &&
+      !u.pathname.includes("null") &&
+      !u.hash.startsWith("#section")      // anchor-only section links, not apply URLs
+    );
+  } catch {
+    return false;
+  }
+}
+
 function buildRow(item: ListingToUpsert): Record<string, unknown> {
   const { job, company, enrichment, tier } = item;
 
@@ -177,10 +212,11 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     salary_currency: enrichment.salary_currency ?? "USD",
     requires_sponsorship_unclear: enrichment.requires_sponsorship_unclear,
     sponsorship_offered: enrichment.sponsorship_offered ?? null,
-    domain_tags: company.domain_tags ?? [],
+    domain_tags:    company.domain_tags ?? [],
     raw_jd_excerpt: job.description?.slice(0, 500) ?? null,
-    last_seen_at: new Date().toISOString(),
-    is_active: true,
+    apm_signal:     item.apm_signal ?? "none",
+    last_seen_at:   new Date().toISOString(),
+    is_active:      true,
   };
 }
 

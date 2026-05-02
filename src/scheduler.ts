@@ -6,6 +6,7 @@ import { sendEmailDigest } from "./notify/email";
 import { sendHealthAlert, hasHealthIssues, buildHealthAlertText } from "./notify/healthAlert";
 import { buildEmailText } from "./notify/email";
 import { appState, Job } from "./state";
+import { detectApmSignal } from "./ranking/apmSignal";
 import { startParserRun, finalizeParserRun, sweepStaleRuns } from "./storage/parserRuns";
 import { upsertCompanyListings, type ListingToUpsert } from "./storage/upsertListing";
 import { deactivateUnseen } from "./storage/deactivateUnseen";
@@ -48,6 +49,19 @@ function jobToListingToUpsert(
   job:     Job,
   company: CompanyConfig & { id: string },
 ): ListingToUpsert {
+  // Detect APM signal using company program metadata + job title/description.
+  // Also stamp the signal on the job object so the notification renders it.
+  const apmSignal = detectApmSignal({
+    title:       job.title,
+    description: job.description,
+    company: {
+      has_apm_program:    company.has_apm_program,
+      apm_program_name:   company.apm_program_name,
+      apm_program_status: company.apm_program_status,
+    },
+  });
+  job.apmSignal = apmSignal;  // mutate so the notification digest can use it
+
   return {
     job: {
       title:        job.title,
@@ -57,33 +71,36 @@ function jobToListingToUpsert(
       description:  job.description,
     },
     company: {
-      id:              company.id,
-      slug:            company.slug ?? company.name.toLowerCase().replace(/\s+/g, "-"),
-      name:            company.name,
-      careers_url:     company.careersUrl,
-      has_apm_program: false,
-      domain_tags:     [],
-      target_roles:    company.roles,
+      id:                 company.id,
+      slug:               company.slug ?? company.name.toLowerCase().replace(/\s+/g, "-"),
+      name:               company.name,
+      careers_url:        company.careersUrl,
+      has_apm_program:    company.has_apm_program ?? false,
+      apm_program_name:   company.apm_program_name,
+      apm_program_status: company.apm_program_status,
+      domain_tags:        [],
+      target_roles:       company.roles,
     },
     enrichment: {
-      location_city:               null,
-      is_remote:                   job.workType === "Remote",
-      is_hybrid:                   job.workType === "Hybrid",
-      yoe_min:                     null,
-      yoe_max:                     null,
-      yoe_raw:                     null,
-      experience_confidence:       "inferred-junior",
-      is_new_grad_language:        job.earlyCareer,
-      freshness_confidence:        job.datePosted ? "known" : "unknown",
-      posted_within_7_days:        isWithinDays(job.datePosted, 7),
-      posted_within_30_days:       isWithinDays(job.datePosted, 30),
-      sponsorship_offered:         null,
+      location_city:                null,
+      is_remote:                    job.workType === "Remote",
+      is_hybrid:                    job.workType === "Hybrid",
+      yoe_min:                      null,
+      yoe_max:                      null,
+      yoe_raw:                      null,
+      experience_confidence:        "inferred-junior",
+      is_new_grad_language:         job.earlyCareer,
+      freshness_confidence:         job.datePosted ? "known" : "unknown",
+      posted_within_7_days:         isWithinDays(job.datePosted, 7),
+      posted_within_30_days:        isWithinDays(job.datePosted, 30),
+      sponsorship_offered:          null,
       requires_sponsorship_unclear: true,
-      salary_min:                  null,
-      salary_max:                  null,
-      salary_currency:             null,
+      salary_min:                   null,
+      salary_max:                   null,
+      salary_currency:              null,
     },
-    tier: (job.pmTier ?? (job.earlyCareer ? 1 : 2)) as 1 | 2 | 3,
+    tier:       (job.pmTier ?? (job.earlyCareer ? 1 : 2)) as 1 | 2 | 3,
+    apm_signal: apmSignal,
   };
 }
 

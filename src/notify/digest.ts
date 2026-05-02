@@ -49,20 +49,42 @@ function jobPmTier(j: Job): 1 | 2 | 3 {
   return j.earlyCareer ? 1 : 2;
 }
 
+/** Returns true when a job was posted within the last 24 hours. */
+export function isPostedToday(datePosted: string): boolean {
+  if (!datePosted || datePosted === "—") return false;
+  const ageMs = Date.now() - new Date(datePosted).getTime();
+  return ageMs < 24 * 60 * 60 * 1_000;
+}
+
+/**
+ * Sort comparator: newest posted date first, with firstSeenAt as tiebreak,
+ * and unknown dates (datePosted === "—") pushed to the bottom.
+ * Mirrors the SQL: ORDER BY coalesce(posted_date, first_seen_at::date) DESC,
+ *   first_seen_at DESC.
+ */
+export function newestFirst(a: Job, b: Job): number {
+  const aDate = a.datePosted !== "—" ? a.datePosted : (a.firstSeenAt?.slice(0, 10) ?? "");
+  const bDate = b.datePosted !== "—" ? b.datePosted : (b.firstSeenAt?.slice(0, 10) ?? "");
+  if (!aDate && !bDate) return 0;
+  if (!aDate) return 1;
+  if (!bDate) return -1;
+  if (bDate !== aDate) return bDate.localeCompare(aDate);
+  // Tiebreak: firstSeenAt desc
+  return (b.firstSeenAt ?? "").localeCompare(a.firstSeenAt ?? "");
+}
+
+/**
+ * Group jobs by company while preserving the overall sort order.
+ * The first company encountered (with the most-recently-posted job overall)
+ * appears first; within each company, jobs are already sorted by newestFirst.
+ */
 function groupByCompany(jobs: Job[]): Map<string, Job[]> {
   const map = new Map<string, Job[]>();
+  // jobs is already sorted newestFirst — Map preserves insertion order,
+  // so the first job of each company determines company ordering.
   for (const j of jobs) {
     if (!map.has(j.company)) map.set(j.company, []);
     map.get(j.company)!.push(j);
-  }
-  // Within each company: newest first (nulls last)
-  for (const arr of map.values()) {
-    arr.sort((a, b) => {
-      if (a.datePosted === "—" && b.datePosted === "—") return 0;
-      if (a.datePosted === "—") return 1;
-      if (b.datePosted === "—") return -1;
-      return b.datePosted.localeCompare(a.datePosted);
-    });
   }
   return map;
 }
@@ -85,18 +107,36 @@ export function buildTierTelegramMessages(
   stats:    RunStats,
   metaMap?: CompanyMetaMap,
 ): string[] {
-  const map   = metaMap ?? new Map();
-  const tier1 = newJobs.filter((j) => jobPmTier(j) === 1);
-  const tier2 = newJobs.filter((j) => jobPmTier(j) === 2);
-  const tier3 = newJobs.filter((j) => jobPmTier(j) === 3);
+  const map = metaMap ?? new Map();
+  // Sort all jobs: APM priority first, then by tier, then newest-first (Bug Fix 14/15).
+  const sorted = [...newJobs].sort((a, b) => {
+    const apmOrder = (s: string | undefined) =>
+      s === "priority_apm" ? 0 : s === "apm_company" ? 1 : 2;
+    const apmDiff = apmOrder(a.apmSignal) - apmOrder(b.apmSignal);
+    if (apmDiff !== 0) return apmDiff;
+    const tierDiff = jobPmTier(a) - jobPmTier(b);
+    if (tierDiff !== 0) return tierDiff;
+    return newestFirst(a, b);
+  });
+
+  // APM-signal buckets (Bug Fix 15e)
+  const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
+  const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
+  const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
+  const tier1 = standard.filter((j) => jobPmTier(j) === 1);
+  const tier2 = standard.filter((j) => jobPmTier(j) === 2);
+  const tier3 = standard.filter((j) => jobPmTier(j) === 3);
 
   const runDate  = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
   const now      = stats.completedAt;
 
+  const apmLine = priorityApm.length > 0
+    ? ` · 🎯 ${esc(String(priorityApm.length))} APM Program${priorityApm.length === 1 ? "" : "s"}`
+    : "";
   const lines: string[] = [
-    `🆕 *${esc(String(newJobs.length))} new PM/APM roles* — ${esc(runDate)}`,
-    `🥇 Tier 1: ${esc(String(tier1.length))} · 🥈 Tier 2: ${esc(String(tier2.length))} · 🥉 Tier 3: ${esc(String(tier3.length))}`,
+    `🆕 *${esc(String(newJobs.length))} new PM/APM roles* — ${esc(runDate)}${apmLine}`,
+    `🥇 Tier 1: ${esc(String(tier1.length + priorityApm.length + apmCompany.length))} · 🥈 Tier 2: ${esc(String(tier2.length))} · 🥉 Tier 3: ${esc(String(tier3.length))}`,
     "",
   ];
 
@@ -121,7 +161,8 @@ export function buildTierTelegramMessages(
         // Keep posted display short for Telegram: "2d ago" not "2d ago (Apr 29)"
         const postedShort = posted.replace(/\s+\([^)]+\)$/, "");
 
-        lines.push(`• [${esc(j.title)}](${j.applyUrl})`);
+        const newBadge = isPostedToday(j.datePosted) ? "🆕 " : "";
+        lines.push(`• ${newBadge}[${esc(j.title)}](${j.applyUrl})`);
         lines.push(`   📍 ${esc(loc)} · 💼 ${esc(exp)} · 📅 ${esc(postedShort)}`);
         if (apm) {
           lines.push(`   🎓 ${esc(apm)}`);
@@ -131,9 +172,13 @@ export function buildTierTelegramMessages(
     }
   }
 
-  appendGroup(tier1, "*🥇 Apply today*");
-  appendGroup(tier2, "*🥈 Apply this week*");
-  appendGroup(tier3, "*🥉 Review when convenient*");
+  // APM priority sections always appear first (Bug Fix 15e)
+  appendGroup(priorityApm, "*🎯 APM Programs* — your highest\\-priority targets");
+  appendGroup(apmCompany,  "*⭐ APM Companies* — these companies run APM programs");
+  // Standard tier sections for non-APM-signal jobs
+  appendGroup(tier1, "*🥇 Apply today* — newest first");
+  appendGroup(tier2, "*🥈 Apply this week* — newest first");
+  appendGroup(tier3, "*🥉 Review when convenient* — newest first");
 
   lines.push(
     `_Run took ${esc(duration)} · ` +
@@ -160,9 +205,10 @@ export function buildTierTelegramMessages(
 // ── Email (HTML) ──────────────────────────────────────────────────────────────
 
 export function buildTierEmailHtml(newJobs: Job[], stats: RunStats): string {
-  const tier1 = newJobs.filter((j) => jobPmTier(j) === 1);
-  const tier2 = newJobs.filter((j) => jobPmTier(j) === 2);
-  const tier3 = newJobs.filter((j) => jobPmTier(j) === 3);
+  const sorted = [...newJobs].sort(newestFirst);
+  const tier1 = sorted.filter((j) => jobPmTier(j) === 1);
+  const tier2 = sorted.filter((j) => jobPmTier(j) === 2);
+  const tier3 = sorted.filter((j) => jobPmTier(j) === 3);
 
   const runDate  = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
@@ -190,9 +236,9 @@ export function buildTierEmailHtml(newJobs: Job[], stats: RunStats): string {
       ${sections}`;
   }
 
-  const tier1Html = renderGroup(tier1, `🥇 Tier 1 — Apply today (${tier1.length})`,             "#22c55e");
-  const tier2Html = renderGroup(tier2, `🥈 Tier 2 — Apply this week (${tier2.length})`,         "#3b82f6");
-  const tier3Html = renderGroup(tier3, `🥉 Tier 3 — Review when convenient (${tier3.length})`, "#9ca3af");
+  const tier1Html = renderGroup(tier1, `🥇 Tier 1 — Apply today (${tier1.length}) — newest first`,             "#22c55e");
+  const tier2Html = renderGroup(tier2, `🥈 Tier 2 — Apply this week (${tier2.length}) — newest first`,         "#3b82f6");
+  const tier3Html = renderGroup(tier3, `🥉 Tier 3 — Review when convenient (${tier3.length}) — newest first`, "#9ca3af");
 
   return `<!DOCTYPE html>
 <html>
@@ -217,9 +263,10 @@ export function buildTierEmailHtml(newJobs: Job[], stats: RunStats): string {
 }
 
 export function buildTierEmailText(newJobs: Job[], stats: RunStats): string {
-  const tier1 = newJobs.filter((j) => jobPmTier(j) === 1);
-  const tier2 = newJobs.filter((j) => jobPmTier(j) === 2);
-  const tier3 = newJobs.filter((j) => jobPmTier(j) === 3);
+  const sorted = [...newJobs].sort(newestFirst);
+  const tier1 = sorted.filter((j) => jobPmTier(j) === 1);
+  const tier2 = sorted.filter((j) => jobPmTier(j) === 2);
+  const tier3 = sorted.filter((j) => jobPmTier(j) === 3);
   const runDate = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
 
   const lines: string[] = [
@@ -242,8 +289,8 @@ export function buildTierEmailText(newJobs: Job[], stats: RunStats): string {
     lines.push("");
   }
 
-  appendGroup(tier1, "── 🥇 Tier 1 — Apply today ──");
-  appendGroup(tier2, "── 🥈 Tier 2 — Apply this week ──");
-  appendGroup(tier3, "── 🥉 Tier 3 — Review when convenient ──");
+  appendGroup(tier1, "── 🥇 Tier 1 — Apply today — newest first ──");
+  appendGroup(tier2, "── 🥈 Tier 2 — Apply this week — newest first ──");
+  appendGroup(tier3, "── 🥉 Tier 3 — Review when convenient — newest first ──");
   return lines.join("\n");
 }

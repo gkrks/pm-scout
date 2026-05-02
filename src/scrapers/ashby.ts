@@ -78,7 +78,9 @@ export const ashbyScraper: Scraper = {
 
       return {
         title:        j.title,
-        role_url:     j.applyUrl ?? j.jobUrl ?? company.careers_url,
+        // Public apply URL — see Bug Fix 13c. Prefer jobUrl (canonical public page)
+        // over applyUrl (may be a deeplink to the application form only).
+        role_url:     j.jobUrl ?? j.applyUrl ?? company.careers_url,
         location_raw: loc,
         posted_date,
         description,
