@@ -108,15 +108,12 @@ export function buildTierTelegramMessages(
   metaMap?: CompanyMetaMap,
 ): string[] {
   const map = metaMap ?? new Map();
-  // Sort all jobs: APM priority first, then by tier, then newest-first (Bug Fix 14/15).
+  // Sort all jobs: newest-first primary, tier as tiebreak.
+  // APM programs still get their own section at the top.
   const sorted = [...newJobs].sort((a, b) => {
-    const apmOrder = (s: string | undefined) =>
-      s === "priority_apm" ? 0 : s === "apm_company" ? 1 : 2;
-    const apmDiff = apmOrder(a.apmSignal) - apmOrder(b.apmSignal);
-    if (apmDiff !== 0) return apmDiff;
-    const tierDiff = jobPmTier(a) - jobPmTier(b);
-    if (tierDiff !== 0) return tierDiff;
-    return newestFirst(a, b);
+    const dateDiff = newestFirst(a, b);
+    if (dateDiff !== 0) return dateDiff;
+    return jobPmTier(a) - jobPmTier(b);
   });
 
   // APM-signal buckets (Bug Fix 15e)
