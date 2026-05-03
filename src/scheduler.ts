@@ -102,6 +102,7 @@ function jobToListingToUpsert(
     },
     tier:       (job.pmTier ?? (job.earlyCareer ? 1 : 2)) as 1 | 2 | 3,
     apm_signal: apmSignal,
+    ats_platform: company.ats,
     ...(job.extractedJD ? { extracted_jd: job.extractedJD } : {}),
   };
 }
@@ -357,6 +358,12 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
       let extractOk = 0;
       let extractFail = 0;
 
+      // Build company→ats lookup for extraction metadata
+      const atsLookup = new Map<string, string>();
+      for (const c of config.companies) {
+        atsLookup.set(c.name, c.ats);
+      }
+
       const extractWorker = async (): Promise<void> => {
         while (true) {
           const job = extractQueue.shift();
@@ -365,7 +372,7 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
             const result = await extractJD({
               rawHtml:     job.description || undefined,
               companyName: job.company,
-              sourceAts:   null,
+              sourceAts:   atsLookup.get(job.company) ?? null,
               sourceUrl:   job.applyUrl,
             });
             job.extractedJD = result;

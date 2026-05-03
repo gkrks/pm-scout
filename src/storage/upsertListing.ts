@@ -29,6 +29,8 @@ export interface ListingToUpsert {
   apm_signal?: "priority_apm" | "apm_company" | "none";
   /** Structured JD extraction result (populated for new/reactivated listings) */
   extracted_jd?: ExtractedJD;
+  /** ATS platform that sourced this listing */
+  ats_platform?: string;
 }
 
 export type SeenState = "new" | "existing" | "reactivated";
@@ -218,6 +220,7 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     domain_tags:    company.domain_tags ?? [],
     raw_jd_excerpt: job.description?.slice(0, 500) ?? null,
     apm_signal:     item.apm_signal ?? "none",
+    ats_platform:   item.ats_platform ?? null,
     last_seen_at:   new Date().toISOString(),
     is_active:      true,
     ...(item.extracted_jd ? {
