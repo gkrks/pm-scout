@@ -50,13 +50,6 @@ function formatSubject(newJobs: Job[], runStartedAt: Date): string {
   return `${subject} — ${dateFmt.format(runStartedAt)} · ${timeFmt.format(runStartedAt)}`;
 }
 
-// ── Per-job tier helper ───────────────────────────────────────────────────────
-
-function jobPmTier(j: Job): 1 | 2 | 3 {
-  if (j.pmTier !== undefined) return j.pmTier;
-  return j.earlyCareer ? 1 : 2;
-}
-
 // ── HTML builder ──────────────────────────────────────────────────────────────
 
 export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: CompanyMetaMap): string {
@@ -68,21 +61,13 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
     hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
   });
 
-  // Sort: newest-first as primary, then tier as tiebreak.
-  // APM programs get their own section at the top but are also sorted newest-first.
-  const sorted = [...newJobs].sort((a, b) => {
-    const dateDiff = newestFirst(a, b);
-    if (dateDiff !== 0) return dateDiff;
-    return jobPmTier(a) - jobPmTier(b);
-  });
+  // Sort all jobs strictly by most recent posted date first.
+  const sorted = [...newJobs].sort(newestFirst);
 
-  // APM-signal buckets — sorted newest-first independently.
+  // Separate APM roles into their own sections.
   const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
   const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
   const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
-  const tier1 = standard.filter((j) => jobPmTier(j) === 1);
-  const tier2 = standard.filter((j) => jobPmTier(j) === 2);
-  const tier3 = standard.filter((j) => jobPmTier(j) === 3);
 
   const duration  = fmtDuration(stats.startedAt, stats.completedAt);
   const runLine   = `${runFmt.format(now)} · ${stats.companiesScanned} companies scanned · ${stats.errors} error${stats.errors === 1 ? "" : "s"} · ${duration}`;
@@ -94,8 +79,6 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
     const loc         = formatLocation(j.location, j.workType);
     const exp         = formatExperience(j.earlyCareer);
     const posted      = formatPostedAgo(j.datePosted, now);
-    const tier        = jobPmTier(j);
-    const tierLabel   = tier === 1 ? "🥇 Apply today" : tier === 2 ? "🥈 Apply this week" : "🥉 Review when convenient";
 
     // Label styling — muted for standard, themed for APM rows
     const labelStyle = isApm
@@ -112,8 +95,6 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
       const apmBadge = `<span style="background:#7c3aed;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;vertical-align:middle;">${esc(apm)}</span>`;
       rows.push(`<tr><td style="${labelStyle}">🎓 Program</td><td>${apmBadge}</td></tr>`);
     }
-
-    rows.push(`<tr><td style="${labelStyle}">🏷 Tier</td><td>${tierLabel}</td></tr>`);
 
     const subtitle = [
       `@ ${j.company}`,
@@ -179,11 +160,9 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
     ${newJobs.length} new PM/APM role${newJobs.length === 1 ? "" : "s"} found
   </h2>
   <p style="color:#6b7280;margin:0 0 24px 0;font-size:13px;">${esc(runLine)}</p>
-  ${section(priorityApm, "🎯 APM Programs — your highest-priority targets", "#7c3aed", true)}
-  ${section(apmCompany,  "⭐ APM Companies — these companies run APM programs", "#0891b2", true)}
-  ${section(tier1, "🥇 Apply today — newest first",              "#22c55e")}
-  ${section(tier2, "🥈 Apply this week — newest first",           "#3b82f6")}
-  ${section(tier3, "🥉 Review when convenient — newest first",    "#9ca3af")}
+  ${section(standard,    "📋 New roles — newest first",                        "#22c55e")}
+  ${section(priorityApm, "🎯 APM Program roles",                                "#7c3aed", true)}
+  ${section(apmCompany,  "⭐ APM Company roles — these companies run APM programs", "#0891b2", true)}
   <hr style="margin-top:32px;border:none;border-top:1px solid #e5e7eb;">
   <p style="color:#6b7280;font-size:12px;margin-top:8px;">
     Configured to scan companies hourly.
@@ -205,18 +184,10 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
   });
 
-  // Newest-first primary sort, tier as tiebreak.
-  const sorted = [...newJobs].sort((a, b) => {
-    const dateDiff = newestFirst(a, b);
-    if (dateDiff !== 0) return dateDiff;
-    return jobPmTier(a) - jobPmTier(b);
-  });
+  const sorted = [...newJobs].sort(newestFirst);
   const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
   const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
   const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
-  const tier1 = standard.filter((j) => jobPmTier(j) === 1);
-  const tier2 = standard.filter((j) => jobPmTier(j) === 2);
-  const tier3 = standard.filter((j) => jobPmTier(j) === 3);
 
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
   const runLine  = `Run: ${runFmt.format(now)} · ${stats.companiesScanned} companies · ${stats.errors} errors · ${duration}`;
@@ -251,11 +222,9 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     }
   }
 
-  appendSection(priorityApm, "APM Programs — your highest-priority targets");
-  appendSection(apmCompany,  "APM Companies — these companies run APM programs");
-  appendSection(tier1, "Apply today");
-  appendSection(tier2, "Apply this week");
-  appendSection(tier3, "Review when convenient");
+  appendSection(standard,    "New roles — newest first");
+  appendSection(priorityApm, "APM Program roles");
+  appendSection(apmCompany,  "APM Company roles");
   return lines.join("\n");
 }
 
