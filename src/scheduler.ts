@@ -102,7 +102,7 @@ function jobToListingToUpsert(
     },
     tier:       (job.pmTier ?? (job.earlyCareer ? 1 : 2)) as 1 | 2 | 3,
     apm_signal: apmSignal,
-    ats_platform: company.ats,
+    ats_platform: job.extractedJD?.extraction_meta.source_ats ?? company.ats,
     ...(job.extractedJD ? { extracted_jd: job.extractedJD } : {}),
   };
 }

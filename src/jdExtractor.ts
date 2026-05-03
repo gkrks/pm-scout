@@ -443,7 +443,23 @@ Rules:
    - medium: some sections inferred from context or had ambiguous phrasing.
    - low: significant content missing, very short posting, or heavy guessing.
 
-8. OUTPUT FORMAT. Return only the JSON object. No prose, no markdown
+8. ATS DETECTION. Detect the Applicant Tracking System (ATS) from content
+   clues and set extraction_meta.source_ats. Look for:
+   - URL patterns: "boards.greenhouse.io" → "greenhouse",
+     "jobs.lever.co" → "lever", "myworkdayjobs.com" → "workday",
+     "jobs.ashbyhq.com" → "ashby", "jobs.smartrecruiters.com" → "smartrecruiters",
+     "apply.workable.com" → "workable", "bamboohr.com/careers" → "bamboohr",
+     "amazon.jobs" → "amazon"
+   - Footer text: "Powered by Greenhouse", "Powered by Lever", etc.
+   - Structural patterns: Greenhouse uses "gh_jid" params; Lever uses
+     "/apply/" suffixes; Workday uses "wd1/wd5" subdomains; Ashby uses
+     specific JSON-LD schemas
+   - CSS/class names: "greenhouse-job-board", "lever-job", etc.
+   Valid values: "greenhouse", "lever", "ashby", "workday",
+   "smartrecruiters", "workable", "bamboohr", "amazon", "google",
+   "meta", or null if undetectable. Never guess — set null if unsure.
+
+9. OUTPUT FORMAT. Return only the JSON object. No prose, no markdown
    fences, no commentary. The first character of your response must be \`{\`.`;
 
 // ── Public API ───────────────────────────────────────────────────────────────
@@ -602,7 +618,10 @@ function applyMeta(
   // Override meta fields that we know authoritatively
   data.extraction_meta.extracted_at = extractedAt;
   data.extraction_meta.source_url = sourceUrl;
-  data.extraction_meta.source_ats = sourceAts;
+  // Keep LLM-detected ATS; fall back to config value only if LLM returned null
+  if (!data.extraction_meta.source_ats) {
+    data.extraction_meta.source_ats = sourceAts;
+  }
   data.extraction_meta.source_content_length = contentLength;
   data.extraction_meta.schema_version = "1.0.0";
   return data;
