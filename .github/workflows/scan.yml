@@ -64,6 +64,9 @@ jobs:
         env:
           PM_JOBS: ${{ secrets.PM_JOBS }}
 
+      - name: Sync companies to Supabase
+        run: npx ts-node scripts/syncCompanies.ts
+
       - name: Run scanner
         run: npx ts-node scripts/runScan.ts
         env:
