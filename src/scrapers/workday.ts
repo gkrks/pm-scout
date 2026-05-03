@@ -5,8 +5,8 @@
  * Body: { appliedFacets: {}, limit: 50, offset: 0, searchText: "product manager" }
  * Paginates until total reached or 200 results.
  *
- * Descriptions are NOT fetched inline — fetchedDescriptions: false.
- * Use fetchWorkdayDescription() after applying title/location filters.
+ * Descriptions are fetched inline after job listing collection.
+ * Uses fetchWorkdayDescription() with 5 concurrent requests.
  */
 
 import fetch from "node-fetch";
@@ -224,6 +224,25 @@ export const workdayScraper: Scraper = {
 
     if (jobs.length > 200) jobs.splice(200);
 
-    return { jobs, fetchedDescriptions: false };
+    // Fetch descriptions inline — 5 concurrent requests to avoid rate limiting
+    const DESC_CONCURRENCY = 5;
+    const descQueue = [...jobs];
+    const descWorker = async (): Promise<void> => {
+      while (true) {
+        const job = descQueue.shift();
+        if (!job) break;
+        const meta = job.source_meta as { workday_id: string; host: string; tenant: string; site: string };
+        if (!meta.workday_id) continue;
+        job.description = await fetchWorkdayDescription(
+          meta.host, meta.tenant, meta.site, meta.workday_id,
+          opts.timeoutMs,
+        );
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(DESC_CONCURRENCY, descQueue.length) }, descWorker),
+    );
+
+    return { jobs, fetchedDescriptions: true };
   },
 };
