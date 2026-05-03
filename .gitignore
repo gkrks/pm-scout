@@ -4,5 +4,7 @@ pw-browsers/
 .env
 match-report.json
 *.pdf
+!config/*.pdf
 .claude/
 data/
+out/
