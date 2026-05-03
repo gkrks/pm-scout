@@ -31,6 +31,7 @@ async function main() {
 
   let rawHtml: string | undefined;
   let rawText: string | undefined;
+  let jobTitle = "Unknown";
   let companyName = "Unknown";
   let sourceAts: string | null = null;
   let sourceUrl: string | null = null;
@@ -50,6 +51,7 @@ async function main() {
       process.exit(1);
     }
     rawHtml = job.description;
+    jobTitle = job.title;
     companyName = job.company;
     sourceUrl = job.applyUrl;
     console.error(`Extracting JD for: ${job.company} — ${job.title}`);
@@ -72,6 +74,7 @@ async function main() {
   const result = await extractJD({
     rawHtml,
     rawText,
+    jobTitle,
     companyName,
     sourceAts,
     sourceUrl,

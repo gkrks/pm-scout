@@ -20,7 +20,7 @@ import {
 import { acquireLock, releaseLock } from "./orchestrator/lock";
 import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan";
 import type { CompanyResult } from "./orchestrator/classify";
-import { extractJD, JDExtractionError } from "./jdExtractor";
+import { extractJD } from "./jdExtractor";
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 
@@ -394,6 +394,7 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
             try {
               const result = await extractJD({
                 rawHtml:     job.description || undefined,
+                jobTitle:    job.title,
                 companyName: job.company,
                 sourceAts:   atsLookup.get(job.company) ?? null,
                 sourceUrl:   job.applyUrl,
