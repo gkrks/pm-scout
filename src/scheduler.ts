@@ -346,58 +346,84 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
       `${newJobs.length} new, ${errors} company errors`,
     );
 
-    // ── JD Extraction (new/reactivated only) ─────────────────────────────────
+    // ── JD Extraction ──────────────────────────────────────────────────────────
     //
     // Run before Supabase write so extracted_jd is included in the upsert.
-    // Only extract for locally-new jobs to avoid re-extracting on every scan.
+    // Query Supabase for already-extracted URLs to avoid re-extracting.
     // Failures are logged but do not abort the run.
 
-    if (process.env.JD_EXTRACT_ENABLED === "true" && newJobs.length > 0) {
-      const JD_EXTRACT_CONCURRENCY = 3;
-      const extractQueue = [...newJobs];
-      let extractOk = 0;
-      let extractFail = 0;
+    if (process.env.JD_EXTRACT_ENABLED === "true" && isSupabaseConfigured()) {
+      let alreadyExtractedUrls = new Set<string>();
 
-      // Build company→ats lookup for extraction metadata
-      const atsLookup = new Map<string, string>();
-      for (const c of config.companies) {
-        atsLookup.set(c.name, c.ats);
+      // Fetch URLs that already have extraction data in Supabase
+      try {
+        const { getSupabaseClient } = await import("./storage/supabase");
+        const supabase = getSupabaseClient();
+        const { data: extracted } = await supabase
+          .from("job_listings")
+          .select("role_url")
+          .not("extracted_at", "is", null);
+
+        for (const row of extracted ?? []) {
+          alreadyExtractedUrls.add(normalizeRoleUrl(row.role_url as string));
+        }
+      } catch (err) {
+        console.warn("[scheduler] Could not fetch extracted URLs — will extract all jobs");
       }
 
-      const extractWorker = async (): Promise<void> => {
-        while (true) {
-          const job = extractQueue.shift();
-          if (!job) break;
-          try {
-            const result = await extractJD({
-              rawHtml:     job.description || undefined,
-              companyName: job.company,
-              sourceAts:   atsLookup.get(job.company) ?? null,
-              sourceUrl:   job.applyUrl,
-            });
-            job.extractedJD = result;
-            extractOk++;
-          } catch (err) {
-            extractFail++;
-            const msg = err instanceof Error ? err.message : String(err);
-            console.warn(
-              `[scheduler] JD extraction failed for ${job.company} — ${job.title}: ${msg}`,
-            );
-          }
+      const unextractedJobs = diffed.filter(
+        (j) => !alreadyExtractedUrls.has(normalizeRoleUrl(j.applyUrl)),
+      );
+
+      if (unextractedJobs.length > 0) {
+        const JD_EXTRACT_CONCURRENCY = 3;
+        const extractQueue = [...unextractedJobs];
+        let extractOk = 0;
+        let extractFail = 0;
+
+        // Build company→ats lookup for extraction metadata
+        const atsLookup = new Map<string, string>();
+        for (const c of config.companies) {
+          atsLookup.set(c.name, c.ats);
         }
-      };
 
-      await Promise.all(
-        Array.from(
-          { length: Math.min(JD_EXTRACT_CONCURRENCY, extractQueue.length) },
-          extractWorker,
-        ),
-      );
+        const extractWorker = async (): Promise<void> => {
+          while (true) {
+            const job = extractQueue.shift();
+            if (!job) break;
+            try {
+              const result = await extractJD({
+                rawHtml:     job.description || undefined,
+                companyName: job.company,
+                sourceAts:   atsLookup.get(job.company) ?? null,
+                sourceUrl:   job.applyUrl,
+              });
+              job.extractedJD = result;
+              extractOk++;
+            } catch (err) {
+              extractFail++;
+              const msg = err instanceof Error ? err.message : String(err);
+              console.warn(
+                `[scheduler] JD extraction failed for ${job.company} — ${job.title}: ${msg}`,
+              );
+            }
+          }
+        };
 
-      console.log(
-        `[scheduler] JD extraction: ${extractOk} succeeded, ${extractFail} failed ` +
-        `(of ${newJobs.length} new jobs)`,
-      );
+        await Promise.all(
+          Array.from(
+            { length: Math.min(JD_EXTRACT_CONCURRENCY, extractQueue.length) },
+            extractWorker,
+          ),
+        );
+
+        console.log(
+          `[scheduler] JD extraction: ${extractOk} succeeded, ${extractFail} failed ` +
+          `(of ${unextractedJobs.length} unextracted jobs)`,
+        );
+      } else {
+        console.log("[scheduler] JD extraction: all jobs already extracted");
+      }
     }
 
     // ── Airtable upsert (legacy) ─────────────────────────────────────────────
