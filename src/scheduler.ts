@@ -20,6 +20,7 @@ import {
 import { acquireLock, releaseLock } from "./orchestrator/lock";
 import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan";
 import type { CompanyResult } from "./orchestrator/classify";
+import { extractJD, JDExtractionError } from "./jdExtractor";
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 
@@ -101,6 +102,7 @@ function jobToListingToUpsert(
     },
     tier:       (job.pmTier ?? (job.earlyCareer ? 1 : 2)) as 1 | 2 | 3,
     apm_signal: apmSignal,
+    ...(job.extractedJD ? { extracted_jd: job.extractedJD } : {}),
   };
 }
 
@@ -342,6 +344,54 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
       `[scheduler] Scrape complete: ${allJobs.length} total, ` +
       `${newJobs.length} new, ${errors} company errors`,
     );
+
+    // ── JD Extraction (new/reactivated only) ─────────────────────────────────
+    //
+    // Run before Supabase write so extracted_jd is included in the upsert.
+    // Only extract for locally-new jobs to avoid re-extracting on every scan.
+    // Failures are logged but do not abort the run.
+
+    if (process.env.JD_EXTRACT_ENABLED === "true" && newJobs.length > 0) {
+      const JD_EXTRACT_CONCURRENCY = 3;
+      const extractQueue = [...newJobs];
+      let extractOk = 0;
+      let extractFail = 0;
+
+      const extractWorker = async (): Promise<void> => {
+        while (true) {
+          const job = extractQueue.shift();
+          if (!job) break;
+          try {
+            const result = await extractJD({
+              rawHtml:     job.description || undefined,
+              companyName: job.company,
+              sourceAts:   null,
+              sourceUrl:   job.applyUrl,
+            });
+            job.extractedJD = result;
+            extractOk++;
+          } catch (err) {
+            extractFail++;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(
+              `[scheduler] JD extraction failed for ${job.company} — ${job.title}: ${msg}`,
+            );
+          }
+        }
+      };
+
+      await Promise.all(
+        Array.from(
+          { length: Math.min(JD_EXTRACT_CONCURRENCY, extractQueue.length) },
+          extractWorker,
+        ),
+      );
+
+      console.log(
+        `[scheduler] JD extraction: ${extractOk} succeeded, ${extractFail} failed ` +
+        `(of ${newJobs.length} new jobs)`,
+      );
+    }
 
     // ── Airtable upsert (legacy) ─────────────────────────────────────────────
 

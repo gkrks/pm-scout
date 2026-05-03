@@ -8,14 +8,16 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "build":           "tsc",
-    "match":           "ts-node src/index.ts match",
-    "scan":            "ts-node scripts/runScan.ts",
-    "scan:once":       "IGNORE_BLACKOUT=true ts-node scripts/runScan.ts",
-    "sync:companies":  "ts-node scripts/syncCompanies.ts",
-    "discover:ats":    "node scripts/discoverATS.js",
-    "replay:pending":  "ts-node scripts/replayPendingBuffer.ts",
-    "postinstall":     "PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium || true"
+    "build": "tsc",
+    "match": "ts-node src/index.ts match",
+    "scan": "ts-node scripts/runScan.ts",
+    "scan:once": "IGNORE_BLACKOUT=true ts-node scripts/runScan.ts",
+    "sync:companies": "ts-node scripts/syncCompanies.ts",
+    "discover:ats": "node scripts/discoverATS.js",
+    "replay:pending": "ts-node scripts/replayPendingBuffer.ts",
+    "extract:one": "ts-node scripts/extractOne.ts",
+    "test": "jest",
+    "postinstall": "PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium || true"
   },
   "bin": {
     "resume-matcher": "dist/index.js"
@@ -37,10 +39,13 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.0.0",
     "@types/node-fetch": "^2.6.11",
     "@types/nodemailer": "^6.4.17",
     "@types/pdf-parse": "^1.1.4",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }

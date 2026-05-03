@@ -1,4 +1,5 @@
 import { MatchResult } from "./matcher";
+import type { ExtractedJD } from "./types/extractedJD";
 
 export interface ApplicationRecord {
   userId: string;
@@ -46,6 +47,9 @@ export interface Job {
   resumeAction?: string; // "apply_as_is" | "tailor_then_apply" | "skip"
   scoredWith?: string;   // "generic" | "uploaded"
   sourceLabel?: string;  // undefined = official ATS, "scraper-failed" = primary scrape failed
+
+  // JD extraction (populated for new/reactivated listings)
+  extractedJD?: ExtractedJD;
 }
 
 // ── Scan / score status ───────────────────────────────────────────────────────

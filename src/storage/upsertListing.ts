@@ -14,6 +14,7 @@
 import { getSupabaseClient } from "./supabase";
 import type { RawJob, Company } from "../scrapers/types";
 import type { JobEnrichment } from "../filters/types";
+import type { ExtractedJD } from "../types/extractedJD";
 import { normalizeRoleUrl } from "../lib/normalizeUrl";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,6 +27,8 @@ export interface ListingToUpsert {
   tier: 1 | 2 | 3;
   /** APM priority signal — written to the apm_signal column (Bug Fix 15) */
   apm_signal?: "priority_apm" | "apm_company" | "none";
+  /** Structured JD extraction result (populated for new/reactivated listings) */
+  extracted_jd?: ExtractedJD;
 }
 
 export type SeenState = "new" | "existing" | "reactivated";
@@ -217,6 +220,11 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     apm_signal:     item.apm_signal ?? "none",
     last_seen_at:   new Date().toISOString(),
     is_active:      true,
+    ...(item.extracted_jd ? {
+      extracted_jd:            item.extracted_jd,
+      extraction_confidence:   item.extracted_jd.extraction_meta.confidence,
+      extracted_at:            item.extracted_jd.extraction_meta.extracted_at,
+    } : {}),
   };
 }
 
