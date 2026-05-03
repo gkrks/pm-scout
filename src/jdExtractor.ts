@@ -111,16 +111,30 @@ function parseSections(html: string): Section[] {
       return;
     }
 
-    // Check for strong-as-heading: only if the strong text matches a known heading alias
+    // Check for strong-as-heading: <p><strong>Heading:</strong></p> pattern
+    // The strong must be the leading content of the element
     const $strong = $el.find("strong").first();
-    if ($strong.length && $strong.text().trim() === $el.text().trim() && $strong.text().trim().length < 100) {
+    if ($strong.length) {
       const strongText = $strong.text().trim();
-      const strongBucket = classifyHeading(strongText);
-      if (strongBucket !== "unknown") {
-        flushSection();
-        currentHeading = strongText;
-        currentBucket = strongBucket;
-        return;
+      // Strong is either the entire element content, or it's followed by more text (heading: content)
+      const elText = $el.text().trim();
+      const isStrongOnly = strongText === elText;
+      const isStrongPrefix = elText.startsWith(strongText) && strongText.length < 100;
+
+      if (isStrongOnly || isStrongPrefix) {
+        const headingCandidate = strongText.replace(/[:]\s*$/, "").trim();
+        const strongBucket = classifyHeading(headingCandidate);
+        if (strongBucket !== "unknown") {
+          flushSection();
+          currentHeading = headingCandidate;
+          currentBucket = strongBucket;
+          // If the strong is a prefix, the rest of the text is content
+          if (!isStrongOnly) {
+            const remainder = elText.slice(strongText.length).trim();
+            if (remainder) currentContent.push(remainder);
+          }
+          return;
+        }
       }
     }
 
@@ -143,9 +157,20 @@ function parseSections(html: string): Section[] {
 
   flushSection();
 
-  // If no sections were created, treat the whole text as one section
+  // If only 1 section (no headings found), try text-based parsing as fallback
+  const hasMeaningfulSections = sections.some(
+    (s) => s.bucket !== "role_summary" && s.bucket !== "unknown",
+  );
+  if (!hasMeaningfulSections) {
+    const textSections = parseSectionsFromText(htmlToText(decoded));
+    if (textSections.some((s) => s.bucket !== "role_summary" && s.bucket !== "unknown")) {
+      return textSections;
+    }
+  }
+
+  // If still no sections, treat the whole text as one section
   if (sections.length === 0) {
-    const allText = htmlToText(html);
+    const allText = htmlToText(decoded);
     if (allText) {
       sections.push({
         heading: "",
@@ -652,6 +677,36 @@ export async function extractJD(input: ExtractJDInput): Promise<ExtractedJD> {
   const unknownHeadings = sections.filter((s) => s.bucket === "unknown").map((s) => s.heading);
   if (unknownHeadings.length > 0) {
     console.warn(`[jdExtractor] Unrecognized headings: ${unknownHeadings.join(", ")}`);
+  }
+
+  // Fallback: if no required_qualifications or responsibilities found,
+  // try to extract bullet lines from full text as requirements
+  const hasReqs = sections.some((s) => s.bucket === "required_qualifications");
+  const hasResps = sections.some((s) => s.bucket === "responsibilities");
+  if (!hasReqs || !hasResps) {
+    const bulletLines = fullText.split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith("- ") || l.startsWith("• ") || /^\d+\.\s/.test(l))
+      .map((l) => l.replace(/^[-•]\s+/, "").replace(/^\d+\.\s+/, ""));
+
+    if (bulletLines.length > 0 && !hasReqs) {
+      // Heuristic: lines mentioning "years", "experience", "degree", "knowledge" are requirements
+      const reqLines = bulletLines.filter((l) =>
+        /year|experience|degree|knowledge|proficien|skill|familiar|ability|bachelor|master/i.test(l),
+      );
+      if (reqLines.length > 0) {
+        sections.push({ heading: "(inferred)", bucket: "required_qualifications", content: reqLines });
+      }
+    }
+    if (bulletLines.length > 0 && !hasResps) {
+      // Lines with action verbs are likely responsibilities
+      const respLines = bulletLines.filter((l) =>
+        /^(lead|drive|define|build|own|manage|develop|design|create|deliver|partner|collaborate|work with|ensure|establish|implement|execute|analyze)/i.test(l),
+      );
+      if (respLines.length > 0) {
+        sections.push({ heading: "(inferred)", bucket: "responsibilities", content: respLines });
+      }
+    }
   }
 
   // Phase 2: Deterministic field extraction
