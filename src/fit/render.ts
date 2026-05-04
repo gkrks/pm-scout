@@ -338,6 +338,22 @@ export function renderFitPage(data: FitPageData): string {
     </div>
   </div>
 
+  <!-- Cover letter modal -->
+  <div class="modal-overlay" id="cover-letter-modal">
+    <div class="modal" style="width:640px;">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('open')">&times;</button>
+      <h2>Cover Letter</h2>
+      <div id="cover-letter-content" style="white-space:pre-wrap;font-size:0.88rem;line-height:1.6;color:#1f2937;"></div>
+      <div id="cover-letter-meta" style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:0.78rem;color:#6b7280;"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn" style="background:#6366f1;color:#fff;" onclick="
+          var text = document.getElementById('cover-letter-content').textContent;
+          navigator.clipboard.writeText(text).then(function(){alert('Copied to clipboard!')});
+        ">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     ${emptyState}
 
@@ -368,6 +384,7 @@ export function renderFitPage(data: FitPageData): string {
     <span class="footer-status" id="footer-status"><span class="spinner-icon"></span> Scoring resume fit...</span>
     <button class="btn btn-pdf" id="gen-pdf-btn" disabled>Generate PDF</button>
     <button class="btn btn-docx" id="gen-docx-btn" disabled>Generate DOCX</button>
+    <button class="btn" id="gen-cover-btn" style="background:#7c3aed;color:#fff;" disabled>Cover Letter</button>
   </div>
 
   <script>

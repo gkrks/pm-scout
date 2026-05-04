@@ -332,6 +332,7 @@
     document.getElementById("footer-status").textContent = selected + "/" + totalQuals + " matched | Fit: " + overall;
     document.getElementById("gen-pdf-btn").disabled = selected < totalQuals;
     document.getElementById("gen-docx-btn").disabled = selected < totalQuals;
+    document.getElementById("gen-cover-btn").disabled = selected < totalQuals;
   }
 
   function buildScoreRow(label, value) {
@@ -347,6 +348,7 @@
   function enableButtons() {
     document.getElementById("gen-pdf-btn").addEventListener("click", function () { generateAndDownload("pdf"); });
     document.getElementById("gen-docx-btn").addEventListener("click", function () { generateAndDownload("docx"); });
+    document.getElementById("gen-cover-btn").addEventListener("click", function () { generateCoverLetter(); });
   }
 
   function generateAndDownload(format) {
@@ -370,6 +372,51 @@
         btn.textContent = format === "pdf" ? "Generate PDF" : "Generate DOCX";
         btn.disabled = false;
         document.getElementById("footer-status").textContent = "Failed: " + err.message;
+      });
+  }
+  // --------------------------------------------------------------------------
+  //  Cover letter generation
+  // --------------------------------------------------------------------------
+  function generateCoverLetter() {
+    var btn = document.getElementById("gen-cover-btn");
+    btn.disabled = true;
+    btn.textContent = "Writing...";
+
+    // Collect selected bullet texts
+    var bulletTexts = [];
+    for (var qid in selections) {
+      var s = selections[qid];
+      if (s.text && s.bulletId !== "__pre_resolved__") {
+        bulletTexts.push(s.text);
+      }
+    }
+
+    api("POST", "/cover-letter", { bulletTexts: bulletTexts, email: selectedEmail })
+      .then(function (data) {
+        if (data.error) throw new Error(data.error);
+
+        var contentEl = document.getElementById("cover-letter-content");
+        contentEl.textContent = data.letter;
+
+        var metaEl = document.getElementById("cover-letter-meta");
+        var metaHtml = '';
+        if (data.wordCount) metaHtml += '<div>Word count: ' + data.wordCount + '</div>';
+        if (data.priorities && data.priorities.length > 0) {
+          metaHtml += '<div>Priorities targeted: ' + data.priorities.map(esc).join(", ") + '</div>';
+        }
+        if (data.alternativeHook) {
+          metaHtml += '<div style="margin-top:8px;"><strong>Alternative opening:</strong><br>' + esc(data.alternativeHook) + '</div>';
+        }
+        metaEl.innerHTML = metaHtml;
+
+        document.getElementById("cover-letter-modal").classList.add("open");
+        btn.textContent = "Cover Letter";
+        btn.disabled = false;
+      })
+      .catch(function (err) {
+        btn.textContent = "Cover Letter";
+        btn.disabled = false;
+        alert("Cover letter failed: " + err.message);
       });
   }
 })();

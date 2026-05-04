@@ -21,6 +21,7 @@ import express, { Request, Response, NextFunction } from "express";
 import fetch from "node-fetch";
 
 import { getSupabaseClient } from "../storage/supabase";
+import { generateCoverLetter } from "./coverLetterGenerator";
 import { generateResume } from "./generateResume";
 import { renderFitPage } from "./render";
 import { optimizeSkills } from "./skillsOptimizer";
@@ -325,6 +326,78 @@ app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response
     });
   } catch (err: any) {
     console.error("[fit] generate error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/cover-letter — Generate cover letter
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/cover-letter", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const { bulletTexts, email } = req.body as { bulletTexts?: string[]; email?: string };
+
+    const supabase = getSupabaseClient();
+    const { data: jobRow } = await supabase
+      .from("job_listings")
+      .select(`
+        title, jd_job_title, jd_company_name,
+        jd_required_qualifications, jd_preferred_qualifications,
+        jd_role_context, jd_responsibilities,
+        company:companies!inner(name)
+      `)
+      .eq("id", jobId)
+      .single();
+
+    if (!jobRow) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    const masterResume = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
+    );
+
+    const companyName = (jobRow.company as any)?.name || jobRow.jd_company_name || "Unknown";
+    const roleTitle = jobRow.jd_job_title || jobRow.title;
+
+    // Build JD text
+    const reqQuals = (jobRow.jd_required_qualifications as string[] || []);
+    const prefQuals = (jobRow.jd_preferred_qualifications as string[] || []);
+    const responsibilities = (jobRow.jd_responsibilities as string[] || []);
+    const roleContext = (jobRow.jd_role_context as any)?.summary || "";
+
+    const jdText = [
+      `Title: ${roleTitle}`,
+      `Company: ${companyName}`,
+      responsibilities.length > 0 ? `Responsibilities:\n- ${responsibilities.join("\n- ")}` : "",
+      reqQuals.length > 0 ? `Required Qualifications:\n- ${reqQuals.join("\n- ")}` : "",
+      prefQuals.length > 0 ? `Preferred Qualifications:\n- ${prefQuals.join("\n- ")}` : "",
+      roleContext ? `About: ${roleContext}` : "",
+    ].filter(Boolean).join("\n\n");
+
+    const contact = masterResume.contact;
+    const result = await generateCoverLetter(
+      {
+        name: contact.name,
+        location: contact.location,
+        phone: contact.phone,
+        email: email || contact.emails?.[0] || "krithiksaisreenishgopinath@gmail.com",
+        linkedin: contact.linkedin_url,
+        github: contact.github_url,
+        website: contact.website_url,
+      },
+      companyName,
+      roleTitle,
+      jdText,
+      bulletTexts || [],
+    );
+
+    res.json(result);
+  } catch (err: any) {
+    console.error("[fit] cover-letter error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
