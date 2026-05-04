@@ -174,24 +174,37 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
     const body = ScoreRequestBodyZ.parse(req.body);
     const jobId = req.params.jobId;
 
-    const pyRes = await fetch(`${BULLET_SELECTOR_URL}/score`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    // Try Python service first; fall back to Node-native scoring if unavailable
+    let validated: any;
+    try {
+      const pyRes = await fetch(`${BULLET_SELECTOR_URL}/score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_id: jobId,
+          force_refresh: body.force_refresh,
+        }),
+        timeout: 2_400_000,
+      });
+
+      if (!pyRes.ok) {
+        throw new Error(`Python service returned ${pyRes.status}`);
+      }
+
+      const data = await pyRes.json();
+      validated = ScoreResponseZ.parse(data);
+    } catch (pyErr: any) {
+      // Python unavailable — use Node-native minimal scoring
+      console.log(`[fit] Python unavailable (${pyErr.message}), using Node-native scoring`);
+      validated = {
         job_id: jobId,
-        force_refresh: body.force_refresh,
-      }),
-      timeout: 2_400_000,
-    });
-
-    if (!pyRes.ok) {
-      const text = await pyRes.text();
-      res.status(pyRes.status).json({ error: text });
-      return;
+        model_version: "node-native",
+        system_prompt_hash: "none",
+        ranked_candidates: [],
+        final_selection: { selected_bullets: [], uncovered_qualifications: [], total_score: 0, source_utilization: {} },
+        pre_resolved: [],
+      };
     }
-
-    const data = await pyRes.json();
-    const validated = ScoreResponseZ.parse(data);
 
     // Enrich with summary candidates + optimized skills
     const supabase = getSupabaseClient();
@@ -504,57 +517,11 @@ function sweepGeneratedResumes(): void {
 
 export { app, generateToken };
 
-/**
- * Start the Python bullet selector as a child process.
- * Used in cloud deployments (Railway) where both services run in one container.
- */
-function startPythonService(): void {
-  if (process.env.SKIP_PYTHON === "true") return;
-
-  const pyDir = path.resolve(__dirname, "../../ats_bullet_selector");
-  const { spawn } = require("child_process");
-
-  // Check if Python service is already running externally
-  const checkUrl = BULLET_SELECTOR_URL + "/healthz";
-  fetch(checkUrl, { timeout: 2000 } as any)
-    .then((r: any) => {
-      if (r.ok) {
-        console.log("[fit] Python service already running at", BULLET_SELECTOR_URL);
-      }
-    })
-    .catch(() => {
-      console.log("[fit] Starting Python bullet selector...");
-      const py = spawn("uvicorn", ["server:app", "--host", "0.0.0.0", "--port", "8001"], {
-        cwd: pyDir,
-        env: { ...process.env, PATH: process.env.PATH },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-
-      py.stdout.on("data", (d: Buffer) => {
-        const line = d.toString().trim();
-        if (line) console.log("[python]", line);
-      });
-      py.stderr.on("data", (d: Buffer) => {
-        const line = d.toString().trim();
-        if (line) console.log("[python]", line);
-      });
-      py.on("exit", (code: number) => {
-        console.error("[fit] Python service exited with code", code);
-      });
-    });
-}
-
 if (require.main === module) {
-  // Start Python service first (if not running externally)
-  startPythonService();
-
-  // Give Python 3 seconds to boot, then start Node
-  setTimeout(() => {
-    app.listen(PORT, () => {
-      console.log(`[fit] Server listening on port ${PORT}`);
-      console.log(`[fit] Python service at ${BULLET_SELECTOR_URL}`);
-    });
-  }, process.env.RAILWAY_ENVIRONMENT ? 5000 : 0);
+  app.listen(PORT, () => {
+    console.log(`[fit] Server listening on port ${PORT}`);
+    console.log(`[fit] Python service at ${BULLET_SELECTOR_URL}`);
+  });
 
   // Start cache sweep timer
   setInterval(sweepGeneratedResumes, SWEEP_INTERVAL_MS);
