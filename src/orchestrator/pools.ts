@@ -181,7 +181,11 @@ export async function runPool(
             `[pools] ${company.name}: ${jobs.length} job(s) [${company.ats}, ${Math.round(durationMs / 100) / 10}s]`,
           );
         } else if (status === "suspicious") {
-          console.warn(`[pools] ${company.name}: 0 jobs (suspicious — baseline ≥ 3)`);
+          console.warn(`[pools] ${company.name}: 0 jobs (suspicious — baseline ≥ 3) [${company.ats}]`);
+        } else {
+          console.log(
+            `[pools] ${company.name}: 0 jobs [${company.ats}, ${Math.round(durationMs / 100) / 10}s]`,
+          );
         }
       } catch (err) {
         const errInfo    = classifyError(err);

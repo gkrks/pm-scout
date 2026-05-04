@@ -142,8 +142,20 @@ function parseSections(html: string): Section[] {
     const $lis = $el.find("li");
     if ($lis.length > 0) {
       $lis.each((_, li) => {
-        const text = $(li).text().trim();
-        if (text) currentContent.push(text);
+        const $li = $(li);
+        // When <li> contains multiple <p> tags, cheerio's .text() concatenates
+        // them without spaces (e.g. "resume.Real delivery"). Extract each <p>
+        // separately to preserve bullet boundaries.
+        const $ps = $li.find("p");
+        if ($ps.length > 1) {
+          $ps.each((_, p) => {
+            const text = $(p).text().trim();
+            if (text) currentContent.push(text);
+          });
+        } else {
+          const text = $li.text().trim();
+          if (text) currentContent.push(text);
+        }
       });
       return;
     }
@@ -237,6 +249,78 @@ function parseSectionsFromText(text: string): Section[] {
 
 function getSectionContent(sections: Section[], bucket: HeadingBucket): string[] {
   return sections.filter((s) => s.bucket === bucket).flatMap((s) => s.content);
+}
+
+/**
+ * Split compound qualification strings that were concatenated into a single item.
+ * Handles two cases:
+ * 1. Cheerio .text() concatenation artifact — no space between sentences ("resume.Real")
+ * 2. Paragraph-style qualifications — multiple distinct qualifications in one long string
+ *
+ * Only splits items longer than MIN_COMPOUND_LEN.
+ */
+const MIN_COMPOUND_LEN = 200;
+const MIN_CHUNK_LEN = 40;
+
+export function splitCompoundQualifications(items: string[]): string[] {
+  const result: string[] = [];
+  for (const item of items) {
+    if (item.length <= MIN_COMPOUND_LEN) {
+      result.push(item);
+      continue;
+    }
+
+    // Primary: split on cheerio concatenation artifacts — sentence-ending punctuation
+    // immediately followed by a capital letter with NO space. This pattern doesn't
+    // occur in normal English text; it's a reliable boundary signal.
+    const concatParts = item.split(/(?<=[.!?])(?=[A-Z])/);
+    if (concatParts.length > 1) {
+      result.push(...concatParts.filter((p) => p.trim().length > 0));
+      continue;
+    }
+
+    // Fallback: properly-spaced text — split on sentence boundaries where a new
+    // qualification topic starts
+    const chunks = splitOnQualificationBoundaries(item);
+    if (chunks.length > 1 && chunks.every((c) => c.length >= MIN_CHUNK_LEN)) {
+      result.push(...chunks);
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
+/**
+ * Split a long, properly-spaced qualification string on topic boundaries.
+ * Conservative: only splits on short topic-header sentences ("Real delivery experience.")
+ * that are clearly separate category names, not elaboration sentences.
+ */
+function splitOnQualificationBoundaries(text: string): string[] {
+  const sentences = text.split(/(?<=\.)\s+(?=[A-Z])/);
+  if (sentences.length <= 1) return [text];
+
+  const chunks: string[] = [];
+  let current = sentences[0];
+
+  for (let i = 1; i < sentences.length; i++) {
+    const sent = sentences[i];
+    // Only split on short topic-header sentences (noun phrases, not regular sentences).
+    // These are category names like "Real delivery experience." or "Bias for action."
+    // Must NOT start with a pronoun/determiner (those are elaboration sentences).
+    const isTopicHeader = sent.length < 60 && /^[A-Z][a-z]/.test(sent)
+      && !/^(?:You|We |This |It |That |The |Our |If |But |And |Or |Some |Most |All )/i.test(sent);
+
+    if (isTopicHeader && current.length >= MIN_CHUNK_LEN) {
+      chunks.push(current.trim());
+      current = sent;
+    } else {
+      current += " " + sent;
+    }
+  }
+  if (current.trim()) chunks.push(current.trim());
+
+  return chunks;
 }
 
 function getAllText(sections: Section[]): string {
@@ -741,8 +825,8 @@ export async function extractJD(input: ExtractJDInput): Promise<ExtractedJD> {
       domains_required: matchSkills(fullText, DOMAIN_EXPERTISE).slice(0, 5),
     },
     education: extractEducation(fullText),
-    required_qualifications: getSectionContent(sections, "required_qualifications"),
-    preferred_qualifications: getSectionContent(sections, "preferred_qualifications"),
+    required_qualifications: splitCompoundQualifications(getSectionContent(sections, "required_qualifications")),
+    preferred_qualifications: splitCompoundQualifications(getSectionContent(sections, "preferred_qualifications")),
     responsibilities: getSectionContent(sections, "responsibilities"),
     skills: {
       technical: matchSkills(fullText, TECHNICAL_SKILLS),

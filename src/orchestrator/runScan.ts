@@ -215,5 +215,23 @@ export async function orchestrateRun(
     `${allJobs.length} total jobs`,
   );
 
+  // ── Diagnostic summary: 0-job companies by ATS type ────────────────────────
+  const zeroJobCompanies = companyResults.filter(
+    (r) => r.status === "ok" && r.jobs.length === 0,
+  );
+  if (zeroJobCompanies.length > 0) {
+    const byAts = new Map<string, number>();
+    for (const r of zeroJobCompanies) {
+      byAts.set(r.ats, (byAts.get(r.ats) ?? 0) + 1);
+    }
+    const breakdown = [...byAts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([ats, count]) => `${ats}: ${count}`)
+      .join(", ");
+    console.log(
+      `[orchestrator] ${zeroJobCompanies.length} companies returned 0 jobs (${breakdown})`,
+    );
+  }
+
   return { jobs: allJobs, companyResults, stats };
 }

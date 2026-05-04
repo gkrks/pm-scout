@@ -1,11 +1,13 @@
-"""Fast bullet ranking via qualification_map.json + OpenAI embedding fallback.
+"""Fast bullet ranking via qualification_map.json + embedding + LLM re-rank.
 
-Replaces the slow LLM judge pipeline (Stages A+B+C) with:
-  1. Hash qual text -> look up in the precomputed map -> instant top-3
-  2. If not found: embed with text-embedding-3-large -> cosine against
-     pre-embedded bullets -> top-3 in <1 second
+Pipeline:
+  1. Hash each qual text -> look up in precomputed map -> instant top-3
+  2. For map misses: batch-embed all miss quals (1 OpenAI call) -> cosine
+     against pre-embedded bullets -> retrieve top-10 candidates each
+  3. Batch re-rank all misses in 1 GPT-4.1 call to catch transferable-skill
+     matches that pure embedding similarity misses -> return top-3 each
 
-Zero Groq LLM calls. Only OpenAI embedding calls for map misses (~$0.00001 each).
+Total API calls for N map misses: 1 embedding + 1 re-rank = 2 calls.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Optional
@@ -70,7 +73,7 @@ def _qual_hash(text: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
-#  OpenAI embedding for map misses
+#  OpenAI client (lazy)
 # --------------------------------------------------------------------------- #
 
 _openai_client = None
@@ -88,14 +91,20 @@ def _get_openai():
     return _openai_client
 
 
-def _embed_single(text: str) -> np.ndarray:
-    """Embed a single text with text-embedding-3-large."""
+# --------------------------------------------------------------------------- #
+#  Embedding helpers
+# --------------------------------------------------------------------------- #
+
+def _embed_texts(texts: list[str]) -> np.ndarray:
+    """Embed multiple texts in one API call. Returns normalized (N, dim) array."""
     client = _get_openai()
     resp = client.embeddings.create(
         model="text-embedding-3-large",
-        input=[text[:500]],
+        input=[t[:500] for t in texts],
     )
-    return np.array(resp.data[0].embedding, dtype=np.float32)
+    vecs = np.array([d.embedding for d in resp.data], dtype=np.float32)
+    norms = np.linalg.norm(vecs, axis=1, keepdims=True)
+    return vecs / norms
 
 
 def _get_bullet_embeddings(bullets: list[Bullet]) -> tuple[np.ndarray, list[str]]:
@@ -105,16 +114,8 @@ def _get_bullet_embeddings(bullets: list[Bullet]) -> tuple[np.ndarray, list[str]
     if _bullet_embeddings is not None and _bullet_ids_order is not None:
         return _bullet_embeddings, _bullet_ids_order
 
-    client = _get_openai()
-    texts = [b.text[:500] for b in bullets]
+    vecs = _embed_texts([b.text for b in bullets])
     ids = [b.bullet_id for b in bullets]
-
-    resp = client.embeddings.create(model="text-embedding-3-large", input=texts)
-    vecs = np.array([d.embedding for d in resp.data], dtype=np.float32)
-
-    # Normalize
-    norms = np.linalg.norm(vecs, axis=1, keepdims=True)
-    vecs = vecs / norms
 
     _bullet_embeddings = vecs
     _bullet_ids_order = ids
@@ -124,27 +125,24 @@ def _get_bullet_embeddings(bullets: list[Bullet]) -> tuple[np.ndarray, list[str]
 
 
 # --------------------------------------------------------------------------- #
-#  Build ScoredCandidate from map data
+#  Build ScoredCandidate
 # --------------------------------------------------------------------------- #
 
 def _build_scored_candidate(
     bullet: Bullet,
-    similarity: float,
+    score: float,
+    rationale: str = "",
 ) -> ScoredCandidate:
-    """Build a ScoredCandidate from embedding similarity (no LLM judge)."""
-    # Convert similarity [0,1] to a match_score [0,100]
-    # Scale: 0.4+ sim = strong match (80+), 0.3 = decent (60), 0.2 = weak (40)
-    match_score = min(100.0, max(0.0, similarity * 200.0))
+    """Build a ScoredCandidate from an LLM score [0-100] or embedding sim [0-1]."""
+    if score <= 1.0:
+        match_score = min(100.0, max(0.0, score * 200.0))
+    else:
+        match_score = min(100.0, max(0.0, score))
 
-    # Sub-scores estimated from similarity (since we have no LLM judge)
-    base = round(similarity * 100, 1)
+    base = round(match_score / 2, 1)
     sub = SubScores(
-        keyword=base,
-        semantic=base,
-        evidence=base,
-        quantification=base,
-        seniority=base,
-        recency=base,
+        keyword=base, semantic=base, evidence=base,
+        quantification=base, seniority=base, recency=base,
     )
 
     return ScoredCandidate(
@@ -153,99 +151,242 @@ def _build_scored_candidate(
         source_label=bullet.source_label,
         text=bullet.text,
         match_score=round(match_score, 1),
-        confidence=round(min(1.0, similarity * 2.0), 2),
+        confidence=round(min(1.0, match_score / 100.0), 2),
         sub_scores=sub,
-        rationale=f"Embedding similarity: {similarity:.3f}",
+        rationale=rationale or f"Embedding similarity: {score:.3f}",
         supporting_span="",
     )
 
 
 # --------------------------------------------------------------------------- #
-#  Main lookup function
+#  Batched LLM re-ranking (1 GPT-4.1 call for all map misses)
 # --------------------------------------------------------------------------- #
 
-def rank_bullets_from_map(
-    qual: Qualification,
-    bullets: list[Bullet],
+_RERANK_PROMPT = """You are scoring resume bullets against job qualifications.
+For EACH qualification, score EACH of its candidate bullets on a 0-100 scale.
+Consider TRANSFERABLE SKILLS — a bullet may demonstrate the qualification through
+analogous experience even if the vocabulary is different.
+
+Examples of transferable evidence:
+- "Writing 9 technical blog posts explaining engineering tradeoffs" demonstrates
+  "Structured communication" even though it's not about stakeholder meetings.
+- "Building a production pipeline from scratch" demonstrates "Bias for action"
+  even without the exact phrase.
+
+Return JSON:
+{"results": [
+  {"qual_id": "<id>", "scores": [{"id": "<bullet_id>", "score": <0-100>, "reason": "<1 sentence>"}]},
+  ...
+]}
+Only return valid JSON, no markdown fences."""
+
+_RERANK_MODEL = os.environ.get("RERANK_MODEL", "gpt-4.1")
+
+
+def _batch_rerank(
+    items: list[tuple[Qualification, list[tuple[Bullet, float]]]],
     top_k: int = 3,
-) -> QualCandidates:
-    """Rank bullets for a qualification using the precomputed map.
+) -> dict[str, list[tuple[Bullet, float, str]]]:
+    """Re-rank candidates for multiple qualifications in one LLM call.
 
-    1. Hash qual text -> look up in map -> use precomputed top-10
-    2. If not found -> embed with OpenAI -> cosine against all bullets
-    3. Return top-K as ScoredCandidates
-
-    Zero Groq LLM calls.
+    Returns {qual_id: [(bullet, score, reason), ...]} with top_k per qual.
     """
-    qmap = _load_map()
-    bullet_map = {b.bullet_id: b for b in bullets}
-    qhash = _qual_hash(qual.text)
+    if not items:
+        return {}
 
-    # Try map lookup
-    map_entry = qmap.get("quals", {}).get(qhash)
+    # Build fallback in case LLM fails
+    def _fallback() -> dict[str, list[tuple[Bullet, float, str]]]:
+        result = {}
+        for qual, candidates in items:
+            result[qual.id] = [
+                (b, sim * 200, f"Embedding similarity: {sim:.3f}")
+                for b, sim in candidates[:top_k]
+            ]
+        return result
 
-    if map_entry:
-        # Map hit — use precomputed rankings
-        ranked_ids = map_entry.get("bullets", [])[:top_k]
-        sims = map_entry.get("sim", [])[:top_k]
+    try:
+        client = _get_openai()
+    except RuntimeError:
+        return _fallback()
 
-        candidates = []
-        for bid, sim in zip(ranked_ids, sims):
-            bullet = bullet_map.get(bid)
-            if bullet:
-                candidates.append(_build_scored_candidate(bullet, sim))
+    payload = {
+        "qualifications": [
+            {
+                "qual_id": qual.id,
+                "text": qual.text,
+                "kind": qual.kind.value,
+                "bullets": [
+                    {"id": b.bullet_id, "source": b.source_label, "text": b.text[:300]}
+                    for b, _ in candidates
+                ],
+            }
+            for qual, candidates in items
+        ]
+    }
 
-        logger.info(
-            "map_hit",
-            qual_id=qual.id,
-            qual_hash=qhash,
-            candidates=len(candidates),
-        )
+    data = None
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=_RERANK_MODEL,
+                temperature=0,
+                max_tokens=4096,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": _RERANK_PROMPT},
+                    {"role": "user", "content": json.dumps(payload)},
+                ],
+            )
+            raw = response.choices[0].message.content or "{}"
+            data = json.loads(raw)
+            break
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "rate_limit" in err_str.lower():
+                wait = 15.0
+                match = re.search(r"try again in ([\d.]+)s", err_str, re.IGNORECASE)
+                if match:
+                    wait = float(match.group(1)) + 2.0
+                logger.warning("rerank_rate_limited", attempt=attempt + 1, wait=wait)
+                time.sleep(wait)
+                continue
+            logger.warning("rerank_llm_error", error=str(e))
+            break
 
-        return QualCandidates(qualification=qual, candidates=candidates)
+    if data is None:
+        return _fallback()
 
-    # Map miss — embed and compute similarity
-    logger.info("map_miss", qual_id=qual.id, qual_text=qual.text[:60])
+    # Parse response: build bullet lookup per qual
+    all_bullet_map: dict[str, dict[str, tuple[Bullet, float]]] = {}
+    for qual, candidates in items:
+        all_bullet_map[qual.id] = {b.bullet_id: (b, sim) for b, sim in candidates}
 
-    bullet_vecs, bullet_ids = _get_bullet_embeddings(bullets)
-    qvec = _embed_single(qual.text)
-    qvec = qvec / np.linalg.norm(qvec)
+    result: dict[str, list[tuple[Bullet, float, str]]] = {}
+    for entry in data.get("results", []):
+        qid = entry.get("qual_id", "")
+        if qid not in all_bullet_map:
+            continue
 
-    sims = bullet_vecs @ qvec  # (73,)
-    top_idx = np.argsort(-sims)[:top_k]
+        bmap = all_bullet_map[qid]
+        scored: list[tuple[Bullet, float, str]] = []
+        for item in entry.get("scores", []):
+            bid = item.get("id", "")
+            if bid in bmap:
+                b, _ = bmap[bid]
+                llm_score = min(100.0, max(0.0, float(item.get("score", 0))))
+                scored.append((b, llm_score, item.get("reason", "")))
 
-    candidates = []
-    for idx in top_idx:
-        bid = bullet_ids[idx]
-        bullet = bullet_map.get(bid)
-        if bullet:
-            candidates.append(_build_scored_candidate(bullet, float(sims[idx])))
+        scored.sort(key=lambda x: x[1], reverse=True)
+        result[qid] = scored[:top_k]
 
-    return QualCandidates(qualification=qual, candidates=candidates)
+    # Fill missing quals with embedding fallback
+    for qual, candidates in items:
+        if qual.id not in result:
+            result[qual.id] = [
+                (b, sim * 200, f"Embedding similarity: {sim:.3f}")
+                for b, sim in candidates[:top_k]
+            ]
 
+    logger.info(
+        "batch_rerank_complete",
+        model=_RERANK_MODEL,
+        qual_count=len(items),
+        total_bullets=sum(len(cs) for _, cs in items),
+    )
+
+    return result
+
+
+# --------------------------------------------------------------------------- #
+#  Main entry point
+# --------------------------------------------------------------------------- #
 
 def rank_all_from_map(
     quals: list[Qualification],
     bullets: list[Bullet],
     top_k: int = 3,
 ) -> list[QualCandidates]:
-    """Rank bullets for all qualifications. Map hits are free, misses use OpenAI."""
+    """Rank bullets for all qualifications.
+
+    Map hits use precomputed rankings (0 API calls).
+    Map misses: 1 batched embedding call + 1 batched re-rank call = 2 total.
+    """
     t0 = time.time()
-    results = [rank_bullets_from_map(q, bullets, top_k) for q in quals]
-
     qmap = _load_map()
-    hits = sum(
-        1 for q in quals if _qual_hash(q.text) in qmap.get("quals", {})
-    )
-    misses = len(quals) - hits
+    bullet_map = {b.bullet_id: b for b in bullets}
 
+    # Phase 1: resolve map hits
+    results: dict[str, QualCandidates] = {}
+    miss_quals: list[Qualification] = []
+
+    for qual in quals:
+        qhash = _qual_hash(qual.text)
+        map_entry = qmap.get("quals", {}).get(qhash)
+
+        if map_entry:
+            ranked_ids = map_entry.get("bullets", [])[:top_k]
+            sims = map_entry.get("sim", [])[:top_k]
+            candidates = []
+            for bid, sim in zip(ranked_ids, sims):
+                bullet = bullet_map.get(bid)
+                if bullet:
+                    candidates.append(_build_scored_candidate(bullet, sim))
+            results[qual.id] = QualCandidates(qualification=qual, candidates=candidates)
+            logger.info("map_hit", qual_id=qual.id, qual_hash=qhash, candidates=len(candidates))
+        else:
+            miss_quals.append(qual)
+
+    # Phase 2: batch-embed all miss quals (1 API call)
+    if miss_quals:
+        bullet_vecs, bullet_ids = _get_bullet_embeddings(bullets)
+        qual_vecs = _embed_texts([q.text for q in miss_quals])
+
+        # Cosine similarities: (N_miss, N_bullets)
+        sim_matrix = qual_vecs @ bullet_vecs.T
+
+        retrieval_k = max(top_k * 3, 10)
+        miss_candidates: list[tuple[Qualification, list[tuple[Bullet, float]]]] = []
+
+        for i, qual in enumerate(miss_quals):
+            sims = sim_matrix[i]
+            top_idx = np.argsort(-sims)[:retrieval_k]
+            candidates = []
+            for idx in top_idx:
+                bid = bullet_ids[idx]
+                bullet = bullet_map.get(bid)
+                if bullet:
+                    candidates.append((bullet, float(sims[idx])))
+            miss_candidates.append((qual, candidates))
+
+        logger.info("batch_embed_complete", miss_count=len(miss_quals), api_calls=1)
+
+        # Phase 3: re-rank in chunks of 4 quals per LLM call to preserve quality
+        _RERANK_CHUNK = 4
+        reranked: dict[str, list[tuple[Bullet, float, str]]] = {}
+        for ci in range(0, len(miss_candidates), _RERANK_CHUNK):
+            chunk = miss_candidates[ci : ci + _RERANK_CHUNK]
+            reranked.update(_batch_rerank(chunk, top_k=top_k))
+
+        for qual, _ in miss_candidates:
+            ranked = reranked.get(qual.id, [])
+            candidates = [
+                _build_scored_candidate(bullet, score, reason)
+                for bullet, score, reason in ranked
+            ]
+            results[qual.id] = QualCandidates(qualification=qual, candidates=candidates)
+
+    # Preserve input order
+    ordered = [results[q.id] for q in quals if q.id in results]
+
+    hits = len(quals) - len(miss_quals)
     logger.info(
         "map_ranking_complete",
         total=len(quals),
         hits=hits,
-        misses=misses,
-        openai_calls=misses,
+        misses=len(miss_quals),
+        api_calls=0 if not miss_quals else (1 + ((len(miss_quals) + 3) // 4)),
         duration_ms=round((time.time() - t0) * 1000),
     )
 
-    return results
+    return ordered

@@ -4,7 +4,8 @@
   "routing": {
     "222": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/222/jobs"
     },
     "google": {
       "ats": "google-playwright"
@@ -122,7 +123,8 @@
       "slug": "mistral"
     },
     "wandb": {
-      "ats": "manual"
+      "ats": "manual",
+      "_careers_url": "https://coreweave.com/careers/weights-biases"
     },
     "weights-and-biases": {
       "ats": "smartrecruiters",
@@ -143,11 +145,16 @@
       "slug": "character"
     },
     "dbtlabs": {
-      "ats": "manual"
+      "ats": "greenhouse",
+      "slug": "dbtlabsinc",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "dbt-labs": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "dbtlabsinc",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "pave": {
       "ats": "ashby",
@@ -204,10 +211,12 @@
       "slug": "linkedin"
     },
     "microsoft": {
-      "ats": "manual"
+      "ats": "manual",
+      "_careers_url": "https://careers.microsoft.com/v2/global/en/home.html"
     },
     "apple": {
-      "ats": "manual"
+      "ats": "manual",
+      "_careers_url": "https://www.apple.com/careers/us/"
     },
     "tiktok": {
       "ats": "smartrecruiters",
@@ -288,15 +297,18 @@
     },
     "adept": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.amazon.jobs/en/teams/agi"
     },
     "activision-blizzard": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://careers.activisionblizzard.com/"
     },
     "aegis-ai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.aegisai.com/careers"
     },
     "aembit": {
       "ats": "bamboohr",
@@ -329,7 +341,8 @@
     },
     "alation": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.alation.com/careers/"
     },
     "airbyte": {
       "ats": "ashby",
@@ -339,11 +352,13 @@
     },
     "alguna": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/alguna/jobs"
     },
     "alphabet-and-google": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://www.google.com/about/careers/applications/"
     },
     "alloy": {
       "ats": "greenhouse",
@@ -361,7 +376,7 @@
     },
     "amazon-web-services": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "ambience-healthcare": {
       "ats": "ashby",
@@ -374,7 +389,8 @@
       "slug": "amd",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.508Z"
+      "_discovered_at": "2026-05-02T06:34:17.508Z",
+      "_careers_url": "https://careers.amd.com/careers-home/jobs"
     },
     "anchorage-digital": {
       "ats": "lever",
@@ -387,7 +403,8 @@
       "slug": "american-express",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "eightfold",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://www.americanexpress.com/en-us/careers/"
     },
     "angi": {
       "ats": "ashby",
@@ -403,11 +420,12 @@
     },
     "anjuna": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.anjuna.io/careers"
     },
     "appdynamics": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "applied-intuition": {
       "ats": "greenhouse",
@@ -427,15 +445,19 @@
     },
     "aqua-security": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.aquasec.com/careers/"
     },
     "aqua": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.aqua-investments.com/careers"
     },
     "arcade-ai": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "arcadeai",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "arcadia": {
       "ats": "greenhouse",
@@ -459,7 +481,8 @@
     },
     "arize-ai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://arize.com/careers/"
     },
     "armis": {
       "ats": "greenhouse",
@@ -546,7 +569,8 @@
     },
     "autonomous": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.autonomous.com/careers"
     },
     "babylist": {
       "ats": "greenhouse",
@@ -597,8 +621,10 @@
       "_discovered_at": "2026-05-02T06:23:45.845Z"
     },
     "bigeye": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "bigeye",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "bilt-rewards": {
       "ats": "custom-playwright",
@@ -637,7 +663,8 @@
     },
     "bluecargo": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/bluecargo/jobs"
     },
     "boldvoice": {
       "ats": "custom-playwright",
@@ -663,10 +690,10 @@
       "_discovered_at": "2026-05-02T06:23:54.811Z"
     },
     "booksy": {
-      "ats": "manual",
-      "slug": "booksy",
-      "_discovery_method": "workable-blocked",
-      "_discovered_at": "2026-05-02T06:39:42.941Z"
+      "ats": "workable",
+      "slug": "booksy-1",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "boomi": {
       "ats": "greenhouse",
@@ -676,7 +703,8 @@
     },
     "boston-metal": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.bostonmetal.com/careers/"
     },
     "boulevard": {
       "ats": "greenhouse",
@@ -685,16 +713,19 @@
       "_discovered_at": "2026-05-02T05:04:04.195Z"
     },
     "braintrust": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "Braintrust",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "brickanta": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/brickanta/jobs"
     },
     "bridge": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "brightline": {
       "ats": "ashby",
@@ -835,7 +866,8 @@
     },
     "centaur": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/centaur/jobs"
     },
     "cerebras-systems": {
       "ats": "greenhouse",
@@ -867,7 +899,8 @@
     },
     "charm-industrial": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://charmindustrial.com/jobs"
     },
     "chegg": {
       "ats": "smartrecruiters",
@@ -876,8 +909,10 @@
       "_discovered_at": "2026-05-02T06:24:03.375Z"
     },
     "chroma": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "trychroma",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "circle": {
       "ats": "smartrecruiters",
@@ -937,11 +972,13 @@
     },
     "climeworks": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://climeworks.com/careers"
     },
     "closure": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/closure/jobs"
     },
     "coalition": {
       "ats": "greenhouse",
@@ -974,8 +1011,10 @@
       "_discovered_at": "2026-05-02T05:05:10.538Z"
     },
     "cognizant-ai": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "cognition",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "cogram": {
       "ats": "manual",
@@ -994,8 +1033,10 @@
       "_discovered_at": "2026-05-02T06:24:07.570Z"
     },
     "collibra": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "collibra",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "color-health": {
       "ats": "ashby",
@@ -1011,11 +1052,13 @@
     },
     "confido": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/confido/jobs"
     },
     "comet-ml": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.comet.com/site/careers/"
     },
     "commonwealth-fusion-systems": {
       "ats": "lever",
@@ -1036,16 +1079,20 @@
       "_discovered_at": "2026-05-02T06:50:10.800Z"
     },
     "convex": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "convex-dev",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "copado": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.copado.com/company/careers"
     },
     "copyai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.copy.ai/careers"
     },
     "corelight": {
       "ats": "greenhouse",
@@ -1061,11 +1108,14 @@
     },
     "corgi-insurance": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.corgi.com/careers"
     },
     "counsel-health": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "counsel",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "course-hero": {
       "ats": "greenhouse",
@@ -1075,7 +1125,8 @@
     },
     "coval": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/coval/jobs"
     },
     "coupa-software": {
       "ats": "smartrecruiters",
@@ -1110,12 +1161,16 @@
       "_discovered_at": "2026-05-02T06:24:09.295Z"
     },
     "crusoe-energy": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "Crusoe",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "cube-dev": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "cubesoftware",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "culture-amp": {
       "ats": "greenhouse",
@@ -1137,7 +1192,8 @@
     },
     "cyera": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.cyera.com/careers"
     },
     "datafold": {
       "ats": "ashby",
@@ -1169,8 +1225,10 @@
       "_discovered_at": "2026-05-02T05:54:21.175Z"
     },
     "decart": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "decart-ai",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "deepgram": {
       "ats": "ashby",
@@ -1194,19 +1252,23 @@
     },
     "dex": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/dex/jobs"
     },
     "dili": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/dili/jobs"
     },
     "docsend": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://www.dropbox.jobs/en/jobs/"
     },
     "domu-technology": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.domu.ai/careers"
     },
     "distyl-ai": {
       "ats": "ashby",
@@ -1219,7 +1281,8 @@
       "slug": "docusign",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://careers.docusign.com/jobs"
     },
     "doximity": {
       "ats": "greenhouse",
@@ -1235,7 +1298,8 @@
     },
     "dreambase": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/dreambase/jobs"
     },
     "drata": {
       "ats": "ashby",
@@ -1245,18 +1309,21 @@
     },
     "drift": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "dremio": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "dremio",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "dynatrace": {
       "ats": "manual",
       "slug": "dynatrace",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "successfactors",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://www.dynatrace.com/careers/jobs/"
     },
     "easypost": {
       "ats": "lever",
@@ -1302,11 +1369,13 @@
     },
     "epirus": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.epirusinc.com/careers"
     },
     "embeddables": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/embeddables/jobs"
     },
     "etsy": {
       "ats": "smartrecruiters",
@@ -1362,7 +1431,8 @@
     },
     "extern": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/extern/jobs"
     },
     "fabric": {
       "ats": "manual",
@@ -1376,7 +1446,8 @@
     },
     "fervo-energy": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://fervoenergy.com/careers/"
     },
     "fiddler-ai": {
       "ats": "ashby",
@@ -1386,7 +1457,8 @@
     },
     "firefliesai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://fireflies.ai/careers"
     },
     "fireworks-ai": {
       "ats": "greenhouse",
@@ -1418,11 +1490,13 @@
     },
     "flyio": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://fly.io/jobs"
     },
     "forge": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.tryforge.com/careers"
     },
     "form-energy": {
       "ats": "ashby",
@@ -1431,12 +1505,14 @@
       "_discovered_at": "2026-05-02T06:24:07.890Z"
     },
     "forter": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "forter",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "fractional-ai": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "fractional-ai"
     },
     "found": {
       "ats": "ashby",
@@ -1452,7 +1528,8 @@
     },
     "freightwaves": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.freightwaves.com/careers"
     },
     "front": {
       "ats": "ashby",
@@ -1485,7 +1562,8 @@
     },
     "galileo": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.rungalileo.io/careers"
     },
     "galileo-health": {
       "ats": "smartrecruiters",
@@ -1528,7 +1606,8 @@
       "slug": "github",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://www.github.careers/careers-home"
     },
     "goat": {
       "ats": "smartrecruiters",
@@ -1538,7 +1617,8 @@
     },
     "gogograndparent": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/gogograndparent/jobs"
     },
     "goldbelly": {
       "ats": "greenhouse",
@@ -1678,7 +1758,8 @@
     },
     "heroic-labs": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://heroiclabs.com/careers"
     },
     "hims-and-hers": {
       "ats": "ashby",
@@ -1721,8 +1802,10 @@
       "_discovered_at": "2026-05-02T05:07:51.265Z"
     },
     "hippocratic-ai": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "Hippocratic AI",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "honeybook": {
       "ats": "greenhouse",
@@ -1748,13 +1831,14 @@
       "slug": "hp-inc",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "eightfold",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://jobs.hp.com/"
     },
     "hugging-face": {
-      "ats": "manual",
-      "slug": "hugging-face",
-      "_discovery_method": "workable-blocked",
-      "_discovered_at": "2026-05-02T06:39:42.975Z"
+      "ats": "workable",
+      "slug": "huggingface",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "hyperbolic": {
       "ats": "ashby",
@@ -1764,7 +1848,8 @@
     },
     "hypr": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.hypr.com/careers"
     },
     "imbue": {
       "ats": "greenhouse",
@@ -1777,7 +1862,8 @@
       "slug": "ibm",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "avature",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://www.ibm.com/careers/search"
     },
     "imperfect-foods": {
       "ats": "greenhouse",
@@ -1834,7 +1920,8 @@
     },
     "instrumentl": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.instrumentl.com/careers"
     },
     "intel": {
       "ats": "workday",
@@ -1861,8 +1948,10 @@
       "_note": "Comeet ATS - not supported"
     },
     "iterative-health": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "iterativehealth",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "iterable": {
       "ats": "greenhouse",
@@ -1887,15 +1976,18 @@
       "slug": "joby-aviation",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://www.jobyaviation.com/careers"
     },
     "iron-grid": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.irongrid.com/careers"
     },
     "jiga": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/jiga/jobs"
     },
     "justworks": {
       "ats": "greenhouse",
@@ -1921,10 +2013,10 @@
       "_discovered_at": "2026-05-02T05:54:10.022Z"
     },
     "kettle": {
-      "ats": "manual",
+      "ats": "greenhouse",
       "slug": "kettle",
-      "_discovery_method": "workable-blocked",
-      "_discovered_at": "2026-05-02T06:39:42.975Z"
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "knock": {
       "ats": "ashby",
@@ -1945,8 +2037,10 @@
       "_discovered_at": "2026-05-02T05:08:37.942Z"
     },
     "kombo": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "Kombo",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "kraken": {
       "ats": "ashby",
@@ -1973,7 +2067,8 @@
     },
     "kyber": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/kyber/jobs"
     },
     "kyruus-health": {
       "ats": "lever",
@@ -2019,7 +2114,8 @@
     },
     "lanzatech": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://lanzatech.com/careers/"
     },
     "lemonade": {
       "ats": "ashby",
@@ -2047,7 +2143,8 @@
     },
     "lightup": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://lightup.ai/careers/"
     },
     "lila-sciences": {
       "ats": "greenhouse",
@@ -2063,11 +2160,14 @@
     },
     "living-carbon": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.livingcarbon.com/careers"
     },
     "llamaindex": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "llamaindex",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "loadsmart": {
       "ats": "lever",
@@ -2077,7 +2177,7 @@
     },
     "looker": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "lucid-motors": {
       "ats": "manual",
@@ -2089,7 +2189,8 @@
     },
     "loops": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://loops.so/careers"
     },
     "loop-returns": {
       "ats": "lever",
@@ -2098,8 +2199,10 @@
       "_discovered_at": "2026-05-02T05:09:07.777Z"
     },
     "lovable": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "lovable",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "luma-ai": {
       "ats": "smartrecruiters",
@@ -2132,11 +2235,13 @@
     },
     "maintouch": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/maintouch/jobs"
     },
     "make": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.make.com/en/careers"
     },
     "marqeta": {
       "ats": "greenhouse",
@@ -2146,7 +2251,8 @@
     },
     "mason": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/mason/jobs"
     },
     "masterclass": {
       "ats": "greenhouse",
@@ -2185,7 +2291,8 @@
       "slug": "mcgraw-hill",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://careers.mheducation.com/"
     },
     "medium": {
       "ats": "greenhouse",
@@ -2195,7 +2302,8 @@
     },
     "mem": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://get.mem.ai/careers"
     },
     "mercari": {
       "ats": "greenhouse",
@@ -2204,8 +2312,10 @@
       "_discovered_at": "2026-05-02T06:23:51.334Z"
     },
     "mercor": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "mercor",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "merlin": {
       "ats": "lever",
@@ -2233,7 +2343,8 @@
     },
     "mimecast": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://careers.mimecast.com/en/jobs/"
     },
     "mindbloom": {
       "ats": "lever",
@@ -2315,7 +2426,8 @@
     },
     "moveworks": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://www.moveworks.com/us/en/company/careers"
     },
     "mozilla": {
       "ats": "greenhouse",
@@ -2331,7 +2443,7 @@
     },
     "mulesoft": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "multiverse": {
       "ats": "ashby",
@@ -2365,7 +2477,8 @@
     },
     "nebius": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://nebius.com/careers"
     },
     "new-relic": {
       "ats": "greenhouse",
@@ -2423,7 +2536,7 @@
     },
     "nuance": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "numerade": {
       "ats": "smartrecruiters",
@@ -2433,7 +2546,8 @@
     },
     "numero": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/numero/jobs"
     },
     "nuro": {
       "ats": "greenhouse",
@@ -2449,7 +2563,8 @@
     },
     "octoai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.nvidia.com/en-us/about-nvidia/careers/"
     },
     "octopus-energy": {
       "ats": "lever",
@@ -2459,7 +2574,8 @@
     },
     "okteto": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.okteto.com/careers/"
     },
     "offerup": {
       "ats": "greenhouse",
@@ -2492,15 +2608,18 @@
       "_discovered_at": "2026-05-02T06:23:42.127Z"
     },
     "openevidence": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "openevidence",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "oracle": {
       "ats": "manual",
       "slug": "oracle",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "oraclecloud",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://careers.oracle.com/en/sites/jobsearch"
     },
     "orangewood-labs": {
       "ats": "manual",
@@ -2520,7 +2639,8 @@
     },
     "otterai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://otter.ai/careers"
     },
     "oura": {
       "ats": "greenhouse",
@@ -2548,15 +2668,18 @@
     },
     "pachama": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://pachama.com/careers/"
     },
     "palmetto": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://palmetto.com/careers"
     },
     "parallel-bio": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/parallel-bio/jobs"
     },
     "palo-alto-networks": {
       "ats": "workday",
@@ -2583,7 +2706,8 @@
       "slug": "paypal",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "eightfold",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://careers.pypl.com/home/"
     },
     "peloton": {
       "ats": "greenhouse",
@@ -2592,8 +2716,10 @@
       "_discovered_at": "2026-05-02T06:23:44.534Z"
     },
     "persefoni": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "persefoniaiinc",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "pearson": {
       "ats": "custom-playwright",
@@ -2644,7 +2770,8 @@
     },
     "pointone": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.pointone.com/careers"
     },
     "pinwheel": {
       "ats": "greenhouse",
@@ -2672,11 +2799,14 @@
     },
     "polymath-robotics": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/polymath-robotics/jobs"
     },
     "polytomic": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "polytomic",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "poolside": {
       "ats": "custom-playwright",
@@ -2691,7 +2821,8 @@
     },
     "predibase": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://predibase.com/careers"
     },
     "poshmark": {
       "ats": "ashby",
@@ -2701,7 +2832,8 @@
     },
     "postal": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.postal.com/careers"
     },
     "postscript": {
       "ats": "greenhouse",
@@ -2711,7 +2843,7 @@
     },
     "power-bi": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent"
     },
     "privy": {
       "ats": "smartrecruiters",
@@ -2747,18 +2879,21 @@
     },
     "qdrant": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://qdrant.tech/careers/"
     },
     "qualcomm": {
       "ats": "manual",
       "slug": "qualcomm",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "eightfold",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://www.qualcomm.com/company/careers"
     },
     "quantumscape": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.quantumscape.com/careers/"
     },
     "quizlet": {
       "ats": "smartrecruiters",
@@ -2768,11 +2903,13 @@
     },
     "questflow": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.questflow.ai/careers"
     },
     "railway": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://railway.com/careers"
     },
     "readai": {
       "ats": "ashby",
@@ -2794,11 +2931,14 @@
     },
     "reclaimai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.dropbox.jobs/en/jobs/"
     },
     "recorded-future": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "recordedfuture",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "recursion": {
       "ats": "smartrecruiters",
@@ -2814,7 +2954,8 @@
     },
     "reframe": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/reframe/jobs"
     },
     "reka-ai": {
       "ats": "ashby",
@@ -2830,7 +2971,8 @@
     },
     "replicate": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://replicate.com/about"
     },
     "replit": {
       "ats": "ashby",
@@ -2851,8 +2993,10 @@
       "_discovered_at": "2026-05-02T05:11:46.566Z"
     },
     "resend": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "resend",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "rho": {
       "ats": "ashby",
@@ -2880,7 +3024,8 @@
     },
     "rove": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.rove.me/careers"
     },
     "rula-health": {
       "ats": "ashby",
@@ -2902,19 +3047,24 @@
     },
     "rytr": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://rytr.me/careers"
     },
     "saildrone": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.saildrone.com/careers/available-jobs"
     },
     "sakana-ai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://sakana.ai/careers/"
     },
     "sambanova-systems": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "sambanovasystems",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "sardine": {
       "ats": "ashby",
@@ -2929,8 +3079,10 @@
       "_discovered_at": "2026-05-02T05:12:14.124Z"
     },
     "salient": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "salient",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "scale-ai": {
       "ats": "greenhouse",
@@ -2940,7 +3092,8 @@
     },
     "schmidt-sciences": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.schmidtsciences.org/careers/"
     },
     "scribe": {
       "ats": "ashby",
@@ -2967,16 +3120,20 @@
       "_discovered_at": "2026-05-02T06:24:06.171Z"
     },
     "segment": {
-      "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "ats": "greenhouse",
+      "slug": "twilio",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "robust-intelligence": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://jobs.cisco.com/jobs/SearchJobs/"
     },
     "shaped": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/shaped/jobs"
     },
     "servicetitan": {
       "ats": "workday",
@@ -3000,7 +3157,8 @@
     },
     "shiru": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.shiru.com/careers"
     },
     "shippo": {
       "ats": "smartrecruiters",
@@ -3010,7 +3168,8 @@
     },
     "shortwave": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.shortwave.com/careers"
     },
     "shopify": {
       "ats": "smartrecruiters",
@@ -3038,7 +3197,8 @@
     },
     "saturn": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.saturn.live/careers"
     },
     "sila-nanotechnologies": {
       "ats": "greenhouse",
@@ -3079,7 +3239,8 @@
     },
     "solidigm": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.solidigm.com/who-we-are/careers-page/job-listings.html"
     },
     "snorkel-ai": {
       "ats": "greenhouse",
@@ -3101,7 +3262,8 @@
     },
     "solugen": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://solugen.com/careers"
     },
     "sonder": {
       "ats": "workday",
@@ -3113,7 +3275,8 @@
     },
     "sourceful": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.sourceful.com/careers"
     },
     "sony-interactive-and-playstation": {
       "ats": "smartrecruiters",
@@ -3141,7 +3304,8 @@
     },
     "splunk": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://careers.cisco.com/global/en/splunk"
     },
     "spotify": {
       "ats": "lever",
@@ -3196,8 +3360,10 @@
       "_discovered_at": "2026-05-02T06:23:43.228Z"
     },
     "stoke-space": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "greenhouse",
+      "slug": "stokespacetechnologies",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "stord": {
       "ats": "workday",
@@ -3209,7 +3375,8 @@
     },
     "sohar-health": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.soharhealth.com/careers"
     },
     "strava": {
       "ats": "ashby",
@@ -3219,7 +3386,8 @@
     },
     "structured-ai": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/structured/jobs"
     },
     "substack": {
       "ats": "ashby",
@@ -3234,8 +3402,10 @@
       "_discovered_at": "2026-05-02T06:24:02.936Z"
     },
     "sullyai": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "sully-ai",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "sumo-logic": {
       "ats": "greenhouse",
@@ -3251,7 +3421,8 @@
     },
     "sunsama": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.sunsama.com/careers"
     },
     "superhuman": {
       "ats": "ashby",
@@ -3277,8 +3448,10 @@
       "_discovered_at": "2026-05-02T05:49:13.282Z"
     },
     "sweep": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "sweep",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "synthesia": {
       "ats": "ashby",
@@ -3288,7 +3461,8 @@
     },
     "syncari": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://syncari.com/careers/"
     },
     "tabapay": {
       "ats": "greenhouse",
@@ -3298,11 +3472,13 @@
     },
     "tability": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.tability.io/careers"
     },
     "tableau": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://careers.salesforce.com/jobs/?search=tableau"
     },
     "tailscale": {
       "ats": "greenhouse",
@@ -3312,7 +3488,8 @@
     },
     "tabnine": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.tabnine.com/careers/"
     },
     "talkdesk": {
       "ats": "greenhouse",
@@ -3336,7 +3513,8 @@
       "ats": "manual",
       "slug": "tally",
       "_discovery_method": "bamboohr-redirect",
-      "_discovered_at": "2026-05-02T06:38:53.621Z"
+      "_discovered_at": "2026-05-02T06:38:53.621Z",
+      "_careers_url": "https://tallysolutions.com/careers/opportunities/"
     },
     "stubhub": {
       "ats": "greenhouse",
@@ -3357,12 +3535,16 @@
       "_discovered_at": "2026-05-02T05:13:48.302Z"
     },
     "tavily": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "tavily",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "tecton": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "lever",
+      "slug": "tecton",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "tempus-ai": {
       "ats": "workday",
@@ -3404,11 +3586,13 @@
     },
     "tines": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.tines.com/careers"
     },
     "tinybird": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.tinybird.co/careers"
     },
     "tipalti": {
       "ats": "smartrecruiters",
@@ -3429,8 +3613,10 @@
       "_discovered_at": "2026-05-02T05:14:06.490Z"
     },
     "toptal": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "lever",
+      "slug": "toptal",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "trayio": {
       "ats": "ashby",
@@ -3440,11 +3626,14 @@
     },
     "tortoise": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.tortoise.com/careers"
     },
     "triggerdev": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "ashby",
+      "slug": "triggerdev",
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "triple-whale": {
       "ats": "greenhouse",
@@ -3472,7 +3661,8 @@
     },
     "turing": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.turing.com/careers"
     },
     "turo": {
       "ats": "smartrecruiters",
@@ -3488,11 +3678,13 @@
     },
     "typeface": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.typeface.ai/careers"
     },
     "twitch": {
       "ats": "manual",
-      "_note": "subsidiary \u2014 covered by parent"
+      "_note": "subsidiary — covered by parent",
+      "_careers_url": "https://careers.twitch.com/en/careers"
     },
     "udacity": {
       "ats": "greenhouse",
@@ -3520,11 +3712,13 @@
     },
     "upstash": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://upstash.com/careers"
     },
     "v0": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://vercel.com/careers"
     },
     "vagaro": {
       "ats": "smartrecruiters",
@@ -3540,15 +3734,18 @@
     },
     "vast-data": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://vastdata.com/careers"
     },
     "vatn-systems": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.vatnsystems.com/careers"
     },
     "vahan": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://vahan.co/careers"
     },
     "veho": {
       "ats": "smartrecruiters",
@@ -3574,13 +3771,14 @@
     },
     "voltron-data": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://voltrondata.com/careers"
     },
     "veracross": {
-      "ats": "manual",
+      "ats": "workable",
       "slug": "veracross",
-      "_discovery_method": "workable-blocked",
-      "_discovered_at": "2026-05-02T06:39:42.975Z"
+      "_discovery_method": "manual-companies-md",
+      "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "visa": {
       "ats": "smartrecruiters",
@@ -3615,7 +3813,8 @@
     },
     "wayve": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://wayve.ai/careers/"
     },
     "wealthfront": {
       "ats": "lever",
@@ -3631,7 +3830,8 @@
     },
     "weekend": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/weekend/jobs"
     },
     "whatnot": {
       "ats": "ashby",
@@ -3644,11 +3844,13 @@
       "slug": "wheels-up",
       "_discovery_method": "unsupported-ats",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.512Z"
+      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_careers_url": "https://careers-wheelsup.icims.com/jobs/intro"
     },
     "varos": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/varos/jobs"
     },
     "whoop": {
       "ats": "lever",
@@ -3658,7 +3860,8 @@
     },
     "whylabs": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://whylabs.ai/careers"
     },
     "wisk-aero": {
       "ats": "workday",
@@ -3738,7 +3941,8 @@
     },
     "youshift": {
       "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "_note": "too small / no PM hiring",
+      "_careers_url": "https://www.ycombinator.com/companies/youshift/jobs"
     },
     "yellowbrick": {
       "ats": "smartrecruiters",

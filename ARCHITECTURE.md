@@ -15,10 +15,12 @@ GitHub Actions (hourly cron)
               -> Persistence (Supabase + Airtable + JSON buffers)
                 -> Notifications (email + Telegram + health alerts)
 
-Resume Tools (standalone):
+Resume Tools:
+  -> Check Fit UI (Express server: score bullets -> select -> generate tailored resume)
   -> build_template.js (ATS-validated .docx/.pdf template)
   -> fill_resume.js (populate template from master_resume.json)
   -> CLI matcher (scrape JD -> extract requirements -> match against resume -> report)
+  -> Qualification Map (Claude: cluster qualifications -> map resume bullets)
 ```
 
 ---
@@ -36,7 +38,7 @@ Resume Tools (standalone):
 9. [Local Diff & State](#9-local-diff--state)
 10. [Storage Layer](#10-storage-layer)
 11. [Notification System](#11-notification-system)
-12. [Resume Tools](#12-resume-tools)
+12. [Resume Tools](#12-resume-tools) (CLI matcher, ATS generator, Check Fit UI, Qualification Map, Inline Extractors)
 13. [People Finder](#13-people-finder)
 14. [Blackout & Safety](#14-blackout--safety)
 15. [Data Flow Diagram](#15-data-flow-diagram)
@@ -70,14 +72,23 @@ resume-matcher match --job <url> --resume <file> [--verbose]
 
 A standalone 5-stage pipeline: Scrape -> Extract -> Parse -> Match -> Report. Uses Claude API for requirement extraction and matching. Completely independent from the scanner. See [Section 12](#12-resume-tools) for details.
 
-### C. Resume Generator Scripts (root)
+### C. Check Fit Server — `src/fit/server.ts`
+
+```bash
+npm run fit:serve
+# Express on http://localhost:3847
+```
+
+Token-gated web UI for tailoring resumes to specific job listings. Proxies to a Python scoring service for bullet-level scoring, then generates ATS-optimized PDF/DOCX via `fill_resume.js`. See [Section 12C](#12-resume-tools) for full route table and generation flow.
+
+### D. Resume Generator Scripts (root)
 
 | Script | Purpose |
 |--------|---------|
 | `build_template.js` | Generate ATS-validated `.docx` + `.pdf` template with `{{PLACEHOLDERS}}` |
 | `fill_resume.js` | Populate template from `config/master_resume.json` → `out/` |
 
-### D. Utility Scripts — `scripts/`
+### E. Utility Scripts — `scripts/`
 
 | Script | Purpose |
 |--------|---------|
@@ -673,6 +684,66 @@ scraper.ts → extractor.ts → parser.ts → matcher.ts → reporter.ts
 npm run match -- --job <url> --resume <file> [--verbose]
 ```
 
+### C. Check Fit — Resume Tailoring Web UI (`src/fit/`)
+
+Express-based web application that lets users tailor their resume to a specific job listing. Token-gated access, server-rendered pages, and integration with a Python scoring service.
+
+**Entry:** `src/fit/server.ts` — Express on port `FIT_PORT` (default 3847)
+
+**Routes:**
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/fit/:jobId` | Token-gated, server-rendered Fit page |
+| `POST` | `/fit/:jobId/score` | Proxy to Python `/score` — retrieve bullet scores |
+| `POST` | `/fit/:jobId/select` | Proxy to Python `/select` — apply user selections |
+| `POST` | `/fit/:jobId/generate` | Compose payload → regen summary → call `fill_resume.js` |
+| `GET` | `/fit/:jobId/download/pdf` | Stream generated PDF |
+| `GET` | `/fit/:jobId/download/docx` | Stream generated DOCX |
+
+**Generation flow** (`generateResume.ts`):
+
+1. Accept bullet selections from UI
+2. Load `config/master_resume.json`
+3. Apply dynamic 4+2 source selection (based on scores)
+4. Map selected bullets to template slots
+5. Regenerate professional summary via Claude (`summaryGenerator.ts`)
+6. Optimize skills section via Claude (`skillsOptimizer.ts`)
+7. Shell out to `fill_resume.js --input <path> --out-basename <name>`
+8. Return PDF + DOCX file paths in `out/`
+
+**AI-powered helpers:**
+
+| Module | Purpose |
+|--------|---------|
+| `summaryGenerator.ts` | Claude: generate 3 summary candidates, pick best match for JD |
+| `skillsOptimizer.ts` | Claude: reorder/optimize skills section for ATS keyword density |
+| `coverLetterGenerator.ts` | Claude: generate tailored cover letter from resume bullets + JD |
+
+**Python scoring service** (`ats_bullet_selector/`):
+
+Separate Python process (default `http://127.0.0.1:8001`) that scores resume bullets against job qualifications using `text-embedding-3-large`. Handles type-routed scoring for education, years-of-experience, and skills qualifications.
+
+### D. Qualification Map (`src/qualificationMap.ts`)
+
+Generates a qualification-to-resume-bullet knowledge base for the Python ATS scorer:
+
+1. Fetch all qualifications from `job_listings` (required + preferred)
+2. Deduplicate exact strings
+3. Load master resume bullets
+4. Call Claude to group qualifications into 15–30 semantic clusters, extract ATS keywords per cluster, and map relevant resume bullets by ID
+5. Write output to `ats_bullet_selector/outputs/qualification_map.json`
+
+### E. Inline LLM Extractors (`src/storage/`)
+
+Three LLM-powered extractors that enrich job listings during the Supabase write phase:
+
+| Module | Purpose |
+|--------|---------|
+| `extractSkillsInline.ts` | Extract technical/soft skills from job descriptions |
+| `extractYoeInline.ts` | Extract years-of-experience requirements from descriptions |
+| `cleanQualsInline.ts` | Normalize and deduplicate qualification strings |
+
 ---
 
 ## 13. People Finder
@@ -796,6 +867,19 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
               |  +-- Telegram digest (Markdown)      |
               |  +-- Health alerts                   |
               +--------------------------------------+
+
++------------------------------------------------------------------+
+|  CHECK FIT — Resume Tailoring (standalone web UI)                |
+|                                                                  |
+|  Email digest "Check Fit" link                                   |
+|    -> Express /fit/:jobId (token-gated)                          |
+|      -> POST /score -> Python scorer (text-embedding-3-large)    |
+|        -> User selects bullets in UI                             |
+|          -> POST /generate                                       |
+|            -> Claude: regen summary + optimize skills            |
+|            -> fill_resume.js -> out/ (PDF + DOCX)               |
+|              -> GET /download/pdf or /download/docx              |
++------------------------------------------------------------------+
 ```
 
 ---
@@ -818,6 +902,8 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 | **Inline Workday JD fetch** | Descriptions fetched during scrape (5 concurrent) instead of deferred. Eliminates a separate pass and simplifies the pipeline. |
 | **Flat email digest (no tiers)** | Strict newest-first sort replaced tier grouping. APM roles get their own sections with distinct visual treatment. Simpler for the reader. |
 | **ATS-validated resume generation** | Pure Node.js (docx-js + pdfkit) — no LibreOffice or external binary. Character budgets enforce one-page fit. |
+| **Token-gated Fit UI** | Check Fit routes require `FIT_TOKEN_SECRET` — prevents unauthorized resume generation. Python scorer runs as a separate process for isolation. |
+| **Qualification clustering** | Claude groups raw qualifications into semantic clusters with ATS keywords, enabling the Python scorer to match bullets by meaning rather than exact text. |
 
 ---
 
@@ -890,6 +976,9 @@ src/
     parserRuns.ts           Parser run tracking
     deactivateUnseen.ts     Mark stale listings inactive
     pendingBuffer.ts        JSON buffer for Supabase outages
+    extractSkillsInline.ts  LLM: extract skills from descriptions
+    extractYoeInline.ts     LLM: extract YOE from descriptions
+    cleanQualsInline.ts     LLM: normalize qualifications
 
   notify/
     email.ts                Rich HTML email digest
@@ -899,10 +988,23 @@ src/
     healthAlert.ts          Error/suspicious alerting
     healthState.ts          Per-company error history
 
+  fit/
+    server.ts               Express server (port 3847) + routes
+    generateResume.ts       Bullet selection → fill_resume.js
+    render.ts               Server-render Fit page (token-gated)
+    skillsOptimizer.ts      Claude: optimize skills section
+    summaryGenerator.ts     Claude: generate professional summary
+    coverLetterGenerator.ts Claude: tailored cover letters
+    types.ts                Zod schemas for scoring/selection
+    slug.ts                 Filename slug generator
+    client.js               Frontend JS
+
   airtable/
     upsert.ts               Legacy Airtable upsert
 
   jdExtractor.ts            Deterministic JD extraction (no LLM primary path)
+  qualificationMap.ts       Claude: group qualifications → semantic clusters
+
   types/
     extractedJD.ts          Zod schema for ExtractedJD
 
@@ -922,6 +1024,11 @@ config/
   ats_research.md           ATS compatibility research & spec
   Resume_Template.docx      Generated ATS-validated template
   Resume_Template.pdf       PDF version of template
+
+ats_bullet_selector/        Python scoring service for resume tailoring
+  models.py                 Scoring models (text-embedding-3-large)
+  outputs/
+    qualification_map.json  Qualification clusters → bullet mappings
 
 build_template.js           ATS-validated resume template generator (docx + pdf)
 fill_resume.js              Populate template from master_resume.json (docx + pdf)
@@ -1019,4 +1126,11 @@ BLACKOUT_END_HOUR=5
 # Scan control
 IGNORE_BLACKOUT=false
 SCAN_POOL=all          # all | api | playwright
+
+# Check Fit server
+FIT_PORT=3847
+FIT_TOKEN_SECRET=...
+FIT_BASE_URL=https://pm-scout.example.com
+BULLET_SELECTOR_URL=http://127.0.0.1:8001
+OPENAI_KEY=...         # For text-embedding-3-large in Python scorer
 ```

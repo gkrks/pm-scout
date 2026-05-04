@@ -214,17 +214,18 @@ interface GHJob {
   content?: string;         // HTML description
 }
 
-async function scrapeGreenhouse(companyName: string, slug: string, careersUrl: string): Promise<Job[]> {
+async function scrapeGreenhouse(companyName: string, slug: string, careersUrl: string, roles: string[] = []): Promise<Job[]> {
   const url = `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`;
   const resp = await fetchWithTimeout(url);
   if (!resp.ok) throw new Error(`GH ${slug}: HTTP ${resp.status}`);
 
   const data = (await resp.json()) as { jobs: GHJob[] };
+  const rawCount = data.jobs?.length ?? 0;
   const jobs: Job[] = [];
   const cutoff = getDateCutoff();
 
   for (const j of data.jobs ?? []) {
-    if (!isPmRole(j.title)) continue;
+    if (!isPmRoleForConfig(j.title, roles)) continue;
     if (!isUsLocation(j.location?.name ?? "")) continue;
 
     // Prefer first_published (exact posting date); fall back to updated_at
@@ -256,6 +257,12 @@ async function scrapeGreenhouse(companyName: string, slug: string, careersUrl: s
     });
   }
 
+  if (jobs.length === 0 && rawCount > 0) {
+    console.log(`[scraper] ${companyName}: ${rawCount} raw jobs from Greenhouse, 0 after PM/location/experience filter`);
+  } else if (rawCount === 0) {
+    console.log(`[scraper] ${companyName}: Greenhouse board "${slug}" returned 0 jobs`);
+  }
+
   return jobs;
 }
 
@@ -271,17 +278,19 @@ interface LeverJob {
   lists?: Array<{ text: string; content: string }>;
 }
 
-async function scrapeLever(companyName: string, slug: string, careersUrl: string): Promise<Job[]> {
+async function scrapeLever(companyName: string, slug: string, careersUrl: string, roles: string[] = []): Promise<Job[]> {
   const url = `https://api.lever.co/v0/postings/${slug}?mode=json`;
   const resp = await fetchWithTimeout(url);
   if (!resp.ok) throw new Error(`Lever ${slug}: HTTP ${resp.status}`);
 
   const data = (await resp.json()) as LeverJob[];
+  const rawList = Array.isArray(data) ? data : [];
+  const rawCount = rawList.length;
   const jobs: Job[] = [];
   const cutoff = getDateCutoff();
 
-  for (const j of Array.isArray(data) ? data : []) {
-    if (!isPmRole(j.text)) continue;
+  for (const j of rawList) {
+    if (!isPmRoleForConfig(j.text, roles)) continue;
     const loc = j.categories?.location ?? "";
     if (!isUsLocation(loc)) continue;
 
@@ -314,6 +323,12 @@ async function scrapeLever(companyName: string, slug: string, careersUrl: string
     });
   }
 
+  if (jobs.length === 0 && rawCount > 0) {
+    console.log(`[scraper] ${companyName}: ${rawCount} raw jobs from Lever, 0 after PM/location/experience filter`);
+  } else if (rawCount === 0) {
+    console.log(`[scraper] ${companyName}: Lever board "${slug}" returned 0 jobs`);
+  }
+
   return jobs;
 }
 
@@ -339,18 +354,19 @@ interface AshbyResponse {
   jobPostings?: AshbyJob[];
 }
 
-async function scrapeAshby(companyName: string, slug: string, careersUrl: string): Promise<Job[]> {
+async function scrapeAshby(companyName: string, slug: string, careersUrl: string, roles: string[] = []): Promise<Job[]> {
   const url = `https://api.ashbyhq.com/posting-api/job-board/${slug}`;
   const resp = await fetchWithTimeout(url);
   if (!resp.ok) throw new Error(`Ashby ${slug}: HTTP ${resp.status}`);
 
   const data = (await resp.json()) as AshbyResponse;
   const rawJobs: AshbyJob[] = data.jobs ?? data.jobPostings ?? [];
+  const rawCount = rawJobs.length;
   const jobs: Job[] = [];
   const cutoff = getDateCutoff();
 
   for (const j of rawJobs) {
-    if (!isPmRole(j.title)) continue;
+    if (!isPmRoleForConfig(j.title, roles)) continue;
 
     const loc = j.locationName ?? j.location ?? (j.isRemote ? "Remote" : "");
     if (!isUsLocation(loc)) continue;
@@ -392,6 +408,12 @@ async function scrapeAshby(companyName: string, slug: string, careersUrl: string
       earlyCareer: isEarlyCareer(j.title, descText),
       description: descHtml || descText,
     });
+  }
+
+  if (jobs.length === 0 && rawCount > 0) {
+    console.log(`[scraper] ${companyName}: ${rawCount} raw jobs from Ashby, 0 after PM/location/experience filter`);
+  } else if (rawCount === 0) {
+    console.log(`[scraper] ${companyName}: Ashby board "${slug}" returned 0 jobs`);
   }
 
   return jobs;
@@ -1007,9 +1029,10 @@ export async function scrapeCompany(
  * Throws on any error — the caller is responsible for retry and timeout wrapping.
  */
 export async function scrapeCompanyByConfig(company: CompanyConfig): Promise<Job[]> {
-  if (company.ats === "greenhouse")        return scrapeGreenhouse(company.name, company.slug!, company.careersUrl);
-  if (company.ats === "lever")             return scrapeLever(company.name, company.slug!, company.careersUrl);
-  if (company.ats === "ashby")             return scrapeAshby(company.name, company.slug!, company.careersUrl);
+  const roles = company.roles ?? [];
+  if (company.ats === "greenhouse")        return scrapeGreenhouse(company.name, company.slug!, company.careersUrl, roles);
+  if (company.ats === "lever")             return scrapeLever(company.name, company.slug!, company.careersUrl, roles);
+  if (company.ats === "ashby")             return scrapeAshby(company.name, company.slug!, company.careersUrl, roles);
   if (company.ats === "workday")           return scrapeWorkdayCompany(company);
   if (company.ats === "smartrecruiters")   return scrapeSmartRecruitersCompany(company);
   if (company.ats === "workable")          return scrapeApiCompany(company, workableScraper, "workable");
@@ -1042,6 +1065,7 @@ async function scrapeWorkdayCompany(company: CompanyConfig): Promise<Job[]> {
     { timeoutMs: 25_000 },
   );
 
+  const rawCount = result.jobs.length;
   const cutoff = getDateCutoff();
   const roles  = company.roles ?? [];
   const jobs: Job[] = [];
@@ -1066,6 +1090,12 @@ async function scrapeWorkdayCompany(company: CompanyConfig): Promise<Job[]> {
     });
   }
 
+  if (jobs.length === 0 && rawCount > 0) {
+    console.log(`[scraper] ${company.name}: ${rawCount} raw jobs from Workday, 0 after PM/location/experience filter`);
+  } else if (rawCount === 0) {
+    console.log(`[scraper] ${company.name}: Workday returned 0 jobs`);
+  }
+
   return jobs;
 }
 
@@ -1086,6 +1116,7 @@ async function scrapeSmartRecruitersCompany(company: CompanyConfig): Promise<Job
     { timeoutMs: 15_000 },
   );
 
+  const rawCount = result.jobs.length;
   const cutoff = getDateCutoff();
   const roles  = company.roles ?? [];
   const jobs: Job[] = [];
@@ -1108,6 +1139,12 @@ async function scrapeSmartRecruitersCompany(company: CompanyConfig): Promise<Job
       earlyCareer: isEarlyCareer(j.title, j.description ?? ""),
       description: j.description ?? "",
     });
+  }
+
+  if (jobs.length === 0 && rawCount > 0) {
+    console.log(`[scraper] ${company.name}: ${rawCount} raw jobs from SmartRecruiters, 0 after PM/location/experience filter`);
+  } else if (rawCount === 0) {
+    console.log(`[scraper] ${company.name}: SmartRecruiters returned 0 jobs`);
   }
 
   return jobs;
@@ -1134,6 +1171,7 @@ async function scrapeApiCompany(
     { timeoutMs: 15_000 },
   );
 
+  const rawCount = result.jobs.length;
   const cutoff = getDateCutoff();
   const roles  = company.roles ?? [];
   const jobs: Job[] = [];
@@ -1156,6 +1194,12 @@ async function scrapeApiCompany(
       earlyCareer: isEarlyCareer(j.title, j.description ?? ""),
       description: j.description ?? "",
     });
+  }
+
+  if (jobs.length === 0 && rawCount > 0) {
+    console.log(`[scraper] ${company.name}: ${rawCount} raw jobs from ${atsName}, 0 after PM/location/experience filter`);
+  } else if (rawCount === 0) {
+    console.log(`[scraper] ${company.name}: ${atsName} returned 0 jobs`);
   }
 
   return jobs;

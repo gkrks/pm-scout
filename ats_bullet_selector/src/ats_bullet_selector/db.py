@@ -150,7 +150,9 @@ def extract_qualifications(job_row: dict[str, Any]) -> list[Qualification]:
     """Extract qualifications from a job_listings row into Qualification objects."""
     quals: list[Qualification] = []
 
-    required = job_row.get("jd_required_qualifications") or []
+    required = _split_compound_qualifications(
+        job_row.get("jd_required_qualifications") or []
+    )
     for i, text in enumerate(required):
         quals.append(Qualification(
             id=f"q_basic_{i}",
@@ -158,7 +160,9 @@ def extract_qualifications(job_row: dict[str, Any]) -> list[Qualification]:
             text=str(text),
         ))
 
-    preferred = job_row.get("jd_preferred_qualifications") or []
+    preferred = _split_compound_qualifications(
+        job_row.get("jd_preferred_qualifications") or []
+    )
     for i, text in enumerate(preferred):
         quals.append(Qualification(
             id=f"q_preferred_{i}",
@@ -177,6 +181,68 @@ def extract_qualifications(job_row: dict[str, Any]) -> list[Qualification]:
 # --------------------------------------------------------------------------- #
 #  Helpers
 # --------------------------------------------------------------------------- #
+
+import re
+
+_MIN_COMPOUND_LEN = 200
+_MIN_CHUNK_LEN = 40
+
+
+def _split_compound_qualifications(items: list[str]) -> list[str]:
+    """Split compound qualification strings that were concatenated into one item.
+
+    Handles two cases:
+    1. Cheerio .text() concatenation artifact — no space between sentences
+       (e.g. "resume.Real delivery") caused by HTML like <li><p>A</p><p>B</p></li>.
+    2. Paragraph-style qualifications — multiple topics in one long string with
+       short topic-header sentences ("Real delivery experience.").
+    """
+    result: list[str] = []
+    for item in items:
+        text = str(item)
+        if len(text) <= _MIN_COMPOUND_LEN:
+            result.append(text)
+            continue
+
+        # Primary: split on concatenation artifacts — sentence-ending punctuation
+        # immediately followed by a capital letter with NO space.
+        parts = re.split(r"(?<=[.!?])(?=[A-Z])", text)
+        if len(parts) > 1:
+            result.extend(p for p in parts if p.strip())
+            continue
+
+        # Fallback: split properly-spaced text on topic-header boundaries.
+        sentences = re.split(r"(?<=\.)\s+(?=[A-Z])", text)
+        if len(sentences) <= 1:
+            result.append(text)
+            continue
+
+        chunks: list[str] = []
+        current = sentences[0]
+        for sent in sentences[1:]:
+            is_topic = (
+                len(sent) < 60
+                and re.match(r"^[A-Z][a-z]", sent)
+                and not re.match(
+                    r"^(?:You|We |This |It |That |The |Our |If |But |And |Or )",
+                    sent, re.IGNORECASE,
+                )
+            )
+            if is_topic and len(current) >= _MIN_CHUNK_LEN:
+                chunks.append(current.strip())
+                current = sent
+            else:
+                current += " " + sent
+        if current.strip():
+            chunks.append(current.strip())
+
+        if len(chunks) > 1 and all(len(c) >= _MIN_CHUNK_LEN for c in chunks):
+            result.extend(chunks)
+        else:
+            result.append(text)
+
+    return result
+
 
 def _parse_end_date(raw: Optional[str]) -> Optional[date]:
     """Parse 'YYYY-MM' or 'Present'/None into a date (1st of month)."""
