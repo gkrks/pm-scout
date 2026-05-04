@@ -40,7 +40,7 @@ const generatedFiles = new Map<string, { pdfPath: string; docxPath: string }>();
 const app = express();
 app.use(express.json());
 
-const PORT = parseInt(process.env.FIT_PORT || "3847", 10);
+const PORT = parseInt(process.env.PORT || process.env.FIT_PORT || "3847", 10);
 const TOKEN_SECRET = process.env.FIT_TOKEN_SECRET || "";
 const BULLET_SELECTOR_URL = process.env.BULLET_SELECTOR_URL || "http://127.0.0.1:8001";
 
