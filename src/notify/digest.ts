@@ -151,7 +151,7 @@ export function buildTierTelegramMessages(
 
       for (const j of cJobs) {
         const loc    = formatLocation(j.location, j.workType);
-        const exp    = formatExperience(j.earlyCareer);
+        const exp    = formatExperience(j.earlyCareer, j.yoeMin, j.yoeMax);
         const posted = formatPostedAgo(j.datePosted, now);
         const apm    = activeApmProgram(meta);
 

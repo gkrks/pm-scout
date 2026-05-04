@@ -105,7 +105,7 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
     const companyType = formatCompanyType(meta);
     const apm         = activeApmProgram(meta);
     const loc         = formatLocation(j.location, j.workType);
-    const exp         = formatExperience(j.earlyCareer);
+    const exp         = formatExperience(j.earlyCareer, j.yoeMin, j.yoeMax);
     const posted      = formatPostedAgo(j.datePosted, now);
 
     // Label styling — muted for standard, themed for APM rows
@@ -227,7 +227,7 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     const companyType = formatCompanyType(meta);
     const apm         = activeApmProgram(meta);
     const loc         = formatLocation(j.location, j.workType);
-    const exp         = formatExperience(j.earlyCareer);
+    const exp         = formatExperience(j.earlyCareer, j.yoeMin, j.yoeMax);
     const posted      = formatPostedAgo(j.datePosted, now);
 
     const parts = [

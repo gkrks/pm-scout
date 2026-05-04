@@ -27,6 +27,8 @@ export interface Job {
   applyUrl: string;
   careersUrl: string;    // company careers portal
   earlyCareer: boolean;
+  yoeMin?: number | null;  // from jd_required_qualifications (LLM-extracted)
+  yoeMax?: number | null;
   description: string; // raw HTML — never sent to frontend
 
   tier?: "T0" | "T1" | "T2" | "T3" | "T3R"; // Company's target-list tier (legacy)

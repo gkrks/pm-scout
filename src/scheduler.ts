@@ -19,6 +19,7 @@ import {
 } from "./storage/pendingBuffer";
 import { acquireLock, releaseLock } from "./orchestrator/lock";
 import { extractSkillsForNewListings } from "./storage/extractSkillsInline";
+import { extractYoeForNewListings } from "./storage/extractYoeInline";
 import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan";
 import type { CompanyResult } from "./orchestrator/classify";
 import { extractJD } from "./jdExtractor";
@@ -164,14 +165,36 @@ async function writeToSupabase(
       if (lid) j.supabaseId = lid;
     }
 
-    // Extract skills for new listings inline (gpt-4o-mini, ~$0.0001 each)
+    // Extract skills + YOE for new listings inline (gpt-4o-mini, ~$0.0002 each)
     const newListingIds = results
       .filter((r) => r.seenState === "new")
       .map((r) => r.listingId);
     if (newListingIds.length > 0) {
-      await extractSkillsForNewListings(newListingIds).catch((err) => {
-        console.warn(`[scheduler] Skill extraction failed for ${company.name}: ${err.message}`);
-      });
+      await Promise.all([
+        extractSkillsForNewListings(newListingIds).catch((err) => {
+          console.warn(`[scheduler] Skill extraction failed for ${company.name}: ${err.message}`);
+        }),
+        extractYoeForNewListings(newListingIds).catch((err) => {
+          console.warn(`[scheduler] YOE extraction failed for ${company.name}: ${err.message}`);
+        }),
+      ]);
+
+      // Read back YOE values and populate on Job objects for email filtering
+      const sb = (await import("./storage/supabase")).getSupabaseClient();
+      const { data: yoeRows } = await sb
+        .from("job_listings")
+        .select("id, yoe_min, yoe_max")
+        .in("id", newListingIds);
+      if (yoeRows) {
+        const yoeMap = new Map(yoeRows.map((r: any) => [r.id, { min: r.yoe_min, max: r.yoe_max }]));
+        for (const j of dedupedJobs) {
+          if (j.supabaseId && yoeMap.has(j.supabaseId)) {
+            const yoe = yoeMap.get(j.supabaseId)!;
+            j.yoeMin = yoe.min;
+            j.yoeMax = yoe.max;
+          }
+        }
+      }
     }
 
     if (!failedCompanyNames.has(company.name)) {
@@ -526,7 +549,7 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
     // (keyed on normalized role_url) — this prevents duplicates across scans.
     // Fall back to the local applyJobDiff result when Supabase is not in use.
 
-    const notificationNewJobs: Job[] = supabaseNewRoleUrls !== null
+    const notificationNewJobsRaw: Job[] = supabaseNewRoleUrls !== null
       ? diffed.filter((j) => {
           const normalized = normalizeRoleUrl(j.applyUrl);
           if (!supabaseNewRoleUrls!.has(normalized)) return false;
@@ -546,6 +569,12 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
           return true;
         })
       : newJobs; // local diff fallback
+
+    // Filter: only include jobs where yoe_min <= 3 or NULL (early-career/junior roles)
+    const notificationNewJobs = notificationNewJobsRaw.filter((j) => {
+      if (j.yoeMin == null) return true;  // NULL = unknown, include
+      return j.yoeMin <= 3;
+    });
 
     // ── Finalise app status ──────────────────────────────────────────────────
 

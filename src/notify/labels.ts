@@ -138,7 +138,18 @@ export function formatLocation(location: string | undefined, workType: string | 
   }
 }
 
-/** "Entry-level" if earlyCareer, else "≤3 yrs" (all passing jobs meet this). */
-export function formatExperience(earlyCareer: boolean): string {
-  return earlyCareer ? "Entry-level" : "≤3 yrs";
+/** Format experience from yoe_min/yoe_max when available, else earlyCareer fallback. */
+export function formatExperience(
+  earlyCareer: boolean,
+  yoeMin?: number | null,
+  yoeMax?: number | null,
+): string {
+  if (yoeMin != null || yoeMax != null) {
+    const min = yoeMin ?? 0;
+    const max = yoeMax;
+    if (min === 0 && max != null && max <= 2) return "Entry-level (0-" + max + " yrs)";
+    if (max != null) return min + "-" + max + " yrs";
+    return min + "+ yrs";
+  }
+  return earlyCareer ? "Entry-level" : "-";
 }
