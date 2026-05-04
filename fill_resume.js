@@ -151,15 +151,17 @@ const edus = data.education.map(e => ({
   dates: fmtDate(e.start_date) + " \u2013 " + fmtDate(e.end_date),
 }));
 
-const skillCategories = [
-  { header: "Product and Strategy", skills: data.skills[1].skills },
-  { header: "Data, ML and Search", skills: data.skills[2].skills },
-  { header: "Backend and Systems", skills: data.skills[3].skills },
-];
-const skills = skillCategories.map(cat => ({
-  name: cat.header,
-  list: [...cat.skills].sort((a, b) => b.length - a.length).slice(0, 4).join(", "),
-}));
+// Skills: use __skills_override if present (from skills optimizer), else default
+const skills = data.__skills_override
+  ? data.__skills_override.map(s => ({ name: s.name, list: s.list }))
+  : [
+      { header: "Product and Strategy", skills: data.skills[1].skills },
+      { header: "Data, ML and Search", skills: data.skills[2].skills },
+      { header: "Backend and Systems", skills: data.skills[3].skills },
+    ].map(cat => ({
+      name: cat.header,
+      list: [...cat.skills].sort((a, b) => b.length - a.length).slice(0, 4).join(", "),
+    }));
 
 // ============================================================
 // DOCX GENERATION

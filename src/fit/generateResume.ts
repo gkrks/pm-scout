@@ -19,6 +19,7 @@ import path from "path";
 import OpenAI from "openai";
 
 import { getSupabaseClient } from "../storage/supabase";
+import { optimizeSkills } from "./skillsOptimizer";
 import { slug, resumeBasename } from "./slug";
 import type { UserSelection, ScoreResponse } from "./types";
 
@@ -99,7 +100,7 @@ export async function generateResume(
       id, title, role_url,
       jd_job_title, jd_company_name,
       jd_required_qualifications, jd_preferred_qualifications,
-      jd_role_context, jd_skills, ats_platform,
+      jd_role_context, jd_skills, jd_ats_keywords, ats_platform,
       company:companies!inner(name, slug)
     `)
     .eq("id", jobId)
@@ -264,6 +265,15 @@ export async function generateResume(
     selectedBulletTexts,
     masterResume,
   );
+
+  // Optimize skills: pick 3 best categories, fill gaps from JD
+  const skillsResult = optimizeSkills(
+    masterResume.skills || [],
+    selectedBulletTexts,
+    job.jd_skills,
+    job.jd_ats_keywords,
+  );
+  (workingResume as any).__skills_override = skillsResult.lines;
 
   // Write working resume to temp dir
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "fit-resume-"));
