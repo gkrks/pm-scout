@@ -434,12 +434,20 @@ function buildPdf() {
   }
 
   // --- Contact (with breathing room) ---
-  centerText(NAME, 15, FONT_BOLD);
-  advanceY(lineH + 6);
-  centerText(`${LOCATION} | ${PHONE} | ${EMAIL}`, 10);
-  advanceY(lineH + 2);
-  centerText(`${LINKEDIN} | ${GITHUB} | ${WEBSITE}`, 10);
-  advanceY(lineH + 4);
+  // Use doc.text() with width+align instead of absolute positioning
+  // so PDFKit writes content in visual order for ATS text extraction
+  doc.font(FONT_BOLD).fontSize(15);
+  doc.text(NAME, leftX, y, { width: usableW, align: "center" });
+  y += doc.heightOfString(NAME, { width: usableW }) + 6;
+
+  doc.font(FONT).fontSize(10);
+  var contactLine = `${LOCATION} | ${PHONE} | ${EMAIL}`;
+  doc.text(contactLine, leftX, y, { width: usableW, align: "center" });
+  y += doc.heightOfString(contactLine, { width: usableW }) + 2;
+
+  var linksLine = `${LINKEDIN} | ${GITHUB} | ${WEBSITE}`;
+  doc.text(linksLine, leftX, y, { width: usableW, align: "center" });
+  y += doc.heightOfString(linksLine, { width: usableW }) + 4;
 
   // --- Summary ---
   drawSectionHeading("Summary");
