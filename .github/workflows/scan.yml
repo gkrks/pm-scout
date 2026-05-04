@@ -29,7 +29,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 12   # hard kill if a run somehow exceeds budget
+    timeout-minutes: 25   # hard kill if a run somehow exceeds budget
 
     steps:
       - name: Checkout

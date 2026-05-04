@@ -26,6 +26,56 @@ import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan"
 import type { CompanyResult } from "./orchestrator/classify";
 import { extractJD } from "./jdExtractor";
 
+// ── Sync targets.json → Supabase companies ──────────────────────────────────
+
+async function syncCompaniesToSupabase(): Promise<void> {
+  const fs = await import("fs");
+  const path = await import("path");
+  const configPath = path.join(process.cwd(), "config", "targets.json");
+  if (!fs.existsSync(configPath)) return;
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  } catch { return; }
+
+  const companies: any[] = parsed.companies ?? [];
+  if (companies.length === 0) return;
+
+  const { getSupabaseClient } = await import("./storage/supabase");
+  const supabase = getSupabaseClient();
+
+  const rows = companies.map((c: any) => ({
+    id:                 c.uuid,
+    slug:               c.slug,
+    name:               c.name,
+    category:           c.category,
+    careers_url:        c.careers_url,
+    program_url:        c.program_url ?? null,
+    has_apm_program:    c.has_apm_program,
+    apm_program_name:   c.apm_program_name ?? null,
+    apm_program_status: c.apm_program_status ?? null,
+    domain_tags:        c.domain_tags ?? [],
+    target_roles:       c.target_roles ?? [],
+    notes:              c.notes ?? null,
+    content_hash:       c.content_hash,
+  }));
+
+  // Batch upsert in chunks of 50
+  let upserted = 0;
+  for (let i = 0; i < rows.length; i += 50) {
+    const batch = rows.slice(i, i + 50);
+    const { error } = await supabase.from("companies").upsert(batch, { onConflict: "id" });
+    if (error) {
+      console.warn(`[syncCompanies] Batch ${Math.floor(i / 50) + 1} failed: ${error.message}`);
+    } else {
+      upserted += batch.length;
+    }
+  }
+
+  console.log(`[syncCompanies] Synced ${upserted}/${rows.length} companies to Supabase`);
+}
+
 // ── Supabase helpers ──────────────────────────────────────────────────────────
 
 function isSupabaseConfigured(): boolean {
@@ -297,6 +347,11 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
     );
     await replayPendingBuffer().catch((e: unknown) =>
       console.warn(`[scheduler] replayPendingBuffer: ${e instanceof Error ? e.message : e}`),
+    );
+    // Sync targets.json → Supabase companies table so URL/metadata changes
+    // are reflected without a manual script run.
+    await syncCompaniesToSupabase().catch((e: unknown) =>
+      console.warn(`[scheduler] syncCompanies: ${e instanceof Error ? e.message : e}`),
     );
   }
 

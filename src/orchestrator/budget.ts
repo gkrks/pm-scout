@@ -6,7 +6,7 @@
  * per-platform timeout. If not, mark the remainder as 'skipped-budget'.
  */
 
-export const DEFAULT_RUN_BUDGET_MS = 9 * 60_000; // 9 minutes
+export const DEFAULT_RUN_BUDGET_MS = 20 * 60_000; // 20 minutes
 
 export class RunBudget {
   private readonly startMs: number;

@@ -5,7 +5,7 @@
  * Syncs config/targets.json into the Supabase `public.companies` table.
  *
  * Run on initial setup and whenever targets.json changes.
- * Do NOT run on every hourly scan.
+ * Also runs automatically at the start of each hourly scan (see scheduler.ts).
  *
  * Usage:
  *   npm run sync:companies
