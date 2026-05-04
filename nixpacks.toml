@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "python312", "gcc"]
+
+[phases.install]
+cmds = [
+  "npm ci",
+  "cd ats_bullet_selector && pip install -r requirements.txt && python -m spacy download en_core_web_sm"
+]
+
+[start]
+cmd = "npx ts-node src/fit/server.ts"

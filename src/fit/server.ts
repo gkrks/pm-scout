@@ -504,13 +504,59 @@ function sweepGeneratedResumes(): void {
 
 export { app, generateToken };
 
+/**
+ * Start the Python bullet selector as a child process.
+ * Used in cloud deployments (Railway) where both services run in one container.
+ */
+function startPythonService(): void {
+  if (process.env.SKIP_PYTHON === "true") return;
+
+  const pyDir = path.resolve(__dirname, "../../ats_bullet_selector");
+  const { spawn } = require("child_process");
+
+  // Check if Python service is already running externally
+  const checkUrl = BULLET_SELECTOR_URL + "/healthz";
+  fetch(checkUrl, { timeout: 2000 } as any)
+    .then((r: any) => {
+      if (r.ok) {
+        console.log("[fit] Python service already running at", BULLET_SELECTOR_URL);
+      }
+    })
+    .catch(() => {
+      console.log("[fit] Starting Python bullet selector...");
+      const py = spawn("uvicorn", ["server:app", "--host", "0.0.0.0", "--port", "8001"], {
+        cwd: pyDir,
+        env: { ...process.env, PATH: process.env.PATH },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      py.stdout.on("data", (d: Buffer) => {
+        const line = d.toString().trim();
+        if (line) console.log("[python]", line);
+      });
+      py.stderr.on("data", (d: Buffer) => {
+        const line = d.toString().trim();
+        if (line) console.log("[python]", line);
+      });
+      py.on("exit", (code: number) => {
+        console.error("[fit] Python service exited with code", code);
+      });
+    });
+}
+
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`[fit] Server listening on http://127.0.0.1:${PORT}`);
-    console.log(`[fit] Python service at ${BULLET_SELECTOR_URL}`);
-  });
+  // Start Python service first (if not running externally)
+  startPythonService();
+
+  // Give Python 3 seconds to boot, then start Node
+  setTimeout(() => {
+    app.listen(PORT, () => {
+      console.log(`[fit] Server listening on port ${PORT}`);
+      console.log(`[fit] Python service at ${BULLET_SELECTOR_URL}`);
+    });
+  }, process.env.RAILWAY_ENVIRONMENT ? 5000 : 0);
 
   // Start cache sweep timer
   setInterval(sweepGeneratedResumes, SWEEP_INTERVAL_MS);
-  sweepGeneratedResumes(); // run once on startup
+  sweepGeneratedResumes();
 }
