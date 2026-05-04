@@ -208,9 +208,11 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     is_remote: enrichment.is_remote,
     is_hybrid: enrichment.is_hybrid,
     posted_date: postedDate,
-    yoe_min: enrichment.yoe_min ?? null,
-    yoe_max: enrichment.yoe_max ?? null,
-    yoe_raw: enrichment.yoe_raw ?? null,
+    // Only set yoe fields if enrichment has actual values — don't overwrite
+    // OpenAI-extracted yoe with null on re-scan
+    ...(enrichment.yoe_min != null ? { yoe_min: enrichment.yoe_min } : {}),
+    ...(enrichment.yoe_max != null ? { yoe_max: enrichment.yoe_max } : {}),
+    ...(enrichment.yoe_raw != null ? { yoe_raw: enrichment.yoe_raw } : {}),
     tier,
     salary_min: enrichment.salary_min ?? null,
     salary_max: enrichment.salary_max ?? null,
