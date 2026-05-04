@@ -1209,18 +1209,106 @@ async function scrapeApiCompany(
 // Generic scraper for companies with bespoke careers pages (ats: "custom-playwright").
 // See docs/custom-playwright-adapter.md for the full selector contract.
 
+/**
+ * Generic fallback: visit the careers URL without selectors, find PM job links.
+ * Used for companies that have no CSS selectors defined in ats_routing.json.
+ */
+async function scrapeCustomPlaywrightGeneric(
+  company: CompanyConfig,
+): Promise<Job[]> {
+  const { careersUrl, name, roles } = company;
+
+  return withPlaywright(async () => {
+    const browser = await launchChromium();
+    try {
+      const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
+      const page = await context.newPage();
+
+      await page.goto(careersUrl, { waitUntil: "domcontentloaded", timeout: 25_000 });
+      await page.waitForTimeout(4_000);
+
+      // Scroll to trigger lazy loading
+      for (let i = 0; i < 3; i++) {
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(1_000);
+      }
+
+      // Find all job-like links
+      type RawCard = { title: string; location: string; applyHref: string };
+      const cards: RawCard[] = await page.evaluate(
+        (opts: { origin: string }) => {
+          const results: RawCard[] = [];
+          const seen = new Set<string>();
+
+          document.querySelectorAll("a[href]").forEach((el) => {
+            const a = el as HTMLAnchorElement;
+            const href = a.href || "";
+            const text = (a.textContent || "").trim().replace(/\s+/g, " ");
+
+            if (!href || seen.has(href) || text.length < 3 || text.length > 200) return;
+
+            // Job-like URL patterns
+            const isJobUrl =
+              /\/(jobs?|careers?|positions?|openings?|roles?|opportunities|vacancies)\//i.test(href) ||
+              /\/(jobs?|careers?|positions?|openings?|roles?)\?/i.test(href) ||
+              /\/job\/|\/posting\/|\/requisition\//i.test(href) ||
+              /lever\.co|greenhouse\.io|ashbyhq\.com|workable\.com|myworkday/i.test(href) ||
+              /apply|job[-_]?id|req[-_]?id/i.test(href);
+
+            // Job-like link text
+            const isJobText =
+              /manager|engineer|designer|analyst|director|lead|specialist|coordinator|associate|intern|developer|scientist/i.test(text);
+
+            // Structured job card parent
+            const parent = a.closest("[class*='job'], [class*='position'], [class*='opening'], [class*='career'], [class*='listing'], [data-job], [data-position]");
+
+            if (isJobUrl || isJobText || parent) {
+              seen.add(href);
+              const applyHref = href.startsWith("http") ? href : opts.origin + href;
+              results.push({ title: text.substring(0, 150), location: "", applyHref });
+            }
+          });
+
+          return results;
+        },
+        { origin: new URL(careersUrl).origin },
+      );
+
+      const jobs: Job[] = [];
+      for (const c of cards) {
+        if (!isPmRoleForConfig(c.title, roles)) continue;
+
+        jobs.push({
+          id:          makeId(name, c.applyHref.replace(/[^a-z0-9]/gi, "-").slice(-30)),
+          company:     name,
+          title:       c.title,
+          location:    c.location,
+          workType:    workTypeFrom(c.location),
+          datePosted:  "—",
+          applyUrl:    c.applyHref,
+          careersUrl,
+          earlyCareer: isEarlyCareer(c.title, ""),
+          description: "",
+          sourceLabel: "custom-generic",
+        });
+      }
+
+      if (jobs.length > 200) jobs.splice(200);
+      return jobs;
+    } finally {
+      await browser.close();
+    }
+  });
+}
+
 async function scrapeCustomPlaywright(
   company: CompanyConfig,
 ): Promise<Job[]> {
   const { selectors, careersUrl, name, roles } = company;
+
+  // No selectors configured — use generic fallback heuristic
   if (!selectors) {
-    // Company has no routing entry and couldn't be auto-detected. Throw a
-    // structured error so it shows up in run stats as "error" rather than
-    // being silently dropped. Run scripts/discoverATS.js --batch to fix.
-    throw new Error(
-      `${name}: ATS not yet discovered — run scripts/discoverATS.js --batch ` +
-      `to detect the correct ATS platform, then re-run the scan.`,
-    );
+    return scrapeCustomPlaywrightGeneric(company);
   }
 
   const timeoutMs = selectors.timeoutMs ?? 20_000;
