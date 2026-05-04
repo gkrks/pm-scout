@@ -16,39 +16,39 @@ import { getSupabaseClient } from "../src/storage/supabase";
 
 const MODEL = "gpt-4o-mini";
 
-const SYSTEM_PROMPT = `You clean job qualification lists by removing noise and keeping only actual job requirements.
+const SYSTEM_PROMPT = `You clean and properly classify job posting content. The input may have RESPONSIBILITIES mixed in with QUALIFICATIONS because the parser couldn't tell them apart.
 
-Given a list of "qualifications" extracted from a job posting, return ONLY the ones that are actual job requirements.
+Your job: separate the content into actual qualifications vs everything else.
 
-REMOVE (these are NOT qualifications):
-- Company descriptions ("About [Company]", "We are a...", "Our mission...")
-- EEO/diversity statements ("equal opportunity employer", "do not discriminate")
-- Privacy policies, background check notices, legal disclaimers
-- Salary/compensation ranges
-- Benefits listings (health, dental, 401k, PTO, etc.)
-- Location information ("This role is based in...")
-- Application instructions ("submit your application", "click here")
-- Generic marketing copy about the company
-- Recruiting process descriptions
-- Section headers ("Minimum Qualifications", "Preferred Qualifications", etc.)
+A QUALIFICATION is something the CANDIDATE must have BEFORE applying:
+- "3+ years of product management experience"
+- "Bachelor's degree in Computer Science"
+- "Experience with SQL and data analysis"
+- "Strong communication skills"
+- "Familiarity with Agile methodologies"
+
+A RESPONSIBILITY is something the CANDIDATE will DO after being hired:
+- "Lead the cross-functional product team"
+- "Conduct market research"
+- "Create the product marketing plan"
+- "Own Business Epics and Capabilities"
+- "Drive Release Management"
+- "Monitor and report on progress"
+
+Also REMOVE:
+- Company descriptions, EEO statements, privacy policies, salary ranges
+- Benefits, location info, application instructions, marketing copy
+- Section headers ("Product Management", "Continuous Planning", "Release and Risk Management")
 - Empty or very short entries (< 15 chars)
-
-KEEP (these ARE qualifications):
-- Specific skills required (technical, soft, domain)
-- Years of experience requirements
-- Education requirements
-- Tool/technology proficiency
-- Industry/domain experience
-- Certifications
-- Specific role responsibilities that are framed as requirements
+- Recruiting process descriptions
 
 Return a JSON object:
 {
-  "required": ["cleaned list of actual required qualifications"],
-  "preferred": ["cleaned list of actual preferred qualifications"]
+  "required": ["only actual qualifications the candidate must have"],
+  "preferred": ["preferred/nice-to-have qualifications"]
 }
 
-Keep the original text of each qualification. Don't rewrite them. Just filter out the noise.`;
+Be strict. When in doubt, it is a responsibility, not a qualification. A qualification describes what you NEED; a responsibility describes what you will DO.`;
 
 async function main() {
   const args = process.argv.slice(2);
@@ -78,12 +78,15 @@ async function main() {
     const reqQuals = listing.jd_required_qualifications as string[] || [];
     const prefQuals = listing.jd_preferred_qualifications as string[] || [];
 
-    // Quick check: does it have obvious noise?
+    // Quick check: does it have noise or responsibilities mixed in?
     const hasNoise = reqQuals.some((q: string) =>
       /^(About |We are |OpenAI |equal opportunity|background check|privacy policy|salary|compensation|benefits|EEO|affirmative action)/i.test(q.trim())
       || q.length < 15
       || /\.com\/|https?:\/\//i.test(q)
       || /paid time off|health insurance|dental|401k|parental leave/i.test(q)
+      // Detect responsibilities mixed in as qualifications
+      || /^(Lead |Conduct |Create |Own |Drive |Monitor |Build |Manage |Ensure |Collaborate |Research |Supervise |Communicate |Shepherd |Leverage )/i.test(q.trim())
+      || /^(Product Management|Program Portfolio|Continuous Planning|Release and Risk)$/i.test(q.trim())
     );
 
     if (!hasNoise && !force) {

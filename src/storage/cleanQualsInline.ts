@@ -8,10 +8,11 @@ import { getSupabaseClient } from "./supabase";
 
 const MODEL = "gpt-4o-mini";
 
-const SYSTEM_PROMPT = `Clean this job qualification list. Return ONLY a JSON object: {"required": [...], "preferred": [...]}
-REMOVE: company descriptions, EEO statements, privacy notices, salary ranges, benefits, location info, legal disclaimers, section headers, entries < 15 chars.
-KEEP: actual skill requirements, experience requirements, education, certifications, role-specific needs.
-Keep original text, just filter out noise.`;
+const SYSTEM_PROMPT = `Separate qualifications from responsibilities and noise. Return ONLY JSON: {"required": [...], "preferred": [...]}
+A QUALIFICATION = what the candidate must HAVE before applying (skills, experience, education, certifications).
+A RESPONSIBILITY = what the candidate will DO after hiring (lead teams, conduct research, create plans, drive releases).
+REMOVE: responsibilities, company descriptions, EEO, salary, benefits, section headers, entries < 15 chars.
+KEEP ONLY actual qualifications. Be strict: when in doubt, remove it.`;
 
 export async function cleanQualsForNewListings(listingIds: string[]): Promise<number> {
   if (listingIds.length === 0) return 0;
