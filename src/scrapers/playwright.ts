@@ -104,10 +104,16 @@ export async function fetchJobDescription(
   try {
     await page.goto(applyUrl, { waitUntil: "load", timeout: 15_000 });
     const html = await page.evaluate((selectors: string[]) => {
+      // Collect ALL matching elements (not just the first) and concatenate.
+      // Google Careers splits JD and qualifications into separate divs.
+      const parts: string[] = [];
       for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el && (el.textContent ?? "").trim().length > 150) return el.innerHTML;
+        document.querySelectorAll(sel).forEach((el) => {
+          const text = (el.textContent ?? "").trim();
+          if (text.length > 100) parts.push(el.innerHTML);
+        });
       }
+      if (parts.length > 0) return parts.join("\n\n");
       return "";
     }, DESC_SELECTORS);
     return html;
