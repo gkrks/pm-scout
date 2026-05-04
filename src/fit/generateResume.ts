@@ -177,11 +177,16 @@ export async function generateResume(
   // Build working resume with selected bullets in slots
   const workingResume = JSON.parse(JSON.stringify(masterResume));
 
-  // Reorder experiences to match selected order
+  // Reorder experiences: most recent first (by start_date descending)
   const expMap = new Map(masterResume.experiences.map((e: any) => [e.id, e]));
   workingResume.experiences = selectedExpIds
     .map((id: string) => expMap.get(id))
-    .filter(Boolean);
+    .filter(Boolean)
+    .sort((a: any, b: any) => {
+      const aDate = a.start_date || "0000-01-01";
+      const bDate = b.start_date || "0000-01-01";
+      return bDate.localeCompare(aDate);
+    });
 
   // For each experience, replace bullets with selected ones + defaults
   for (const exp of workingResume.experiences) {
@@ -270,7 +275,7 @@ export async function generateResume(
   fs.writeFileSync(workingPath, JSON.stringify(workingResume, null, 2));
 
   // Build output basename
-  const basename = resumeBasename(companyName, roleName, jobId);
+  const basename = resumeBasename(companyName, roleName);
 
   // Shell out to fill_resume.js
   const outDir = path.join(REPO_ROOT, "out");

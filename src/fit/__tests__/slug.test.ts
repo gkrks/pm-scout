@@ -48,27 +48,27 @@ describe("slug", () => {
 });
 
 describe("resumeBasename", () => {
-  it("builds correct format", () => {
+  it("builds correct format without jobId", () => {
     expect(
-      resumeBasename("Acme Corp", "Product Manager", "abc-123-uuid")
-    ).toBe("Krithik_Gopinath_acme_corp_product_manager_abc-123-uuid");
-  });
-
-  it("does not slugify jobId", () => {
-    const uuid = "550e8400-e29b-41d4-a716-446655440000";
-    const result = resumeBasename("Google", "PM", uuid);
-    expect(result).toContain(uuid);
+      resumeBasename("Acme Corp", "Product Manager")
+    ).toBe("Krithik_Gopinath_acme_corp_product_manager");
   });
 
   it("handles adversarial company names", () => {
     expect(
-      resumeBasename("AT&T", "Sr. PM \u2014 Platform", "id1")
-    ).toBe("Krithik_Gopinath_at_t_sr_pm_platform_id1");
+      resumeBasename("AT&T", "Sr. PM \u2014 Platform")
+    ).toBe("Krithik_Gopinath_at_t_sr_pm_platform");
   });
 
   it("falls back to unknown for empty slug", () => {
     expect(
-      resumeBasename("---", "PM", "id1")
-    ).toBe("Krithik_Gopinath_unknown_pm_id1");
+      resumeBasename("---", "PM")
+    ).toBe("Krithik_Gopinath_unknown_pm");
+  });
+
+  it("produces clean name for real company", () => {
+    expect(
+      resumeBasename("Fireworks AI", "Associate Product Manager")
+    ).toBe("Krithik_Gopinath_fireworks_ai_associate_product_manager");
   });
 });

@@ -19,18 +19,16 @@ export function slug(input: string): string {
 /**
  * Build the output basename for a generated resume.
  *
- * Format: Krithik_Gopinath_{company}_{role}_{jobId}.{ext}
- * jobId is NOT slugified (UUID, used as-is).
+ * Format: Krithik_Gopinath_{company}_{role}.{ext}
  */
 export function resumeBasename(
   companyName: string,
   roleName: string,
-  jobId: string,
 ): string {
   const company = slug(companyName);
   const role = slug(roleName);
   if (!company || !role) {
-    return `Krithik_Gopinath_${company || "unknown"}_${role || "unknown"}_${jobId}`;
+    return `Krithik_Gopinath_${company || "unknown"}_${role || "unknown"}`;
   }
-  return `Krithik_Gopinath_${company}_${role}_${jobId}`;
+  return `Krithik_Gopinath_${company}_${role}`;
 }
