@@ -4,7 +4,7 @@
     "version": "3.0.0",
     "schema_version": "3.0.0",
     "generated_at": "2026-05-01T22:44:43.446077+00:00",
-    "total_companies": 754,
+    "total_companies": 755,
     "geographic_scope": "United States",
     "purpose": "Reference config for an automated parser that scans careers pages, applies the filters defined here, and upserts results into Supabase. This file does NOT track runs, listings, or applications — that all lives in Supabase. See supabase_schema.sql for the database schema.",
     "stable_id_fields": [
@@ -18655,6 +18655,29 @@
       "notes": null,
       "index": 754,
       "content_hash": "d0728a5494571cb8"
+    },
+    {
+      "uuid": "038058f1-9ef5-57d3-870b-901374f38342",
+      "slug": "manifold-bio",
+      "name": "Manifold Bio",
+      "category": "Biotech & Life Sciences",
+      "careers_url": "https://job-boards.greenhouse.io/manifoldbio",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "AI/ML",
+        "Biotech",
+        "Drug Discovery"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 755,
+      "content_hash": "a1b2c3d4e5f6g7h8"
     }
   ]
 }

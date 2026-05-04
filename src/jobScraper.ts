@@ -1030,7 +1030,11 @@ export async function scrapeCompany(
  */
 export async function scrapeCompanyByConfig(company: CompanyConfig): Promise<Job[]> {
   const roles = company.roles ?? [];
-  if (company.ats === "greenhouse")        return scrapeGreenhouse(company.name, company.slug!, company.careersUrl, roles);
+  if (company.ats === "greenhouse") {
+    const routing = resolveRouting(company.slug ?? "", loadRoutingConfig());
+    const ghSlug = routing?.slug ?? company.slug!;
+    return scrapeGreenhouse(company.name, ghSlug, company.careersUrl, roles);
+  }
   if (company.ats === "lever")             return scrapeLever(company.name, company.slug!, company.careersUrl, roles);
   if (company.ats === "ashby")             return scrapeAshby(company.name, company.slug!, company.careersUrl, roles);
   if (company.ats === "workday")           return scrapeWorkdayCompany(company);

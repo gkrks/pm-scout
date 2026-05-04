@@ -86,8 +86,8 @@ export function withPlaywright<T>(fn: () => Promise<T>): Promise<T> {
 // ── Shared description selectors ──────────────────────────────────────────────
 
 const DESC_SELECTORS = [
-  ".aG5W3", ".KwJkGe", ".gc-formatted-body",          // Google
-  "._job_requirements", "._6nq", "._1n3p",             // Meta
+  ".aG5W3", ".KwJkGe", ".BDNOWe", ".gc-formatted-body", // Google (About, Quals, Responsibilities)
+  "._job_requirements", "._6nq", "._1n3p",               // Meta
   "[itemprop='description']", "[data-testid='job-description']",
   "main article", "main section", "article",
 ];
@@ -103,6 +103,16 @@ export async function fetchJobDescription(
   const page = await context.newPage();
   try {
     await page.goto(applyUrl, { waitUntil: "networkidle", timeout: 20_000 });
+
+    // Google Careers is an Angular SPA that loads qualifications lazily.
+    // Wait briefly for the qualifications section to appear after networkidle.
+    const isGoogleCareers = applyUrl.includes("careers") && applyUrl.includes("google");
+    if (isGoogleCareers) {
+      try {
+        await page.waitForSelector(".KwJkGe", { timeout: 5_000 });
+      } catch { /* OK — proceed with whatever rendered */ }
+    }
+
     const html = await page.evaluate((selectors: string[]) => {
       // Collect ALL matching elements (not just the first) and concatenate.
       // Google Careers splits JD and qualifications into separate divs.
@@ -128,6 +138,26 @@ export async function fetchJobDescription(
         }
       }
       if (parts.length > 0) return parts.join("\n\n");
+
+      // Fallback: Google embeds job data in a script tag; extract HTML descriptions
+      // from the AF_initDataCallback payload when Angular hasn't rendered content.
+      const scripts = document.querySelectorAll("script");
+      for (let i = 0; i < scripts.length; i++) {
+        const txt = scripts[i].textContent ?? "";
+        if (!txt.includes("Minimum qualifications")) continue;
+        // Extract all HTML fragments from the data payload
+        const htmlFrags: string[] = [];
+        const re = /\\u003c(h[2-4]|ul|li|p|div|ol)[^]*?\\u003c\/\1\\u003e/g;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(txt)) !== null) {
+          try {
+            const decoded = JSON.parse('"' + m[0] + '"');
+            htmlFrags.push(decoded);
+          } catch { /* skip malformed */ }
+        }
+        if (htmlFrags.length > 0) return htmlFrags.join("\n");
+      }
+
       return "";
     }, DESC_SELECTORS);
     return html;

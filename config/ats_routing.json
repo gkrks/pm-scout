@@ -18,6 +18,10 @@
     "amazon": {
       "ats": "amazon"
     },
+    "manifold-bio": {
+      "ats": "greenhouse",
+      "slug": "manifoldbio"
+    },
     "scaleai": {
       "ats": "greenhouse",
       "slug": "scaleai"
