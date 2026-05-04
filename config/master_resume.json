@@ -10,16 +10,17 @@
             "Krithik Gopinath"
         ],
         "emails": [
-            "krithikssg@gmail.com",
             "krithiksaisreenishgopinath@gmail.com",
-            "krithiksaisreenish@gmail.com"
+            "krithikssg@gmail.com",
+            "krithiksaisreenish@gmail.com",
+            "krithiksaisreenish160@gmail.com"
         ],
         "primary_email": null,
-        "phone": "+18576939815",
+        "phone": "8576939815",
         "location": "Mountain View, CA",
-        "linkedin_url": "https://www.linkedin.com/in/krithiksai/",
+        "linkedin_url": "https://www.linkedin.com/in/krithiksai",
         "website_url": "https://krithik.xyz",
-        "alternate_website_url": "https://sreenish27.github.io/krithik/",
+        "alternate_website_url": "https://sreenish27.github.io/krithik",
         "github_url": "https://github.com/sreenish27",
         "github_repos_of_note": [
             "https://github.com/sreenish27/Search_engine_rs",
@@ -1387,7 +1388,7 @@
         },
         {
             "id": "proj_learningskill_4",
-            "name": "AI Learning Skill: A Tutor That Won't Let You Fake It",
+            "name": "AI Learning Skill",
             "description": "Claude tutor skill with spaced repetition",
             "url": "https://github.com/sreenish27/learning-skill",
             "evidence_url": "https://krithik.xyz/how-i-use-ai-the-tutor.html",
