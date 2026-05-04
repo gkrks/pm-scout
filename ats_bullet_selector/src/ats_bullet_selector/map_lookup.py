@@ -20,10 +20,11 @@ import time
 from pathlib import Path
 from typing import Optional
 
+import httpx
 import numpy as np
 import structlog
 
-from .config import OUTPUTS_DIR, PROJECT_ROOT
+from .config import OUTPUTS_DIR, PROJECT_ROOT, SUPABASE_KEY, SUPABASE_URL
 from .models import (
     Bullet,
     QualCandidates,
@@ -43,11 +44,93 @@ _bullet_embeddings: Optional[np.ndarray] = None
 _bullet_ids_order: Optional[list[str]] = None
 
 
+def _load_map_from_supabase() -> dict:
+    """Reconstruct the qualification map dict from Supabase tables."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise RuntimeError("Supabase not configured")
+
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+
+    # Load meta (most recent row)
+    meta_resp = httpx.get(
+        f"{SUPABASE_URL}/rest/v1/qualification_map_meta",
+        params={"select": "*", "order": "created_at.desc", "limit": "1"},
+        headers=headers,
+        timeout=10.0,
+    )
+    meta_resp.raise_for_status()
+    meta_rows = meta_resp.json()
+    if not meta_rows:
+        raise RuntimeError("No qualification_map_meta rows found")
+    meta = meta_rows[0]
+
+    # Load all qual rows (paginated)
+    quals: dict[str, dict] = {}
+    offset = 0
+    batch_size = 1000
+    while True:
+        q_resp = httpx.get(
+            f"{SUPABASE_URL}/rest/v1/qualification_map_quals",
+            params={
+                "select": "qual_hash,qual_text,qual_type,group_name,freq,bullet_ids,similarities",
+                "offset": str(offset),
+                "limit": str(batch_size),
+            },
+            headers=headers,
+            timeout=15.0,
+        )
+        q_resp.raise_for_status()
+        rows = q_resp.json()
+        if not rows:
+            break
+        for r in rows:
+            quals[r["qual_hash"]] = {
+                "t": r["qual_text"],
+                "type": r["qual_type"],
+                "group": r["group_name"],
+                "freq": r["freq"],
+                "bullets": r["bullet_ids"],
+                "sim": r["similarities"],
+            }
+        if len(rows) < batch_size:
+            break
+        offset += batch_size
+
+    return {
+        "v": meta["version"],
+        "embedding_model": meta["embedding_model"],
+        "embedding_dim": meta["embedding_dim"],
+        "stats": {
+            "quals": len(quals),
+            "bullets": meta["stats_bullets"],
+            "groups": meta["stats_groups"],
+        },
+        "bullets": meta["bullets"],
+        "groups": meta["groups"],
+        "resume": meta["resume"],
+        "quals": quals,
+    }
+
+
 def _load_map() -> dict:
+    """Load qualification map: Supabase first, local JSON fallback."""
     global _map_data
     if _map_data is not None:
         return _map_data
 
+    # Try Supabase first
+    try:
+        _map_data = _load_map_from_supabase()
+        logger.info(
+            "qualification_map_loaded_from_supabase",
+            version=_map_data.get("v"),
+            quals=len(_map_data.get("quals", {})),
+        )
+        return _map_data
+    except Exception as e:
+        logger.warning("supabase_map_load_failed", error=str(e))
+
+    # Fallback to local JSON
     map_path = OUTPUTS_DIR / "qualification_map.json"
     if not map_path.exists():
         raise FileNotFoundError(
@@ -59,7 +142,7 @@ def _load_map() -> dict:
         _map_data = json.load(f)
 
     logger.info(
-        "qualification_map_loaded",
+        "qualification_map_loaded_from_file",
         version=_map_data.get("v"),
         quals=_map_data.get("stats", {}).get("quals", 0),
         embedding_model=_map_data.get("embedding_model", "unknown"),

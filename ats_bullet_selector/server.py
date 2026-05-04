@@ -165,6 +165,25 @@ async def validate_selections(req: SelectRequest) -> SelectResponse:
     )
 
 
+@app.post("/map/refresh")
+async def refresh_map():
+    """Force reload qualification map from Supabase (called by Node scanner after incremental update)."""
+    import src.ats_bullet_selector.map_lookup as ml
+
+    ml._map_data = None
+    ml._bullet_embeddings = None
+    ml._bullet_ids_order = None
+
+    try:
+        ml._load_map()
+        quals_count = len(ml._map_data.get("quals", {})) if ml._map_data else 0
+        logger.info("map_refreshed", quals=quals_count)
+        return {"status": "ok", "quals": quals_count}
+    except Exception as e:
+        logger.error("map_refresh_failed", error=str(e))
+        return {"status": "error", "error": str(e)}
+
+
 @app.get("/healthz", response_model=HealthResponse)
 async def healthz() -> HealthResponse:
     return HealthResponse(

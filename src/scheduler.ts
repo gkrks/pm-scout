@@ -22,6 +22,7 @@ import { extractSkillsForNewListings } from "./storage/extractSkillsInline";
 import { extractYoeForNewListings } from "./storage/extractYoeInline";
 import { cleanQualsForNewListings } from "./storage/cleanQualsInline";
 import { extractQualsForNewListings } from "./storage/extractQualsInline";
+import { updateQualMapIncremental } from "./storage/updateQualMap";
 import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan";
 import type { CompanyResult } from "./orchestrator/classify";
 import { extractJD } from "./jdExtractor";
@@ -167,7 +168,7 @@ async function writeToSupabase(
   failedCompanyNames: Set<string>,
   runId:             string,
   runStartedAt:      Date,
-): Promise<{ listingsNew: number; listingsUpdated: number; listingsDeactivated: number; newRoleUrls: Set<string> }> {
+): Promise<{ listingsNew: number; listingsUpdated: number; listingsDeactivated: number; newRoleUrls: Set<string>; allNewListingIds: string[] }> {
   const byCompany = new Map<string, { company: CompanyConfig & { id: string }; jobs: Job[] }>();
   for (const job of jobs) {
     const company = companyMap.get(job.company);
@@ -180,6 +181,7 @@ async function writeToSupabase(
   let listingsUpdated     = 0;
   let listingsDeactivated = 0;
   const newRoleUrls       = new Set<string>();
+  const allNewListingIds: string[] = [];
 
   for (const { company, jobs: companyJobs } of byCompany.values()) {
     // Deduplicate by normalized role_url within the same company — first occurrence wins.
@@ -221,6 +223,7 @@ async function writeToSupabase(
     const newListingIds = results
       .filter((r) => r.seenState === "new")
       .map((r) => r.listingId);
+    allNewListingIds.push(...newListingIds);
     if (newListingIds.length > 0) {
       // Clean qualifications (remove noise), then extract if empty (Google, etc.)
       await cleanQualsForNewListings(newListingIds).catch((err) => {
@@ -261,7 +264,7 @@ async function writeToSupabase(
     }
   }
 
-  return { listingsNew, listingsUpdated, listingsDeactivated, newRoleUrls };
+  return { listingsNew, listingsUpdated, listingsDeactivated, newRoleUrls, allNewListingIds };
 }
 
 function buildPendingBuffer(
@@ -559,7 +562,7 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
       const effectiveRunId = supabaseRunId ?? id;
 
       try {
-        const { listingsNew, listingsUpdated, listingsDeactivated, newRoleUrls } =
+        const { listingsNew, listingsUpdated, listingsDeactivated, newRoleUrls, allNewListingIds } =
           await writeToSupabase(diffed, companyMap, failedNames, effectiveRunId, startedAt);
 
         supabaseNewRoleUrls = newRoleUrls;
@@ -568,6 +571,13 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
           `[scheduler] Supabase: ${listingsNew} new, ${listingsUpdated} updated, ` +
           `${listingsDeactivated} deactivated`,
         );
+
+        // Incrementally update qualification map with quals from new listings
+        if (allNewListingIds.length > 0) {
+          await updateQualMapIncremental(allNewListingIds).catch((err) => {
+            console.warn(`[scheduler] Qual map update failed: ${err instanceof Error ? err.message : err}`);
+          });
+        }
 
         if (supabaseRunId) {
           await finalizeParserRun(supabaseRunId, {
