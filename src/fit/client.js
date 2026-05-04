@@ -17,6 +17,7 @@
   var preResolvedIds = {};   // qid -> true (pre-resolved, always counts as met)
   var selectedSummary = null;
   var selectedEmail = DATA.emails && DATA.emails[0] || "";
+  var customSkills = [];  // tracks skills added via the UI button
   var scoreData = null;
 
   // Email selector behavior
@@ -280,7 +281,8 @@
       var input = document.getElementById("custom-skill-input");
       var skill = input.value.trim();
       if (!skill) return;
-      // Append to the last skill line
+      customSkills.push(skill);
+      // Append to the last skill line visually
       var lastLine = box.querySelectorAll(".skill-line");
       if (lastLine.length > 0) {
         var listEl = lastLine[lastLine.length - 1].querySelector(".skill-line-list");
@@ -361,7 +363,7 @@
       return { qualification_id: qid, bullet_id_or_text: s.isCustom || s.isEdited ? s.text : s.bulletId, is_custom: s.isCustom || s.isEdited };
     });
 
-    api("POST", "/generate", { selections: sels, summaryHints: selectedSummary || "", email: selectedEmail })
+    api("POST", "/generate", { selections: sels, summaryHints: selectedSummary || "", email: selectedEmail, customSkills: customSkills })
       .then(function (data) {
         if (data.error) throw new Error(data.error);
         window.location.href = "/fit/" + jobId + "/download/" + format + "?token=" + encodeURIComponent(token);

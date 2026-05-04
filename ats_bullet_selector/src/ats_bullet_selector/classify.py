@@ -11,8 +11,17 @@ _EDUCATION_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
+# Only match GENERIC years-of-experience requirements (not domain-specific ones).
+# "3+ years of product management experience" -> experience_years
+# "2+ years with technical architecture of complex web apps" -> bullet_match
+# The key: if the text has 10+ words AFTER the years pattern, it's domain-specific.
 _EXPERIENCE_YEARS_PATTERN = re.compile(
-    r"\d+\+?\s*years?\s*(of\s*)?(experience|working|in\b|building|managing|leading|developing)?",
+    r"\d+\+?\s*years?\s*(of\s*)?(experience|professional|working|in\s+a\b)?",
+    re.IGNORECASE,
+)
+
+_DOMAIN_SPECIFIC_YEARS = re.compile(
+    r"\d+\+?\s*years?\s*(of\s*)?\w+\s+\w+\s+\w+\s+\w+",
     re.IGNORECASE,
 )
 
@@ -60,8 +69,15 @@ def _classify_one(text: str, skills_lower: set[str]) -> QualCategory:
     if _EDUCATION_PATTERNS.search(text):
         return QualCategory.education_check
 
+    # Only route to experience_years if it's a SHORT, GENERIC years requirement.
+    # "3+ years experience" -> experience_years (short, generic)
+    # "2+ years with technical architecture of complex web apps" -> bullet_match (domain-specific)
     if _EXPERIENCE_YEARS_PATTERN.search(text):
-        return QualCategory.experience_years
+        word_count = len(text.split())
+        has_domain_detail = _DOMAIN_SPECIFIC_YEARS.search(text)
+        # Short + generic = experience_years; long + specific = bullet_match
+        if word_count <= 12 and not has_domain_detail:
+            return QualCategory.experience_years
 
     if _VALUES_PATTERN.search(text):
         return QualCategory.values_statement

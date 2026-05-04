@@ -90,6 +90,7 @@ export async function generateResume(
   scoreData?: ScoreResponse,
   email?: string,
   summaryOverride?: string,
+  customSkills?: string[],
 ): Promise<GenerateResult> {
   // Load master resume
   const masterResume = JSON.parse(fs.readFileSync(MASTER_RESUME_PATH, "utf-8"));
@@ -289,7 +290,13 @@ export async function generateResume(
     job.jd_preferred_qualifications as string[] || [],
     job.jd_extracted_skills as string[] || undefined,
   );
-  (workingResume as any).__skills_override = skillsResult.lines;
+  // Append custom skills from UI to the last skill line
+  const skillLines = [...skillsResult.lines];
+  if (customSkills && customSkills.length > 0 && skillLines.length > 0) {
+    const last = skillLines[skillLines.length - 1];
+    last.list = last.list + ", " + customSkills.join(", ");
+  }
+  (workingResume as any).__skills_override = skillLines;
 
   // Write working resume to temp dir
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "fit-resume-"));
