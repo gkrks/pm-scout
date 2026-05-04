@@ -1,14 +1,14 @@
 /**
- * Skills optimizer: picks the 3 most relevant skill categories for a job,
- * then fills each line with gap-filling keywords first + strongest remaining.
+ * Skills optimizer: JD-first approach.
  *
- * Flow:
- * 1. Extract target keywords from JD (jd_skills + jd_ats_keywords)
- * 2. Scan selected bullets for keywords already covered
- * 3. Gap = JD keywords not in bullets
- * 4. Pick 3 categories from the pool of 6 that best cover the gap
- * 5. Within each category, prioritize gap-filling skills, then strongest remaining
+ * 1. Extract EVERY skill/keyword the JD actually asks for
+ * 2. For each JD skill, find if it exists in master resume skills
+ * 3. Group matched skills into the resume's category headers
+ * 4. Pick top 3 categories by number of JD-matched skills
+ * 5. Within each category, show ONLY skills the JD asks for
  * 6. Respect 110-char per line ceiling
+ *
+ * Never include a skill the JD doesn't mention.
  */
 
 const SKILL_LINE_MAX_CHARS = 110;
@@ -18,227 +18,225 @@ interface SkillCategory {
   skills: string[];
 }
 
+interface SkillLine {
+  name: string;
+  list: string;
+  jdEvidence: string[]; // which JD terms this line covers
+}
+
 interface OptimizedSkills {
-  lines: Array<{ name: string; list: string }>;
-  gapFilled: string[];
-  gapRemaining: string[];
+  lines: SkillLine[];
+  gapFilled: string[];     // JD terms we have in resume
+  gapRemaining: string[];  // JD terms we don't have
 }
 
 /**
- * Extract all target keywords from a job's extracted JD data.
+ * Extract all meaningful skill terms from the JD.
+ * Sources: jd_skills fields, required/preferred quals, ats_keywords.
  */
-function extractTargetKeywords(jdSkills: any, jdAtsKeywords: any): Set<string> {
-  const targets = new Set<string>();
+function extractJdSkillTerms(
+  jdSkills: any,
+  jdAtsKeywords: any,
+  requiredQuals: string[],
+  preferredQuals: string[],
+): string[] {
+  const terms = new Set<string>();
 
+  // From structured jd_skills
   if (jdSkills) {
     for (const category of ["technical", "tools", "languages", "methodologies", "domain_expertise"]) {
-      const items = jdSkills[category];
-      if (Array.isArray(items)) {
-        for (const item of items) {
-          const cleaned = item.trim().toLowerCase();
-          if (cleaned.length > 1 && !isNoise(cleaned)) {
-            targets.add(cleaned);
-          }
+      for (const item of jdSkills[category] || []) {
+        const cleaned = item.trim();
+        if (cleaned.length > 1 && !isNoise(cleaned)) {
+          terms.add(cleaned);
         }
       }
     }
   }
 
-  if (jdAtsKeywords) {
-    for (const item of jdAtsKeywords.high_priority || []) {
-      const cleaned = item.trim().toLowerCase();
-      if (cleaned.length > 2 && !isNoise(cleaned)) {
-        targets.add(cleaned);
-      }
-    }
-    for (const item of jdAtsKeywords.medium_priority || []) {
-      const cleaned = item.trim().toLowerCase();
-      if (cleaned.length > 3 && !isNoise(cleaned)) {
-        targets.add(cleaned);
+  // From qualifications text — extract tool/tech mentions
+  const allQuals = [...(requiredQuals || []), ...(preferredQuals || [])];
+  const techPatterns = [
+    /\b(AI|ML|LLM|NLP|API|SDK|REST|GraphQL|SQL|NoSQL)\b/gi,
+    /\b(Python|Rust|TypeScript|JavaScript|Java|Go|C\+\+|Ruby)\b/g,
+    /\b(React|Next\.?js|Node\.?js|Express|FastAPI|Flask|Django)\b/gi,
+    /\b(AWS|GCP|Azure|Docker|Kubernetes|Terraform)\b/gi,
+    /\b(TensorFlow|PyTorch|SageMaker|Hugging\s*Face)\b/gi,
+    /\b(inference|embeddings?|fine.?tuning|agent\s*framework|RAG|vector\s*search)\b/gi,
+    /\b(A\/B\s*test|experimentation|analytics|metrics|data\s*analysis)\b/gi,
+    /\b(CI\/CD|DevOps|microservices|distributed\s*systems)\b/gi,
+    /\b(Figma|JIRA|Postman|Git|Agile|Scrum)\b/gi,
+    /\b(roadmap|PRD|user\s*research|stakeholder\s*management|OKR|prioritization)\b/gi,
+    /\b(product\s*management|developer\s*tool|developer\s*experience)\b/gi,
+  ];
+
+  for (const qual of allQuals) {
+    for (const pattern of techPatterns) {
+      const matches = qual.match(pattern);
+      if (matches) {
+        for (const m of matches) {
+          terms.add(m.trim());
+        }
       }
     }
   }
 
-  return targets;
+  return [...terms];
 }
 
 /**
- * Filter out HTML artifacts and non-skill terms from ATS keywords.
+ * Filter out HTML artifacts and generic non-skill terms.
  */
 function isNoise(term: string): boolean {
-  return /^(\/?(div|li|ul|ol|h[1-6]|strong|span|p|class|style))$/i.test(term)
-    || /^(the|and|for|with|that|this|from|have|been|most|like|also|your|will)$/i.test(term)
-    || term.length <= 1;
+  const lower = term.toLowerCase();
+  return /^(\/?(div|li|ul|ol|h[1-6]|strong|span|p|class|style))$/i.test(lower)
+    || /^(the|and|for|with|that|this|from|have|been|most|like|also|your|will|teams?)$/i.test(lower)
+    || lower.length <= 1;
 }
 
 /**
- * Find which target keywords are already present in the selected bullet texts.
+ * Check if a resume skill matches a JD term.
  */
-function findCoveredKeywords(bulletTexts: string[], targets: Set<string>): Set<string> {
-  const covered = new Set<string>();
-  const allText = bulletTexts.join(" ").toLowerCase();
+function skillMatchesJdTerm(resumeSkill: string, jdTerm: string): boolean {
+  const s = resumeSkill.toLowerCase();
+  const j = jdTerm.toLowerCase();
 
-  for (const target of targets) {
-    if (allText.includes(target)) {
-      covered.add(target);
-    }
-  }
+  if (s === j) return true;
 
-  return covered;
-}
+  // Whole-word match
+  const wb = new RegExp(`\\b${j.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+  if (wb.test(s)) return true;
 
-/**
- * Check if a skill name and a gap term are a genuine match.
- * Requires the match to be a whole word or a substantial substring (>50% of either).
- */
-function isGenuineMatch(skill: string, gapTerm: string): boolean {
-  const s = skill.toLowerCase();
-  const g = gapTerm.toLowerCase();
-
-  // Exact match
-  if (s === g) return true;
-
-  // Whole-word match (gap term is a complete word in the skill name)
-  const wordBoundary = new RegExp(`\\b${g.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
-  if (wordBoundary.test(s)) return true;
-
-  // Substantial substring: gap term is >50% of the skill name length
-  if (s.includes(g) && g.length >= s.length * 0.5) return true;
-  if (g.includes(s) && s.length >= g.length * 0.5) return true;
+  // Reverse: JD term contains the resume skill as a whole word
+  const wb2 = new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+  if (wb2.test(j)) return true;
 
   return false;
 }
 
 /**
- * Score a skill category by how many gap keywords its skills cover.
- */
-function scoreCategory(category: SkillCategory, gap: Set<string>): number {
-  let score = 0;
-  for (const skill of category.skills) {
-    for (const gapTerm of gap) {
-      if (isGenuineMatch(skill, gapTerm)) {
-        score++;
-      }
-    }
-  }
-  return score;
-}
-
-/**
- * Build a single skill line, prioritizing gap-filling skills.
- * Respects the character ceiling.
- */
-function buildSkillLine(
-  category: SkillCategory,
-  gap: Set<string>,
-  filledGaps: string[],
-): string {
-  const headerLen = category.header.length + 2; // "Header: "
-  const maxListLen = SKILL_LINE_MAX_CHARS - headerLen;
-
-  // Split skills into gap-fillers and others
-  const gapFillers: string[] = [];
-  const others: string[] = [];
-
-  for (const skill of category.skills) {
-    let isGapFiller = false;
-    for (const gapTerm of gap) {
-      if (isGenuineMatch(skill, gapTerm)) {
-        isGapFiller = true;
-        break;
-      }
-    }
-    if (isGapFiller) {
-      gapFillers.push(skill);
-    } else {
-      others.push(skill);
-    }
-  }
-
-  // Build the list: gap fillers first, then others, respecting char limit
-  const selected: string[] = [];
-  let currentLen = 0;
-
-  for (const skill of [...gapFillers, ...others]) {
-    const addition = selected.length === 0 ? skill.length : skill.length + 2; // ", " separator
-    if (currentLen + addition > maxListLen) break;
-    selected.push(skill);
-    currentLen += addition;
-
-    // Track which gaps we filled
-    for (const gapTerm of gap) {
-      if (isGenuineMatch(skill, gapTerm)) {
-        filledGaps.push(gapTerm);
-      }
-    }
-  }
-
-  return selected.join(", ");
-}
-
-/**
- * Main function: optimize 3 skill lines for a specific job.
+ * Main: optimize 3 skill lines based purely on what the JD asks for.
  */
 export function optimizeSkills(
   allCategories: SkillCategory[],
   bulletTexts: string[],
   jdSkills: any,
   jdAtsKeywords: any,
+  requiredQuals?: string[],
+  preferredQuals?: string[],
+  jdExtractedSkills?: string[],
 ): OptimizedSkills {
-  // Step 1: Extract target keywords from JD
-  const targets = extractTargetKeywords(jdSkills, jdAtsKeywords);
-
-  // Step 2: Find which are already covered by bullets
-  const covered = findCoveredKeywords(bulletTexts, targets);
-
-  // Step 3: Gap = targets not in bullets
-  const gap = new Set<string>();
-  for (const t of targets) {
-    if (!covered.has(t)) gap.add(t);
+  // Step 1: Use LLM-extracted skills if available, else fall back to regex
+  let jdTerms: string[];
+  if (jdExtractedSkills && jdExtractedSkills.length > 0) {
+    jdTerms = jdExtractedSkills;
+  } else {
+    jdTerms = extractJdSkillTerms(
+      jdSkills, jdAtsKeywords,
+      requiredQuals || [], preferredQuals || [],
+    );
   }
 
-  // Step 4: Score each category by gap coverage + domain affinity, pick top 3
+  // Step 2: For each JD term, find matching resume skills
   const pool = allCategories.filter(
-    (c) => c.header !== "Certifications" && c.header !== "Tools and Frameworks",
+    (c) => c.header !== "Certifications",
   );
 
-  // Domain affinity: if JD mentions AI/ML terms, boost Data/ML category etc.
-  const allTargetStr = [...targets].join(" ");
-  const domainBoosts: Record<string, number> = {};
-  if (/\b(ai|ml|machine learn|llm|inference|model|neural|deep learn|nlp)\b/i.test(allTargetStr)) {
-    domainBoosts["Data, ML and Search"] = 3;
-  }
-  if (/\b(api|backend|system|architect|distribut|microservice|docker|kubernetes)\b/i.test(allTargetStr)) {
-    domainBoosts["Backend and Systems"] = 2;
-  }
-  if (/\b(product|roadmap|stakeholder|strategy|prioritiz|prd|user research)\b/i.test(allTargetStr)) {
-    domainBoosts["Product and Strategy"] = 2;
-  }
-  if (/\b(aws|cloud|lambda|s3|sagemaker|infrastructure)\b/i.test(allTargetStr)) {
-    domainBoosts["AWS and Cloud"] = 2;
-  }
-  if (/\b(react|next\.?js|frontend|full.?stack|node|typescript|javascript)\b/i.test(allTargetStr)) {
-    domainBoosts["Frontend and Full-Stack"] = 2;
+  // categoryName -> [{resumeSkill, jdTerm}]
+  const categoryMatches = new Map<string, Array<{ resumeSkill: string; jdTerm: string }>>();
+  const allMatched = new Set<string>(); // JD terms we found in resume
+
+  for (const cat of pool) {
+    const matches: Array<{ resumeSkill: string; jdTerm: string }> = [];
+    for (const skill of cat.skills) {
+      for (const jdTerm of jdTerms) {
+        if (skillMatchesJdTerm(skill, jdTerm)) {
+          matches.push({ resumeSkill: skill, jdTerm });
+          allMatched.add(jdTerm.toLowerCase());
+        }
+      }
+    }
+    if (matches.length > 0) {
+      categoryMatches.set(cat.header, matches);
+    }
   }
 
-  const scored = pool.map((cat) => ({
-    category: cat,
-    score: scoreCategory(cat, gap) + (domainBoosts[cat.header] || 0),
-  }));
-  scored.sort((a, b) => b.score - a.score);
+  // Step 3: Rank categories by number of JD-matched skills
+  const ranked = [...categoryMatches.entries()]
+    .map(([header, matches]) => {
+      const uniqueSkills = [...new Set(matches.map((m) => m.resumeSkill))];
+      const jdEvidence = [...new Set(matches.map((m) => m.jdTerm))];
+      return { header, skills: uniqueSkills, jdEvidence, count: uniqueSkills.length };
+    })
+    .sort((a, b) => b.count - a.count);
 
-  const top3 = scored.slice(0, 3).map((s) => s.category);
+  // If fewer than 3 categories have JD matches, add the most relevant remaining categories
+  if (ranked.length < 3) {
+    const usedHeaders = new Set(ranked.map((r) => r.header));
+    const remaining = pool
+      .filter((c) => !usedHeaders.has(c.header))
+      .sort((a, b) => b.skills.length - a.skills.length);
+    for (const cat of remaining) {
+      if (ranked.length >= 3) break;
+      ranked.push({
+        header: cat.header,
+        skills: [],
+        jdEvidence: [],
+        count: 0,
+      });
+    }
+  }
 
-  // Step 5: Build lines with gap-filling priority
-  const filledGaps: string[] = [];
-  const lines = top3.map((cat) => ({
-    name: cat.header,
-    list: buildSkillLine(cat, gap, filledGaps),
-  }));
+  // Step 4: Build lines — JD-matched skills first, then fill with related skills from same category
+  // Minimum 4 skills per line, minimum 12 total
+  const MIN_PER_LINE = 4;
+  const lines: SkillLine[] = [];
 
-  // Step 6: Report remaining gaps
-  const filledSet = new Set(filledGaps);
-  const remaining = [...gap].filter((g) => !filledSet.has(g));
+  for (const cat of ranked.slice(0, 3)) {
+    const fullCategory = pool.find((c) => c.header === cat.header);
+    if (!fullCategory) continue;
 
-  return { lines, gapFilled: filledGaps, gapRemaining: remaining };
+    const headerLen = cat.header.length + 2;
+    const maxListLen = SKILL_LINE_MAX_CHARS - headerLen;
+
+    // Start with JD-matched skills, then add remaining from the category
+    const jdMatchedSet = new Set(cat.skills.map((s) => s.toLowerCase()));
+    const remainingSkills = fullCategory.skills.filter(
+      (s) => !jdMatchedSet.has(s.toLowerCase()),
+    );
+
+    const selected: string[] = [];
+    let currentLen = 0;
+
+    // JD-matched first
+    for (const skill of cat.skills) {
+      const addition = selected.length === 0 ? skill.length : skill.length + 2;
+      if (currentLen + addition > maxListLen) break;
+      selected.push(skill);
+      currentLen += addition;
+    }
+
+    // Fill with related skills until we have at least MIN_PER_LINE
+    for (const skill of remainingSkills) {
+      if (selected.length >= MIN_PER_LINE && currentLen > maxListLen * 0.7) break;
+      const addition = selected.length === 0 ? skill.length : skill.length + 2;
+      if (currentLen + addition > maxListLen) break;
+      selected.push(skill);
+      currentLen += addition;
+    }
+
+    lines.push({
+      name: cat.header,
+      list: selected.join(", "),
+      jdEvidence: cat.jdEvidence,
+    });
+  }
+
+  // Step 5: Report gaps
+  const gapFilled = [...allMatched];
+  const gapRemaining = jdTerms.filter(
+    (t) => !allMatched.has(t.toLowerCase()),
+  );
+
+  return { lines, gapFilled, gapRemaining };
 }

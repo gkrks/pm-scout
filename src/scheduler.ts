@@ -18,6 +18,7 @@ import {
   type BufferedListing,
 } from "./storage/pendingBuffer";
 import { acquireLock, releaseLock } from "./orchestrator/lock";
+import { extractSkillsForNewListings } from "./storage/extractSkillsInline";
 import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan";
 import type { CompanyResult } from "./orchestrator/classify";
 import { extractJD } from "./jdExtractor";
@@ -161,6 +162,16 @@ async function writeToSupabase(
     for (const j of dedupedJobs) {
       const lid = urlToListingId.get(normalizeRoleUrl(j.applyUrl));
       if (lid) j.supabaseId = lid;
+    }
+
+    // Extract skills for new listings inline (gpt-4o-mini, ~$0.0001 each)
+    const newListingIds = results
+      .filter((r) => r.seenState === "new")
+      .map((r) => r.listingId);
+    if (newListingIds.length > 0) {
+      await extractSkillsForNewListings(newListingIds).catch((err) => {
+        console.warn(`[scheduler] Skill extraction failed for ${company.name}: ${err.message}`);
+      });
     }
 
     if (!failedCompanyNames.has(company.name)) {

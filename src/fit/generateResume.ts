@@ -88,6 +88,7 @@ export async function generateResume(
   jobId: string,
   selections: UserSelection[],
   scoreData?: ScoreResponse,
+  email?: string,
 ): Promise<GenerateResult> {
   // Load master resume
   const masterResume = JSON.parse(fs.readFileSync(MASTER_RESUME_PATH, "utf-8"));
@@ -100,7 +101,7 @@ export async function generateResume(
       id, title, role_url,
       jd_job_title, jd_company_name,
       jd_required_qualifications, jd_preferred_qualifications,
-      jd_role_context, jd_skills, jd_ats_keywords, ats_platform,
+      jd_role_context, jd_skills, jd_ats_keywords, jd_extracted_skills, ats_platform,
       company:companies!inner(name, slug)
     `)
     .eq("id", jobId)
@@ -272,6 +273,9 @@ export async function generateResume(
     selectedBulletTexts,
     job.jd_skills,
     job.jd_ats_keywords,
+    job.jd_required_qualifications as string[] || [],
+    job.jd_preferred_qualifications as string[] || [],
+    job.jd_extracted_skills as string[] || undefined,
   );
   (workingResume as any).__skills_override = skillsResult.lines;
 
@@ -279,8 +283,11 @@ export async function generateResume(
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "fit-resume-"));
   const workingPath = path.join(tempDir, "working_resume.json");
 
-  // Add summary override to working resume
+  // Add summary + email overrides to working resume
   (workingResume as any).__summary_override = summary;
+  if (email) {
+    (workingResume as any).__email_override = email;
+  }
 
   fs.writeFileSync(workingPath, JSON.stringify(workingResume, null, 2));
 

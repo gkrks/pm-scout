@@ -1,6 +1,7 @@
 /**
  * Server-rendered HTML for the Fit page.
- * Plain CSS, mobile-friendly, no framework.
+ * Clean two-column layout: qualification left, recommendations right.
+ * Auto-scores on load. Summary + skills sections. Strength modal.
  */
 
 export interface FitPageData {
@@ -15,6 +16,7 @@ export interface FitPageData {
   roleUrl: string;
   requiredQuals: string[];
   preferredQuals: string[];
+  emails: string[];
 }
 
 function esc(s: string): string {
@@ -38,31 +40,26 @@ function atsBadge(ats: string): string {
   return `<span class="badge badge-ats">${esc(label)}</span>`;
 }
 
-function qualCard(id: string, text: string, kind: string, index: number): string {
+function qualRow(id: string, text: string, kind: string): string {
   return `
-    <div class="qual-card" data-qual-id="${esc(id)}" data-qual-kind="${esc(kind)}">
-      <div class="qual-header">
+    <div class="qual-row" data-qual-id="${esc(id)}" data-qual-kind="${esc(kind)}">
+      <div class="qual-left">
         <span class="qual-kind ${kind}">${kind === "basic" ? "Required" : "Preferred"}</span>
         <span class="qual-text">${esc(text)}</span>
       </div>
-      <div class="candidates-container" id="candidates-${esc(id)}">
-        <div class="loading-spinner">Loading candidates...</div>
+      <div class="qual-right" id="candidates-${esc(id)}">
+        <div class="loading-placeholder"><span class="spinner-icon"></span></div>
       </div>
-      <div class="custom-bullet-section" style="display:none;" id="custom-${esc(id)}">
-        <textarea class="custom-textarea" placeholder="Write your own bullet (max 155 chars)" maxlength="155"></textarea>
-        <button class="btn btn-sm btn-secondary use-custom-btn" data-qual-id="${esc(id)}">Use this bullet</button>
-      </div>
-      <button class="btn btn-sm btn-link write-own-btn" data-qual-id="${esc(id)}">+ Write my own bullet</button>
     </div>`;
 }
 
 export function renderFitPage(data: FitPageData): string {
-  const requiredCards = data.requiredQuals
-    .map((text, i) => qualCard(`q_basic_${i}`, text, "basic", i))
+  const requiredRows = data.requiredQuals
+    .map((text, i) => qualRow(`q_basic_${i}`, text, "basic"))
     .join("\n");
 
-  const preferredCards = data.preferredQuals
-    .map((text, i) => qualCard(`q_preferred_${i}`, text, "preferred", i))
+  const preferredRows = data.preferredQuals
+    .map((text, i) => qualRow(`q_preferred_${i}`, text, "preferred"))
     .join("\n");
 
   const totalQuals = data.requiredQuals.length + data.preferredQuals.length;
@@ -84,263 +81,223 @@ export function renderFitPage(data: FitPageData): string {
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f8f9fa;
-      color: #1a1a2e;
-      line-height: 1.5;
-      padding-bottom: 100px;
+      background: #f9fafb;
+      color: #111827;
+      line-height: 1.6;
+      padding-bottom: 80px;
     }
 
-    .container { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 
     /* Header */
     .header {
       background: #fff;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 20px 0;
-      margin-bottom: 24px;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 24px 0;
+      margin-bottom: 28px;
     }
-    .header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
-    .header .company { font-size: 1.1rem; color: #4a5568; }
-    .header .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
-    .header .meta a { color: #6366f1; text-decoration: none; font-size: 0.875rem; }
+    .header h1 { font-size: 1.4rem; font-weight: 700; color: #111827; }
+    .header .company { font-size: 1rem; color: #6b7280; margin-top: 2px; }
+    .header .meta {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 10px; align-items: center;
+    }
+    .header .meta a { color: #6366f1; text-decoration: none; font-size: 0.85rem; }
     .header .meta a:hover { text-decoration: underline; }
 
     /* Badges */
     .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
     }
     .badge-remote { background: #d1fae5; color: #065f46; }
     .badge-hybrid { background: #dbeafe; color: #1e40af; }
     .badge-onsite { background: #fef3c7; color: #92400e; }
     .badge-ats { background: #ede9fe; color: #5b21b6; }
-    .badge-recommended {
-      background: #d1fae5; color: #065f46;
-      font-size: 0.7rem; padding: 1px 6px;
-    }
-    .badge-cap-forced {
-      background: #fef3c7; color: #92400e;
-      font-size: 0.7rem; padding: 1px 6px;
-    }
 
-    /* Sections */
+    /* Strength score (top right) */
+    .strength-trigger {
+      position: fixed; top: 20px; right: 20px; z-index: 200;
+      background: #fff; border: 2px solid #e5e7eb; border-radius: 12px;
+      padding: 12px 18px; cursor: pointer; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: border-color 0.2s;
+      display: none;
+    }
+    .strength-trigger:hover { border-color: #6366f1; }
+    .strength-number { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .strength-label { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+    .strength-green { color: #059669; }
+    .strength-yellow { color: #d97706; }
+    .strength-red { color: #dc2626; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 300; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 12px; padding: 28px; width: 480px;
+      max-width: 90vw; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal h2 { font-size: 1.2rem; margin-bottom: 16px; }
+    .modal-close {
+      float: right; background: none; border: none; font-size: 1.5rem;
+      cursor: pointer; color: #9ca3af; line-height: 1;
+    }
+    .modal-close:hover { color: #111; }
+    .score-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .score-row:last-child { border-bottom: none; }
+    .score-row-label { font-size: 0.9rem; color: #374151; }
+    .score-row-value { font-size: 0.95rem; font-weight: 700; }
+    .score-bar-track { flex: 1; height: 8px; background: #f3f4f6; border-radius: 4px; margin: 0 12px; }
+    .score-bar-fill { height: 8px; border-radius: 4px; transition: width 0.5s; }
+
+    /* Section headings */
     .section-title {
-      font-size: 1.1rem; font-weight: 700;
-      margin: 24px 0 12px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e2e8f0;
+      font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; margin: 28px 0 14px; padding-bottom: 8px;
+      border-bottom: 2px solid #e5e7eb; color: #374151;
     }
-    .section-title.required { border-color: #ef4444; }
-    .section-title.preferred { border-color: #f59e0b; }
+    .section-title.required { border-color: #ef4444; color: #991b1b; }
+    .section-title.preferred { border-color: #f59e0b; color: #92400e; }
+    .section-title.summary-title { border-color: #6366f1; color: #4338ca; }
+    .section-title.skills-title { border-color: #10b981; color: #065f46; }
 
-    /* Qual cards */
-    .qual-card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
+    /* Two-column qual rows */
+    .qual-row {
+      display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 10px;
+      transition: border-color 0.15s;
     }
-    .qual-card.selected { border-color: #6366f1; }
-    .qual-header { margin-bottom: 12px; }
+    .qual-row.selected { border-color: #6366f1; border-left: 3px solid #6366f1; }
+    .qual-left { display: flex; flex-direction: column; gap: 4px; }
     .qual-kind {
-      display: inline-block;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 1px 6px;
-      border-radius: 3px;
-      margin-right: 8px;
+      display: inline-block; font-size: 0.65rem; font-weight: 700;
+      text-transform: uppercase; padding: 1px 5px; border-radius: 3px;
+      width: fit-content; letter-spacing: 0.3px;
     }
     .qual-kind.basic { background: #fee2e2; color: #991b1b; }
     .qual-kind.preferred { background: #fef3c7; color: #92400e; }
-    .qual-text { font-size: 0.95rem; }
+    .qual-text { font-size: 0.85rem; color: #374151; }
+    .qual-right { min-height: 40px; }
 
-    /* Candidate bullets */
+    /* Candidate options */
     .candidate {
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: border-color 0.15s;
+      border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px;
+      margin-bottom: 6px; cursor: pointer; transition: all 0.15s;
+      font-size: 0.84rem;
     }
-    .candidate:hover { border-color: #a5b4fc; }
+    .candidate:hover { border-color: #a5b4fc; background: #fafafe; }
     .candidate.active { border-color: #6366f1; background: #f5f3ff; }
     .candidate-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 4px;
     }
-    .candidate-source { font-size: 0.8rem; color: #6b7280; }
-    .candidate-scores {
-      display: flex; gap: 6px; align-items: center;
-    }
+    .candidate-source { font-size: 0.72rem; color: #9ca3af; }
     .score-badge {
-      font-size: 0.8rem; font-weight: 600;
-      padding: 1px 6px; border-radius: 4px;
+      font-size: 0.72rem; font-weight: 700; padding: 1px 6px; border-radius: 3px;
     }
     .score-high { background: #d1fae5; color: #065f46; }
     .score-mid { background: #fef3c7; color: #92400e; }
     .score-low { background: #fee2e2; color: #991b1b; }
-    .candidate-text { font-size: 0.9rem; margin-bottom: 6px; }
-    .candidate-rationale { font-size: 0.8rem; color: #6b7280; font-style: italic; }
+    .badge-recommended {
+      background: #d1fae5; color: #065f46;
+      font-size: 0.65rem; padding: 1px 5px; border-radius: 3px; margin-right: 4px;
+    }
+    .candidate-text { font-size: 0.82rem; color: #1f2937; line-height: 1.4; }
 
-    /* Sub-scores expandable */
-    .sub-scores-toggle {
-      font-size: 0.75rem; color: #6366f1; cursor: pointer;
-      border: none; background: none; padding: 0; margin-top: 4px;
-      margin-left: 8px;
+    /* Pre-resolved */
+    .pre-resolved {
+      border-left: 3px solid #22c55e; background: #f0fdf4;
+      padding: 10px 12px; border-radius: 6px; font-size: 0.84rem;
     }
-    .sub-scores-toggle:hover { text-decoration: underline; }
-    .sub-scores-detail {
-      display: none;
-      margin-top: 6px;
-      font-size: 0.8rem;
-      color: #4a5568;
-    }
-    .sub-scores-detail.open { display: block; }
-    .sub-score-bar {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
-    }
-    .sub-score-label { width: 100px; text-align: right; }
-    .sub-score-fill {
-      height: 6px; border-radius: 3px; background: #6366f1;
-      transition: width 0.3s;
-    }
-    .sub-score-track {
-      flex: 1; height: 6px; border-radius: 3px; background: #e2e8f0;
-    }
-    .sub-score-value { width: 30px; font-size: 0.75rem; }
+    .pre-resolved.not-met { border-color: #ef4444; background: #fef2f2; }
+    .pre-resolved-status { font-weight: 700; margin-bottom: 2px; }
+    .pre-resolved-evidence { color: #374151; }
+    .pre-resolved-meta { font-size: 0.72rem; color: #9ca3af; margin-top: 4px; }
 
-    /* Inline edit */
-    .edit-btn {
-      font-size: 0.75rem; color: #6366f1; cursor: pointer;
-      border: none; background: none; padding: 0; margin-left: 8px;
+    /* Summary section */
+    .summary-box {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 16px; margin-bottom: 10px;
     }
+    .summary-text { font-size: 0.88rem; color: #1f2937; line-height: 1.5; }
+    .summary-loading { color: #9ca3af; font-style: italic; font-size: 0.85rem; }
+    .summary-candidate {
+      border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px;
+      margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+    }
+    .summary-candidate:hover { border-color: #a5b4fc; background: #fafafe; }
+    .summary-candidate.active { border-color: #6366f1; background: #f5f3ff; border-left: 3px solid #6366f1; }
+
+    /* Edit textarea inline */
     .edit-textarea {
       width: 100%; margin-top: 6px; padding: 8px;
       border: 1px solid #a5b4fc; border-radius: 4px;
-      font-size: 0.9rem; resize: vertical;
+      font-size: 0.82rem; resize: vertical; min-height: 60px;
     }
 
-    /* Custom bullet */
-    .custom-textarea {
-      width: 100%; padding: 8px; margin-top: 8px;
-      border: 1px solid #e2e8f0; border-radius: 4px;
-      font-size: 0.9rem;
+    /* Skills section */
+    .skills-box {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 10px;
     }
-
-    /* Buttons */
-    .btn {
-      display: inline-block;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary { background: #6366f1; color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: #4f46e5; }
-    .btn-secondary { background: #e2e8f0; color: #1a1a2e; }
-    .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
-    .btn-link {
-      background: none; color: #6366f1; padding: 4px 0;
-      font-size: 0.8rem;
-    }
-    .btn-link:hover { text-decoration: underline; }
-    .btn-download {
-      padding: 10px 20px;
-      font-size: 0.95rem;
-    }
-    .btn-download-pdf { background: #ef4444; color: #fff; }
-    .btn-download-pdf:hover { background: #dc2626; }
-    .btn-download-docx { background: #3b82f6; color: #fff; }
-    .btn-download-docx:hover { background: #2563eb; }
-
-    /* Warnings */
-    .cap-warnings {
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      border-radius: 6px;
-      padding: 10px 14px;
-      margin-bottom: 12px;
-      font-size: 0.85rem;
-      display: none;
-    }
-    .cap-warnings.visible { display: block; }
-    .cap-warnings ul { margin: 4px 0 0 16px; }
-
-    .summary-warning {
-      background: #fee2e2;
-      border: 1px solid #ef4444;
-      border-radius: 6px;
-      padding: 10px 14px;
-      margin-top: 12px;
-      font-size: 0.85rem;
-      display: none;
-    }
+    .skill-line { font-size: 0.85rem; margin-bottom: 4px; }
+    .skill-line-name { font-weight: 700; color: #111827; }
+    .skill-line-list { color: #4b5563; }
+    .skills-loading { color: #9ca3af; font-style: italic; font-size: 0.85rem; }
 
     /* Footer */
     .sticky-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #fff;
-      border-top: 1px solid #e2e8f0;
-      padding: 12px 16px;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      align-items: center;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #e5e7eb;
+      padding: 10px 20px;
+      display: flex; justify-content: center; gap: 12px; align-items: center;
       z-index: 100;
     }
-    .footer-status {
-      font-size: 0.85rem;
-      color: #6b7280;
-    }
+    .footer-status { font-size: 0.8rem; color: #6b7280; }
 
-    /* Spinner */
-    .loading-spinner {
-      text-align: center;
-      padding: 20px;
-      color: #6b7280;
-      font-size: 0.9rem;
+    /* Buttons */
+    .btn {
+      display: inline-block; padding: 9px 18px; border-radius: 6px;
+      font-size: 0.85rem; font-weight: 600; border: none;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
     }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-pdf { background: #dc2626; color: #fff; }
+    .btn-pdf:hover:not(:disabled) { background: #b91c1c; }
+    .btn-docx { background: #2563eb; color: #fff; }
+    .btn-docx:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+    .btn-link { background: none; color: #6366f1; padding: 2px 0; font-size: 0.75rem; }
+    .btn-link:hover { text-decoration: underline; }
+
+    /* Loading */
+    .loading-placeholder { text-align: center; padding: 8px; }
     .spinner-icon {
-      display: inline-block;
-      width: 20px; height: 20px;
-      border: 2px solid #e2e8f0;
-      border-top-color: #6366f1;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      margin-right: 8px;
-      vertical-align: middle;
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid #e5e7eb; border-top-color: #6366f1;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .page-loading {
+      text-align: center; padding: 60px 20px; color: #6b7280; font-size: 0.95rem;
+    }
 
     /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      color: #6b7280;
-    }
+    .empty-state { text-align: center; padding: 40px; color: #6b7280; }
     .empty-state a { color: #6366f1; }
 
     /* Responsive */
-    @media (max-width: 640px) {
-      .header h1 { font-size: 1.2rem; }
-      .candidate { padding: 10px; }
-      .sticky-footer { flex-wrap: wrap; }
+    @media (max-width: 768px) {
+      .qual-row { grid-template-columns: 1fr; }
+      .strength-trigger { position: static; margin: 0 auto 20px; display: block !important; }
     }
   </style>
 </head>
@@ -355,34 +312,62 @@ export function renderFitPage(data: FitPageData): string {
         ${atsBadge(data.ats)}
         <a href="${esc(data.roleUrl)}" target="_blank">View posting</a>
       </div>
+      <div class="email-selector" style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:0.8rem;color:#6b7280;">Resume email:</span>
+        <select id="email-select" style="padding:4px 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.82rem;">
+          ${data.emails.map((e, i) => `<option value="${esc(e)}"${i === 0 ? " selected" : ""}>${esc(e)}</option>`).join("")}
+          <option value="__custom__">+ Custom email</option>
+        </select>
+        <input type="email" id="email-custom-input" placeholder="your@email.com" style="display:none;padding:4px 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.82rem;width:220px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Strength score badge (top-right, shown after scoring) -->
+  <div class="strength-trigger" id="strength-trigger" onclick="document.getElementById('strength-modal').classList.add('open')">
+    <div class="strength-number" id="strength-number">--</div>
+    <div class="strength-label">Fit Score</div>
+  </div>
+
+  <!-- Strength modal -->
+  <div class="modal-overlay" id="strength-modal">
+    <div class="modal">
+      <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('open')">&times;</button>
+      <h2>Resume Strength</h2>
+      <div id="strength-breakdown"></div>
     </div>
   </div>
 
   <div class="container">
     ${emptyState}
 
+    <!-- Summary -->
+    <h2 class="section-title summary-title">Professional Summary</h2>
+    <div class="summary-box" id="summary-box">
+      <div class="summary-loading"><span class="spinner-icon"></span> Generating tailored summary...</div>
+    </div>
+
     ${data.requiredQuals.length > 0 ? `
       <h2 class="section-title required">Required Qualifications (${data.requiredQuals.length})</h2>
-      ${requiredCards}
+      ${requiredRows}
     ` : ""}
 
     ${data.preferredQuals.length > 0 ? `
       <h2 class="section-title preferred">Preferred Qualifications (${data.preferredQuals.length})</h2>
-      ${preferredCards}
+      ${preferredRows}
     ` : ""}
 
-    <div class="cap-warnings" id="cap-warnings">
-      <strong>Cap warnings:</strong>
-      <ul id="cap-warnings-list"></ul>
+    <!-- Skills -->
+    <h2 class="section-title skills-title">Optimized Skills</h2>
+    <div class="skills-box" id="skills-box">
+      <div class="skills-loading"><span class="spinner-icon"></span> Analyzing skill gaps...</div>
     </div>
   </div>
 
   <div class="sticky-footer" id="footer">
-    <span class="footer-status" id="footer-status">Select bullets for all ${totalQuals} qualifications</span>
-    <button class="btn btn-primary" id="score-btn">Score Candidates</button>
-    <button class="btn btn-primary" id="generate-btn" disabled style="display:none;">Generate Resume</button>
-    <a class="btn btn-download btn-download-pdf" id="download-pdf" style="display:none;" download>Download PDF</a>
-    <a class="btn btn-download btn-download-docx" id="download-docx" style="display:none;" download>Download DOCX</a>
+    <span class="footer-status" id="footer-status"><span class="spinner-icon"></span> Scoring resume fit...</span>
+    <button class="btn btn-pdf" id="gen-pdf-btn" disabled>Generate PDF</button>
+    <button class="btn btn-docx" id="gen-docx-btn" disabled>Generate DOCX</button>
   </div>
 
   <script>
@@ -390,6 +375,9 @@ export function renderFitPage(data: FitPageData): string {
       jobId: "${esc(data.jobId)}",
       token: "${esc(data.token)}",
       totalQuals: ${totalQuals},
+      requiredCount: ${data.requiredQuals.length},
+      preferredCount: ${data.preferredQuals.length},
+      emails: ${JSON.stringify(data.emails)},
     };
   </script>
   <script src="/fit/client.js"></script>

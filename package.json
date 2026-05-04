@@ -16,6 +16,7 @@
     "discover:ats": "node scripts/discoverATS.js",
     "replay:pending": "ts-node scripts/replayPendingBuffer.ts",
     "extract:one": "ts-node scripts/extractOne.ts",
+    "extract:skills": "ts-node scripts/extractSkills.ts",
     "fit:serve": "ts-node src/fit/server.ts",
     "test": "jest",
     "postinstall": "PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium || true"

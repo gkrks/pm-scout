@@ -23,6 +23,8 @@ import fetch from "node-fetch";
 import { getSupabaseClient } from "../storage/supabase";
 import { generateResume } from "./generateResume";
 import { renderFitPage } from "./render";
+import { optimizeSkills } from "./skillsOptimizer";
+import { generateSummaryCandidates } from "./summaryGenerator";
 import {
   ScoreRequestBodyZ,
   ScoreResponseZ,
@@ -133,6 +135,12 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       return;
     }
 
+    // Load emails from master resume
+    const resumeData = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
+    );
+    const emails: string[] = resumeData.contact?.emails || ["krithiksaisreenishgopinath@gmail.com"];
+
     const html = renderFitPage({
       jobId,
       token,
@@ -145,6 +153,7 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       roleUrl: job.role_url,
       requiredQuals: (job.jd_required_qualifications as string[]) || [],
       preferredQuals: (job.jd_preferred_qualifications as string[]) || [],
+      emails,
     });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -182,7 +191,72 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
 
     const data = await pyRes.json();
     const validated = ScoreResponseZ.parse(data);
-    res.json(validated);
+
+    // Enrich with summary candidates + optimized skills
+    const supabase = getSupabaseClient();
+    const { data: jobRow } = await supabase
+      .from("job_listings")
+      .select(`
+        title, jd_job_title, jd_company_name, jd_skills, jd_ats_keywords,
+        jd_required_qualifications, jd_preferred_qualifications,
+        jd_role_context, jd_extracted_skills,
+        company:companies!inner(name)
+      `)
+      .eq("id", jobId)
+      .single();
+
+    // Collect recommended bullet texts for summary input
+    const masterResume = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
+    );
+    const bulletMap = new Map<string, string>();
+    for (const exp of masterResume.experiences || []) {
+      for (const b of exp.bullets || []) bulletMap.set(b.id, b.text);
+    }
+    for (const proj of masterResume.projects || []) {
+      for (const b of proj.bullets || []) bulletMap.set(b.id, b.text);
+    }
+
+    const selectedBulletTexts = validated.final_selection.selected_bullets
+      .map((sb: any) => bulletMap.get(sb.bullet_id) || "")
+      .filter(Boolean);
+
+    // Build JD text for summary prompt
+    const jdTitle = jobRow?.jd_job_title || jobRow?.title || "";
+    const companyName = (jobRow?.company as any)?.name || jobRow?.jd_company_name || "";
+    const reqQuals = (jobRow?.jd_required_qualifications as string[] || []).slice(0, 5);
+    const roleContext = (jobRow?.jd_role_context as any)?.summary || "";
+    const jdText = [
+      `Title: ${jdTitle}`,
+      `Company: ${companyName}`,
+      reqQuals.length > 0 ? `Key requirements: ${reqQuals.join("; ")}` : "",
+      roleContext ? `About: ${roleContext}` : "",
+    ].filter(Boolean).join("\n");
+
+    // Generate summary candidates (OpenAI call)
+    const summaryResult = await generateSummaryCandidates(jdText, selectedBulletTexts);
+
+    // Compute optimized skills (JD-first: only include skills the JD asks for)
+    const skillsResult = optimizeSkills(
+      masterResume.skills || [],
+      selectedBulletTexts,
+      jobRow?.jd_skills,
+      jobRow?.jd_ats_keywords,
+      jobRow?.jd_required_qualifications as string[] || [],
+      jobRow?.jd_preferred_qualifications as string[] || [],
+      jobRow?.jd_extracted_skills as string[] || undefined,
+    );
+
+    // Return enriched response
+    res.json({
+      ...validated,
+      summary_candidates: summaryResult.candidates,
+      summary_recommended: summaryResult.recommended,
+      summary_jd_analysis: summaryResult.jdAnalysis,
+      optimized_skills: skillsResult.lines,
+      skills_gap_filled: skillsResult.gapFilled,
+      skills_gap_remaining: skillsResult.gapRemaining,
+    });
   } catch (err: any) {
     console.error("[fit] score error:", err.message);
     res.status(500).json({ error: err.message });
@@ -236,7 +310,7 @@ app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response
     const body = GenerateRequestBodyZ.parse(req.body);
     const jobId = req.params.jobId;
 
-    const result = await generateResume(jobId, body.selections);
+    const result = await generateResume(jobId, body.selections, undefined, body.email);
 
     generatedFiles.set(jobId, {
       pdfPath: result.pdfPath,
