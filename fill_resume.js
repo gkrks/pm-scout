@@ -68,10 +68,10 @@ const BULLET_LEFT = 288;
 const BULLET_HANGING = 288;
 
 // Spacing (twips for docx)
-const SECTION_BEFORE = 120;
-const SECTION_AFTER = 60;
-const ENTRY_BEFORE = 60;
-const LAST_BULLET_AFTER = 30;
+const SECTION_BEFORE = 140;
+const SECTION_AFTER = 40;
+const ENTRY_BEFORE = 50;
+const LAST_BULLET_AFTER = 20;
 
 // ---------- data helpers ----------
 function cleanText(text) {
@@ -154,16 +154,28 @@ const edus = data.education.map(e => ({
 }));
 
 // Skills: use __skills_override if present (from skills optimizer), else default
+// Enforce 110-char ceiling per line to prevent page overflow
+function buildSkillList(header, skillsArr) {
+  const maxLen = 110 - header.length - 2; // "Header: "
+  const sorted = [...skillsArr].sort((a, b) => b.length - a.length);
+  const selected = [];
+  let len = 0;
+  for (const s of sorted) {
+    const add = selected.length === 0 ? s.length : s.length + 2;
+    if (len + add > maxLen) break;
+    selected.push(s);
+    len += add;
+  }
+  return { name: header, list: selected.join(", ") };
+}
+
 const skills = data.__skills_override
   ? data.__skills_override.map(s => ({ name: s.name, list: s.list }))
   : [
-      { header: "Product and Strategy", skills: data.skills[1].skills },
-      { header: "Data, ML and Search", skills: data.skills[2].skills },
-      { header: "Backend and Systems", skills: data.skills[3].skills },
-    ].map(cat => ({
-      name: cat.header,
-      list: [...cat.skills].sort((a, b) => b.length - a.length).slice(0, 4).join(", "),
-    }));
+      buildSkillList("Product and Strategy", data.skills[1].skills),
+      buildSkillList("Data, ML and Search", data.skills[2].skills),
+      buildSkillList("Backend and Systems", data.skills[3].skills),
+    ];
 
 // ============================================================
 // DOCX GENERATION
@@ -389,7 +401,7 @@ function buildPdf() {
   }
 
   function drawSectionHeading(text) {
-    advanceY(120 / 20); // SECTION_BEFORE in pts (~6pt)
+    advanceY(140 / 20); // SECTION_BEFORE in pts (~7pt)
     doc.font(FONT_BOLD).fontSize(9.5);
     doc.text(text.toUpperCase(), leftX, y);
     advanceY(lineH + 2);
