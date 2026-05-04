@@ -38,6 +38,37 @@
     });
   }
 
+  // Apply button handler
+  var applyBtn = document.getElementById("apply-btn");
+  if (applyBtn) {
+    applyBtn.addEventListener("click", function () {
+      var appliedBy = selectedEmail || "unknown";
+      applyBtn.disabled = true;
+      applyBtn.textContent = "Applying...";
+
+      api("POST", "/apply", { applied_by: appliedBy })
+        .then(function (data) {
+          var banner = document.getElementById("apply-banner");
+          if (data.already_applied) {
+            banner.style.background = "#fef3c7";
+            banner.style.borderColor = "#f59e0b";
+            banner.style.color = "#92400e";
+            banner.innerHTML = '<span style="font-weight:700;">Already Applied</span> by ' + esc(data.applied_by) + ' on ' + esc(data.applied_date);
+          } else {
+            banner.style.background = "#d1fae5";
+            banner.style.borderColor = "#22c55e";
+            banner.style.color = "#065f46";
+            banner.innerHTML = '<span style="font-weight:700;">Applied</span> by ' + esc(data.applied_by) + ' on ' + esc(data.applied_date);
+          }
+        })
+        .catch(function (err) {
+          applyBtn.textContent = "Mark as Applied";
+          applyBtn.disabled = false;
+          alert("Failed: " + err.message);
+        });
+    });
+  }
+
   function api(method, path, body) {
     var url = "/fit/" + jobId + path + "?token=" + encodeURIComponent(token);
     var opts = { method: method, headers: { "Content-Type": "application/json", "X-Fit-Token": token } };

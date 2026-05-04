@@ -31,6 +31,7 @@ import express, { Request, Response, NextFunction } from "express";
 import fetch from "node-fetch";
 
 import { getSupabaseClient } from "../storage/supabase";
+import { splitCompoundQualifications } from "../jdExtractor";
 import { generateCoverLetter, buildCoverLetterDocx } from "./coverLetterGenerator";
 import { generateResume } from "./generateResume";
 import { renderFitPage } from "./render";
@@ -152,6 +153,13 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
     );
     const emails: string[] = resumeData.contact?.emails || ["krithiksaisreenishgopinath@gmail.com"];
 
+    // Check application status
+    const { data: appStatus } = await supabase
+      .from("applications")
+      .select("status, applied_by, applied_date")
+      .eq("listing_id", jobId)
+      .maybeSingle();
+
     const html = renderFitPage({
       jobId,
       token,
@@ -162,9 +170,15 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       isHybrid: job.is_hybrid,
       ats: job.ats_platform || "",
       roleUrl: job.role_url,
-      requiredQuals: (job.jd_required_qualifications as string[]) || [],
-      preferredQuals: (job.jd_preferred_qualifications as string[]) || [],
+      requiredQuals: splitCompoundQualifications((job.jd_required_qualifications as string[]) || []),
+      preferredQuals: splitCompoundQualifications((job.jd_preferred_qualifications as string[]) || []),
       emails,
+      applicationStatus: appStatus ? {
+        applied: appStatus.status === "applied",
+        appliedBy: appStatus.applied_by || "",
+        appliedDate: appStatus.applied_date || "",
+        status: appStatus.status,
+      } : null,
     });
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -349,6 +363,68 @@ app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response
     });
   } catch (err: any) {
     console.error("[fit] generate error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/apply — Mark job as applied
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/apply", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const { applied_by } = req.body as { applied_by?: string };
+
+    if (!applied_by || !applied_by.trim()) {
+      res.status(400).json({ error: "applied_by is required" });
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+
+    // Check if already applied
+    const { data: existing } = await supabase
+      .from("applications")
+      .select("id, applied_by, applied_date, status")
+      .eq("listing_id", jobId)
+      .maybeSingle();
+
+    if (existing && existing.status === "applied") {
+      res.json({
+        ok: true,
+        already_applied: true,
+        applied_by: existing.applied_by,
+        applied_date: existing.applied_date,
+      });
+      return;
+    }
+
+    // Upsert application
+    const today = new Date().toISOString().split("T")[0];
+    const { error } = await supabase
+      .from("applications")
+      .upsert({
+        listing_id: jobId,
+        status: "applied",
+        applied_by: applied_by.trim(),
+        applied_date: today,
+      }, { onConflict: "listing_id" });
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    console.log(`[fit] Job ${jobId} marked as applied by ${applied_by.trim()}`);
+    res.json({
+      ok: true,
+      already_applied: false,
+      applied_by: applied_by.trim(),
+      applied_date: today,
+    });
+  } catch (err: any) {
+    console.error("[fit] apply error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

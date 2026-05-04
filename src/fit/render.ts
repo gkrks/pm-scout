@@ -17,6 +17,12 @@ export interface FitPageData {
   requiredQuals: string[];
   preferredQuals: string[];
   emails: string[];
+  applicationStatus: {
+    applied: boolean;
+    appliedBy: string;
+    appliedDate: string;
+    status: string;
+  } | null;
 }
 
 function esc(s: string): string {
@@ -323,6 +329,21 @@ export function renderFitPage(data: FitPageData): string {
     </div>
   </div>
 
+  <!-- Application status banner -->
+  <div class="container" style="margin-bottom:16px;">
+    <div id="apply-banner" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;font-size:0.88rem;${
+      data.applicationStatus?.applied
+        ? 'background:#d1fae5;border:1px solid #22c55e;color:#065f46;'
+        : 'background:#f0f9ff;border:1px solid #93c5fd;color:#1e40af;'
+    }">
+      ${data.applicationStatus?.applied
+        ? `<span style="font-weight:700;">Applied</span> by ${esc(data.applicationStatus.appliedBy)} on ${esc(data.applicationStatus.appliedDate)}`
+        : `<button class="btn" id="apply-btn" style="background:#2563eb;color:#fff;padding:6px 14px;font-size:0.82rem;">Mark as Applied</button>
+           <span style="color:#6b7280;">No one has applied to this role yet</span>`
+      }
+    </div>
+  </div>
+
   <!-- Strength score badge (top-right, shown after scoring) -->
   <div class="strength-trigger" id="strength-trigger" onclick="document.getElementById('strength-modal').classList.add('open')">
     <div class="strength-number" id="strength-number">--</div>
@@ -395,6 +416,7 @@ export function renderFitPage(data: FitPageData): string {
       requiredCount: ${data.requiredQuals.length},
       preferredCount: ${data.preferredQuals.length},
       emails: ${JSON.stringify(data.emails)},
+      applicationStatus: ${JSON.stringify(data.applicationStatus)},
     };
   </script>
   <script src="/fit/client.js"></script>
