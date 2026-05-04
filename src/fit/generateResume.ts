@@ -89,6 +89,7 @@ export async function generateResume(
   selections: UserSelection[],
   scoreData?: ScoreResponse,
   email?: string,
+  summaryOverride?: string,
 ): Promise<GenerateResult> {
   // Load master resume
   const masterResume = JSON.parse(fs.readFileSync(MASTER_RESUME_PATH, "utf-8"));
@@ -267,12 +268,16 @@ export async function generateResume(
     }));
   }
 
-  // Regenerate summary
-  const { summary, warning: summaryWarning } = await regenerateSummary(
-    job,
-    selectedBulletTexts,
-    masterResume,
-  );
+  // Use user-selected summary if provided, otherwise regenerate
+  let summary: string;
+  let summaryWarning: string | null = null;
+  if (summaryOverride && summaryOverride.trim().length > 20) {
+    summary = summaryOverride.trim();
+  } else {
+    const result = await regenerateSummary(job, selectedBulletTexts, masterResume);
+    summary = result.summary;
+    summaryWarning = result.warning;
+  }
 
   // Optimize skills: pick 3 best categories, fill gaps from JD
   const skillsResult = optimizeSkills(

@@ -135,8 +135,10 @@ const projs = projEntries.map(p => {
     !b.text.startsWith("Refactored the term-index") &&
     !b.text.startsWith("Tried implementing skip")
   );
+  // Truncate long project names to prevent header overflow
+  const projName = p.name.includes(":") ? p.name.split(":")[0].trim() : p.name;
   return {
-    name: p.name,
+    name: projName,
     desc: p.description.length > 60
       ? p.description.substring(0, 57) + "..."
       : p.description,

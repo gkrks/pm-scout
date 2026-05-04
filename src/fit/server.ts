@@ -311,7 +311,7 @@ app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response
     const body = GenerateRequestBodyZ.parse(req.body);
     const jobId = req.params.jobId;
 
-    const result = await generateResume(jobId, body.selections, undefined, body.email);
+    const result = await generateResume(jobId, body.selections, undefined, body.email, body.summaryHints);
 
     generatedFiles.set(jobId, {
       pdfPath: result.pdfPath,
