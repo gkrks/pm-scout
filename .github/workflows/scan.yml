@@ -2,16 +2,16 @@ name: Hourly Job Scan
 
 on:
   schedule:
-    # Run at the top of every hour, every day.
-    # The runtime blackout guard in scripts/runScan.js exits cleanly during
-    # 17:00–04:59 America/Los_Angeles. Cron is UTC-only and cannot express a
-    # Pacific-local window across DST, so the guard lives in code.
-    - cron: "0 * * * *"
+    # Run hourly from 5 AM to 9 PM PDT (12:00–04:00 UTC).
+    # PDT = UTC-7. 5AM PDT = 12 UTC, 9PM PDT = 04 UTC next day.
+    # Cron: hours 0-4,12-23 UTC covers the active window.
+    # The runtime blackout guard provides a second safety net.
+    - cron: "0 0-4,12-23 * * *"
 
   workflow_dispatch:
     inputs:
       ignore_blackout:
-        description: "Run even if currently in the blackout window (5 PM–5 AM Pacific)"
+        description: "Run even if currently in the blackout window (9 PM–5 AM Pacific)"
         type: boolean
         default: false
       pool:
@@ -74,7 +74,7 @@ jobs:
           IGNORE_BLACKOUT:     ${{ github.event.inputs.ignore_blackout || 'false' }}
           SCAN_POOL:           ${{ github.event.inputs.pool || 'all' }}
           BLACKOUT_TIMEZONE:   America/Los_Angeles
-          BLACKOUT_START_HOUR: '17'
+          BLACKOUT_START_HOUR: '21'
           BLACKOUT_END_HOUR:   '5'
           DISPLAY_TIMEZONE:    America/Los_Angeles
           # Run identity
