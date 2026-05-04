@@ -58,21 +58,21 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 
 # Dimension order: keyword, semantic, evidence, quantification, seniority, recency
 WEIGHTS_BASIC = {
-    "keyword": 0.20,
-    "semantic": 0.20,
-    "evidence": 0.15,
-    "quantification": 0.15,
+    "keyword": 0.25,
+    "semantic": 0.30,
+    "evidence": 0.10,
+    "quantification": 0.05,
     "seniority": 0.20,
     "recency": 0.10,
 }
 
 WEIGHTS_PREFERRED = {
-    "keyword": 0.10,
-    "semantic": 0.30,
-    "evidence": 0.20,
-    "quantification": 0.15,
+    "keyword": 0.15,
+    "semantic": 0.35,
+    "evidence": 0.15,
+    "quantification": 0.05,
     "seniority": 0.10,
-    "recency": 0.15,
+    "recency": 0.20,
 }
 
 # --------------------------------------------------------------------------- #
@@ -80,9 +80,11 @@ WEIGHTS_PREFERRED = {
 # --------------------------------------------------------------------------- #
 
 SOURCE_BULLET_CAP = 2
+GLOBAL_BULLET_CAP = 12
 MATCH_SCORE_FLOOR = 30  # y[q,b] = 0 if match_score < this
 ILP_RANDOM_SEED = 42
 ILP_THREADS = 1
+VALUES_QUAL_SCORE_SCALE = 0.5
 
 # --------------------------------------------------------------------------- #
 #  Recency scoring

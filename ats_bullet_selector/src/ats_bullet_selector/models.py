@@ -17,6 +17,14 @@ class QualKind(str, Enum):
     preferred = "preferred"
 
 
+class QualCategory(str, Enum):
+    education_check = "education_check"
+    experience_years = "experience_years"
+    skill_check = "skill_check"
+    values_statement = "values_statement"
+    bullet_match = "bullet_match"
+
+
 class SourceType(str, Enum):
     experience = "experience"
     project = "project"
@@ -47,6 +55,7 @@ class Qualification(BaseModel):
     id: str           # e.g. "q_basic_0"
     kind: QualKind
     text: str
+    category: Optional[QualCategory] = None
 
 
 # --------------------------------------------------------------------------- #
@@ -123,6 +132,21 @@ class FinalSelection(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+#  Pre-resolved qualification result (no bullet match needed)
+# --------------------------------------------------------------------------- #
+
+class PreResolvedResult(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    qualification_id: str
+    category: QualCategory
+    met: bool
+    evidence: str
+    confidence: float = Field(ge=0, le=1)
+    source_section: str
+
+
+# --------------------------------------------------------------------------- #
 #  API request / response schemas
 # --------------------------------------------------------------------------- #
 
@@ -142,6 +166,7 @@ class ScoreResponse(BaseModel):
     system_prompt_hash: str
     ranked_candidates: list[QualCandidates]
     final_selection: FinalSelection
+    pre_resolved: list[PreResolvedResult] = Field(default_factory=list)
 
 
 class UserSelection(BaseModel):

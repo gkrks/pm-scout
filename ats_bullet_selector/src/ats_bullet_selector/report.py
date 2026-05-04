@@ -8,7 +8,7 @@ from pathlib import Path
 import structlog
 
 from .config import OUTPUTS_DIR
-from .models import FinalSelection, QualCandidates
+from .models import FinalSelection, PreResolvedResult, QualCandidates
 
 logger = structlog.get_logger()
 
@@ -17,6 +17,7 @@ def generate_report(
     job_id: str,
     ranked: list[QualCandidates],
     selection: FinalSelection,
+    pre_resolved: list[PreResolvedResult] | None = None,
 ) -> Path:
     """Write Stage E outputs to outputs/<job_id>/. Returns the output directory."""
     out_dir = OUTPUTS_DIR / job_id
@@ -33,7 +34,7 @@ def generate_report(
 
     # report.md
     md_path = out_dir / "report.md"
-    md_path.write_text(_build_markdown(ranked, selection), encoding="utf-8")
+    md_path.write_text(_build_markdown(ranked, selection, pre_resolved), encoding="utf-8")
 
     logger.info("report_generated", job_id=job_id, path=str(out_dir))
     return out_dir
@@ -42,6 +43,7 @@ def generate_report(
 def _build_markdown(
     ranked: list[QualCandidates],
     selection: FinalSelection,
+    pre_resolved: list[PreResolvedResult] | None = None,
 ) -> str:
     """Build a human-readable markdown report."""
     lines: list[str] = []
@@ -58,6 +60,15 @@ def _build_markdown(
     lines.append("\n## Source Utilization\n")
     for src, count in sorted(selection.source_utilization.items()):
         lines.append(f"- {src}: {count} bullet(s)\n")
+
+    if pre_resolved:
+        lines.append("\n## Pre-Resolved Qualifications\n")
+        for pr in pre_resolved:
+            status = "MET" if pr.met else "NOT MET"
+            lines.append(f"- **{pr.qualification_id}** [{pr.category.value}]: {status}\n")
+            if pr.evidence:
+                lines.append(f"  - Evidence: {pr.evidence}\n")
+            lines.append(f"  - Source: {pr.source_section} (confidence: {pr.confidence})\n")
 
     # Build lookup: bullet_id -> list of qual_ids it covers
     bullet_covers: dict[str, list[str]] = {}

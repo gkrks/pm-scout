@@ -9,10 +9,13 @@ import sys
 from collections import defaultdict
 
 from .assign import solve_assignment
+from .classify import classify_qualifications
 from .config import JUDGE_MODEL
-from .db import extract_qualifications, load_job_listing, load_master_resume
+from .db import extract_qualifications, load_job_listing, load_master_resume, load_master_resume_raw
 from .judge import get_system_prompt_hash, judge_pairs_async
+from .models import PreResolvedResult, QualCategory
 from .report import generate_report
+from .resolve import resolve_education, resolve_experience_years, resolve_skill_check
 from .retrieve import retrieve_top_k
 from .score import score_candidate
 
@@ -34,13 +37,41 @@ async def _run(job_id: str, resume_path: str | None, verbose: bool) -> None:
         sys.exit(1)
 
     bullets = load_master_resume(resume_path)
+    resume_raw = load_master_resume_raw(resume_path)
     print(f"  Resume bullets: {len(bullets)}")
     ats_vendor = job_row.get("ats_platform")
 
-    # Stage A
-    print("\nStage A: Retrieving candidates...")
-    qual_retrieved = []
+    # Classify qualifications
+    all_skills = [
+        s for group in resume_raw.get("skills", []) for s in group.get("skills", [])
+    ]
+    qualifications = classify_qualifications(qualifications, all_skills)
+
+    # Resolve non-bullet quals
+    pre_resolved: list[PreResolvedResult] = []
+    bullet_quals = []
     for qual in qualifications:
+        if qual.category == QualCategory.education_check:
+            pre_resolved.append(resolve_education(qual, resume_raw))
+        elif qual.category == QualCategory.experience_years:
+            pre_resolved.append(resolve_experience_years(qual, resume_raw))
+        elif qual.category == QualCategory.skill_check:
+            pre_resolved.append(resolve_skill_check(qual, resume_raw))
+        else:
+            bullet_quals.append(qual)
+
+    if pre_resolved:
+        print(f"\nPre-resolved: {len(pre_resolved)} qualifications (0 LLM calls)")
+        for pr in pre_resolved:
+            status = "MET" if pr.met else "NOT MET"
+            print(f"  {pr.qualification_id} [{pr.category.value}]: {status}")
+            if pr.evidence:
+                print(f"    Evidence: {pr.evidence}")
+
+    # Stage A
+    print(f"\nStage A: Retrieving candidates for {len(bullet_quals)} quals...")
+    qual_retrieved = []
+    for qual in bullet_quals:
         retrieved = retrieve_top_k(qual, bullets)
         qual_retrieved.append((qual, retrieved))
         if verbose:
@@ -78,7 +109,7 @@ async def _run(job_id: str, resume_path: str | None, verbose: bool) -> None:
 
     # Stage E
     print("Stage E: Generating report...")
-    out_dir = generate_report(job_id, ranked, selection)
+    out_dir = generate_report(job_id, ranked, selection, pre_resolved=pre_resolved)
 
     print(f"\nDone. Output: {out_dir}")
     print(f"  Total score: {selection.total_score}")

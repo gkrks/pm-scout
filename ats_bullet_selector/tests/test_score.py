@@ -74,8 +74,8 @@ class TestMatchScore:
         preferred_score = compute_match_score(
             QualKind.preferred, 10, 3, 5, 5, 8, 7
         )
-        # Basic weights keyword higher (.20 vs .10) and seniority higher (.20 vs .10)
-        # Preferred weights semantic higher (.30 vs .20) and evidence higher (.20 vs .15)
+        # Basic weights keyword higher (.25 vs .15) and seniority higher (.20 vs .10)
+        # Preferred weights semantic higher (.35 vs .30) and recency higher (.20 vs .10)
         # With keyword=10, seniority=8 (high), basic should score higher
         assert basic_score != preferred_score
         assert basic_score > preferred_score
@@ -88,17 +88,17 @@ class TestMatchScore:
         preferred_score = compute_match_score(
             QualKind.preferred, 2, 10, 7, 6, 3, 8
         )
-        # Preferred weights semantic at .30 vs basic .20
+        # Preferred weights semantic at .35 vs basic .30
         assert preferred_score > basic_score
 
     def test_hand_computed_basic(self):
         """Hand-computed example for basic weights:
         kw=8, sem=7, evi=6, qty=5, sen=9, rec=10
-        score = 100 * (.20*0.8 + .20*0.7 + .15*0.6 + .15*0.5 + .20*0.9 + .10*1.0)
-             = 100 * (.16 + .14 + .09 + .075 + .18 + .10) = 100 * .745 = 74.5
+        score = 100 * (.25*0.8 + .30*0.7 + .10*0.6 + .05*0.5 + .20*0.9 + .10*1.0)
+             = 100 * (.20 + .21 + .06 + .025 + .18 + .10) = 100 * .775 = 77.5
         """
         score = compute_match_score(QualKind.basic, 8, 7, 6, 5, 9, 10)
-        assert abs(score - 74.5) < 0.1
+        assert abs(score - 77.5) < 0.1
 
 
 class TestConfidence:

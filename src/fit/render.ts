@@ -195,6 +195,7 @@ export function renderFitPage(data: FitPageData): string {
     .sub-scores-toggle {
       font-size: 0.75rem; color: #6366f1; cursor: pointer;
       border: none; background: none; padding: 0; margin-top: 4px;
+      margin-left: 8px;
     }
     .sub-scores-toggle:hover { text-decoration: underline; }
     .sub-scores-detail {

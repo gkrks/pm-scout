@@ -237,3 +237,97 @@ class TestDeterminism:
         assert r1.selected_bullets == r2.selected_bullets
         assert r1.source_utilization == r2.source_utilization
         assert r1.uncovered_qualifications == r2.uncovered_qualifications
+
+
+class TestGlobalCap:
+    def test_global_cap_limits_total_bullets(self):
+        """6 quals, each with a unique source. global_cap=4 means only 4 selected."""
+        ranked = []
+        for i in range(6):
+            qual = _make_qual(f"q_{i}", QualKind.preferred)
+            candidates = [
+                _make_candidate(f"b_s{i}_0", f"src_{i}", 80.0 - i),
+            ]
+            ranked.append(QualCandidates(qualification=qual, candidates=candidates))
+
+        result = solve_assignment(ranked, source_cap=2, global_cap=4)
+
+        total_selected = len(result.selected_bullets)
+        assert total_selected <= 4, f"Selected {total_selected} bullets, expected <= 4"
+
+    def test_global_cap_large_enough_covers_all(self):
+        """When global_cap >= num quals, all should be covered."""
+        ranked = []
+        for i in range(5):
+            qual = _make_qual(f"q_{i}", QualKind.preferred)
+            candidates = [
+                _make_candidate(f"b_s{i}_0", f"src_{i}", 80.0),
+            ]
+            ranked.append(QualCandidates(qualification=qual, candidates=candidates))
+
+        result = solve_assignment(ranked, source_cap=2, global_cap=12)
+        assert len(result.uncovered_qualifications) == 0
+
+    def test_global_cap_interacts_with_source_cap(self):
+        """Even if source caps allow more, global cap takes precedence."""
+        ranked = []
+        for i in range(8):
+            qual = _make_qual(f"q_{i}", QualKind.preferred)
+            candidates = [
+                _make_candidate(f"b_s1_{i}", "src_1", 90.0),
+                _make_candidate(f"b_s2_{i}", "src_2", 70.0),
+            ]
+            ranked.append(QualCandidates(qualification=qual, candidates=candidates))
+
+        result = solve_assignment(ranked, source_cap=5, global_cap=4)
+        assert len(result.selected_bullets) <= 4
+
+
+class TestBasicMustCover:
+    def test_basic_covered_before_preferred(self):
+        """When capacity is tight, basic quals take priority over preferred."""
+        ranked = []
+        # 2 basic quals
+        for i in range(2):
+            qual = _make_qual(f"q_basic_{i}", QualKind.basic)
+            candidates = [
+                _make_candidate(f"b_basic_{i}", f"src_basic_{i}", 75.0),
+            ]
+            ranked.append(QualCandidates(qualification=qual, candidates=candidates))
+
+        # 3 preferred quals with higher scores
+        for i in range(3):
+            qual = _make_qual(f"q_pref_{i}", QualKind.preferred)
+            candidates = [
+                _make_candidate(f"b_pref_{i}", f"src_pref_{i}", 95.0),
+            ]
+            ranked.append(QualCandidates(qualification=qual, candidates=candidates))
+
+        # global_cap=3: can only pick 3 bullets total
+        result = solve_assignment(ranked, source_cap=2, global_cap=3)
+
+        # Both basic quals must be covered
+        covered = set()
+        for sb in result.selected_bullets:
+            covered.update(sb.covers_qualifications)
+
+        assert "q_basic_0" in covered
+        assert "q_basic_1" in covered
+
+    def test_basic_infeasible_uses_slack(self):
+        """When a basic qual has no candidates above floor, slack allows solve."""
+        ranked = [
+            QualCandidates(
+                qualification=_make_qual("q_basic_0", QualKind.basic),
+                candidates=[_make_candidate("b1", "s1", 10.0)],  # below floor
+            ),
+            QualCandidates(
+                qualification=_make_qual("q_basic_1", QualKind.basic),
+                candidates=[_make_candidate("b2", "s2", 80.0)],
+            ),
+        ]
+
+        result = solve_assignment(ranked, source_cap=2, global_cap=12, score_floor=30)
+        # q_basic_0 can't be covered (below floor), but solver should still work
+        assert "q_basic_0" in result.uncovered_qualifications
+        assert "q_basic_1" not in result.uncovered_qualifications

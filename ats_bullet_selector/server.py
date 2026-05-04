@@ -10,11 +10,13 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 
 from src.ats_bullet_selector.assign import solve_assignment
+from src.ats_bullet_selector.classify import classify_qualifications
 from src.ats_bullet_selector.config import JUDGE_MODEL, SOURCE_BULLET_CAP
 from src.ats_bullet_selector.db import (
     extract_qualifications,
     load_job_listing,
     load_master_resume,
+    load_master_resume_raw,
 )
 from src.ats_bullet_selector.judge import (
     get_judge_cache_size,
@@ -24,7 +26,9 @@ from src.ats_bullet_selector.judge import (
 from src.ats_bullet_selector.models import (
     FinalSelection,
     HealthResponse,
+    PreResolvedResult,
     QualCandidates,
+    QualCategory,
     ResolvedBullet,
     ScoreRequest,
     ScoreResponse,
@@ -32,6 +36,11 @@ from src.ats_bullet_selector.models import (
     SelectResponse,
 )
 from src.ats_bullet_selector.report import generate_report
+from src.ats_bullet_selector.resolve import (
+    resolve_education,
+    resolve_experience_years,
+    resolve_skill_check,
+)
 from src.ats_bullet_selector.retrieve import get_cache_size, retrieve_top_k
 from src.ats_bullet_selector.score import score_candidate
 
@@ -58,11 +67,31 @@ async def score_job(req: ScoreRequest) -> ScoreResponse:
         )
 
     bullets = load_master_resume(req.master_resume_path)
+    resume_raw = load_master_resume_raw(req.master_resume_path)
     ats_vendor = job_row.get("ats_platform")
 
-    # Stage A: retrieve top-K candidates per qualification
-    qual_retrieved: list[tuple] = []  # (qual, [(bullet, sem_sim, lit_cov)])
+    # Classify qualifications into routing categories
+    all_skills = [
+        s for group in resume_raw.get("skills", []) for s in group.get("skills", [])
+    ]
+    qualifications = classify_qualifications(qualifications, all_skills)
+
+    # Partition: resolve non-bullet quals deterministically
+    pre_resolved: list[PreResolvedResult] = []
+    bullet_quals = []
     for qual in qualifications:
+        if qual.category == QualCategory.education_check:
+            pre_resolved.append(resolve_education(qual, resume_raw))
+        elif qual.category == QualCategory.experience_years:
+            pre_resolved.append(resolve_experience_years(qual, resume_raw))
+        elif qual.category == QualCategory.skill_check:
+            pre_resolved.append(resolve_skill_check(qual, resume_raw))
+        else:
+            bullet_quals.append(qual)
+
+    # Stage A: retrieve top-K candidates per bullet-match qualification
+    qual_retrieved: list[tuple] = []  # (qual, [(bullet, sem_sim, lit_cov)])
+    for qual in bullet_quals:
         retrieved = retrieve_top_k(qual, bullets)
         qual_retrieved.append((qual, retrieved))
 
@@ -98,7 +127,7 @@ async def score_job(req: ScoreRequest) -> ScoreResponse:
     selection = solve_assignment(ranked)
 
     # Stage E: report
-    generate_report(req.job_id, ranked, selection)
+    generate_report(req.job_id, ranked, selection, pre_resolved=pre_resolved)
 
     return ScoreResponse(
         job_id=req.job_id,
@@ -106,6 +135,7 @@ async def score_job(req: ScoreRequest) -> ScoreResponse:
         system_prompt_hash=get_system_prompt_hash(),
         ranked_candidates=ranked,
         final_selection=selection,
+        pre_resolved=pre_resolved,
     )
 
 

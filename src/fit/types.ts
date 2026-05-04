@@ -54,12 +54,22 @@ export const FinalSelectionZ = z.object({
   source_utilization: z.record(z.string(), z.number()),
 });
 
+export const PreResolvedResultZ = z.object({
+  qualification_id: z.string(),
+  category: z.enum(["education_check", "experience_years", "skill_check", "values_statement", "bullet_match"]),
+  met: z.boolean(),
+  evidence: z.string(),
+  confidence: z.number(),
+  source_section: z.string(),
+});
+
 export const ScoreResponseZ = z.object({
   job_id: z.string(),
   model_version: z.string(),
   system_prompt_hash: z.string(),
   ranked_candidates: z.array(QualCandidatesZ),
   final_selection: FinalSelectionZ,
+  pre_resolved: z.array(PreResolvedResultZ).default([]),
 });
 
 export const ResolvedBulletZ = z.object({
@@ -113,6 +123,7 @@ export type Qualification = z.infer<typeof QualificationZ>;
 export type QualCandidates = z.infer<typeof QualCandidatesZ>;
 export type SelectedBullet = z.infer<typeof SelectedBulletZ>;
 export type FinalSelection = z.infer<typeof FinalSelectionZ>;
+export type PreResolvedResult = z.infer<typeof PreResolvedResultZ>;
 export type ScoreResponse = z.infer<typeof ScoreResponseZ>;
 export type SelectResponse = z.infer<typeof SelectResponseZ>;
 export type UserSelection = z.infer<typeof UserSelectionZ>;
