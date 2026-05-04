@@ -82,10 +82,21 @@ async function fetchAmazonPass(
       );
       if (boilerplateIdx > 0) prefQuals = prefQuals.slice(0, boilerplateIdx).replace(/<br\/>\s*$/, "");
 
+      // Convert br-delimited "- bullet" lines into <ul><li> so the JD
+      // extractor's cheerio walker sees them as proper child elements.
+      function brBulletsToList(raw: string): string {
+        const items = raw
+          .split(/<br\s*\/?>/)
+          .map((s) => s.replace(/^\s*[-–•]\s*/, "").trim())
+          .filter(Boolean);
+        if (items.length === 0) return raw;
+        return "<ul>" + items.map((t) => `<li>${t}</li>`).join("") + "</ul>";
+      }
+
       const desc = [
         j.description_short ?? "",
-        j.basic_qualifications ? `<h3>Basic Qualifications</h3>\n${j.basic_qualifications}` : "",
-        prefQuals ? `<h3>Preferred Qualifications</h3>\n${prefQuals}` : "",
+        j.basic_qualifications ? `<h3>Basic Qualifications</h3>${brBulletsToList(j.basic_qualifications)}` : "",
+        prefQuals ? `<h3>Preferred Qualifications</h3>${brBulletsToList(prefQuals)}` : "",
       ]
         .filter(Boolean)
         .join("\n\n");

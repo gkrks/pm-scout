@@ -234,7 +234,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         job_id: jobId,
         force_refresh: body.force_refresh,
       }),
-      timeout: 30_000, // 30s — fail fast, don't block the UI
+      timeout: 60_000, // 60s — fail fast, don't block the UI
     })
       .then(async (pyRes) => {
         if (!pyRes.ok) throw new Error(`Python service returned ${pyRes.status}`);
