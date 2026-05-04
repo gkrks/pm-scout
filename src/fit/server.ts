@@ -14,8 +14,18 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
-import dotenv from "dotenv";
-dotenv.config();
+// Only load .env file in local dev (Railway injects env vars directly)
+if (!process.env.RAILWAY_ENVIRONMENT && !process.env.RAILWAY_PROJECT_ID) {
+  require("dotenv").config();
+}
+// Debug: log which critical env vars are available
+console.log("[fit] env check:", {
+  SUPABASE_URL: process.env.SUPABASE_URL ? "set" : "MISSING",
+  SUPABASE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "MISSING",
+  FIT_TOKEN_SECRET: process.env.FIT_TOKEN_SECRET ? "set" : "MISSING",
+  OPENAI_KEY: process.env.OPENAI_KEY ? "set" : "MISSING",
+  RAILWAY: process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || "not railway",
+});
 
 import express, { Request, Response, NextFunction } from "express";
 import fetch from "node-fetch";
