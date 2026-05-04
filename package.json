@@ -8,6 +8,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "start": "npx ts-node src/fit/server.ts",
     "build": "tsc",
     "match": "ts-node src/index.ts match",
     "scan": "ts-node scripts/runScan.ts",
