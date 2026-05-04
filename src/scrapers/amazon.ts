@@ -75,10 +75,17 @@ async function fetchAmazonPass(
         locLower.includes("virtual");
       if (!isUS) continue;
 
+      // Strip Amazon EEO/salary boilerplate from preferred qualifications
+      let prefQuals = j.preferred_qualifications ?? "";
+      const boilerplateIdx = prefQuals.search(
+        /Amazon is an equal opportunity|Our inclusive culture empowers|The base salary range/i,
+      );
+      if (boilerplateIdx > 0) prefQuals = prefQuals.slice(0, boilerplateIdx).replace(/<br\/>\s*$/, "");
+
       const desc = [
         j.description_short ?? "",
-        j.basic_qualifications ?? "",
-        j.preferred_qualifications ?? "",
+        j.basic_qualifications ? `<h3>Basic Qualifications</h3>\n${j.basic_qualifications}` : "",
+        prefQuals ? `<h3>Preferred Qualifications</h3>\n${prefQuals}` : "",
       ]
         .filter(Boolean)
         .join("\n\n");

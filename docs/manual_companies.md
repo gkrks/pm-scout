@@ -90,15 +90,15 @@
 |---|------|------|-------------|
 | 1 | 222 | 222 (YC W23) | https://www.ycombinator.com/companies/222/jobs |
 | 2 | adept | Adept (acquired by Amazon) | https://www.amazon.jobs/en/teams/agi |
-| 3 | aegis-ai | Aegis AI | https://www.aegisai.com/careers |
+| 3 | aegis-ai | Aegis AI | https://www.aegisai.ai/careers |
 | 4 | alation | Alation | https://www.alation.com/careers/ |
 | 5 | alguna | Alguna (YC S23) | https://www.ycombinator.com/companies/alguna/jobs |
 | 6 | anjuna | Anjuna | https://www.anjuna.io/careers |
-| 7 | aqua | Aqua (Alternative Investment Platform) | https://www.aqua-investments.com/careers |
+| 7 | aqua | Aqua (Alternative Investment Platform) | https://www.aquafinance.com/careers/ |
 | 8 | aqua-security | Aqua Security | https://www.aquasec.com/careers/ |
 | 9 | arcade-ai | Arcade AI | https://jobs.ashbyhq.com/arcadeai |
 | 10 | arize-ai | Arize AI | https://arize.com/careers/ |
-| 11 | autonomous | Autonomous (financial advisor) | https://www.autonomous.com/careers |
+| 11 | autonomous | Autonomous (financial advisor) | https://jobs.lever.co/autonomous |
 | 12 | bigeye | Bigeye | https://jobs.ashbyhq.com/bigeye |
 | 13 | bluecargo | BlueCargo (YC S18) | https://www.ycombinator.com/companies/bluecargo/jobs |
 | 14 | boston-metal | Boston Metal | https://www.bostonmetal.com/careers/ |
@@ -116,7 +116,7 @@
 | 26 | confido | Confido (YC S21) | https://www.ycombinator.com/companies/confido/jobs |
 | 27 | convex | Convex | https://jobs.ashbyhq.com/convex-dev |
 | 28 | copado | Copado | https://www.copado.com/company/careers |
-| 29 | copyai | Copy.ai | https://www.copy.ai/careers |
+| 29 | copyai | Copy.ai | https://wellfound.com/company/copy-ai |
 | 30 | corgi-insurance | Corgi Insurance | https://www.corgi.com/careers |
 | 31 | counsel-health | Counsel Health | https://jobs.ashbyhq.com/counsel |
 | 32 | coval | Coval | https://www.ycombinator.com/companies/coval/jobs |
@@ -138,21 +138,21 @@
 | 48 | flyio | Fly.io | https://fly.io/jobs |
 | 49 | forge | Forge (duty drawback) | https://www.tryforge.com/careers |
 | 50 | forter | Forter | https://job-boards.greenhouse.io/forter |
-| 51 | freightwaves | FreightWaves | https://www.freightwaves.com/careers |
+| 51 | freightwaves | FreightWaves | https://www.freightwaves.com/hiring |
 | 52 | galileo | Galileo (Rungalileo) | https://www.rungalileo.io/careers |
 | 53 | gogograndparent | GoGoGrandparent (YC S16) | https://www.ycombinator.com/companies/gogograndparent/jobs |
 | 54 | heroic-labs | Heroic Labs (YC S15) | https://heroiclabs.com/careers |
 | 55 | hippocratic-ai | Hippocratic AI | https://jobs.ashbyhq.com/Hippocratic%20AI |
 | 56 | hypr | HYPR | https://www.hypr.com/careers |
 | 57 | instrumentl | Instrumentl (YC S16) | https://www.instrumentl.com/careers |
-| 58 | iron-grid | Iron Grid | https://www.irongrid.com/careers |
+| 58 | iron-grid | Iron Grid | https://www.getirongrid.com/careers |
 | 59 | iterative-health | Iterative Health | https://job-boards.greenhouse.io/iterativehealth |
 | 60 | jiga | Jiga (YC W21) | https://www.ycombinator.com/companies/jiga/jobs |
 | 61 | kombo | Kombo (YC S22) | https://jobs.ashbyhq.com/Kombo |
 | 62 | kyber | Kyber | https://www.ycombinator.com/companies/kyber/jobs |
 | 63 | lanzatech | LanzaTech | https://lanzatech.com/careers/ |
 | 64 | lightup | Lightup | https://lightup.ai/careers/ |
-| 65 | living-carbon | Living Carbon | https://www.livingcarbon.com/careers |
+| 65 | living-carbon | Living Carbon | https://jobs.lever.co/livingcarbon |
 | 66 | llamaindex | LlamaIndex | https://jobs.ashbyhq.com/llamaindex |
 | 67 | loops | Loops | https://loops.so/careers |
 | 68 | lovable | Lovable | https://jobs.ashbyhq.com/lovable |
@@ -165,19 +165,19 @@
 | 75 | nebius | Nebius (US ops) | https://nebius.com/careers |
 | 76 | numero | Numero (YC W19) | https://www.ycombinator.com/companies/numero/jobs |
 | 77 | octoai | OctoAI (acquired by NVIDIA) | https://www.nvidia.com/en-us/about-nvidia/careers/ |
-| 78 | okteto | Okteto (YC W19) | https://www.okteto.com/careers/ |
+| 78 | okteto | Okteto (YC W19) | https://www.ycombinator.com/companies/okteto/jobs/kTADSgF-your-dream-job |
 | 79 | openevidence | OpenEvidence | https://jobs.ashbyhq.com/openevidence |
 | 80 | otterai | Otter.ai | https://otter.ai/careers |
 | 81 | pachama | Pachama | https://pachama.com/careers/ |
 | 82 | palmetto | Palmetto | https://palmetto.com/careers |
 | 83 | parallel-bio | Parallel Bio (YC S21) | https://www.ycombinator.com/companies/parallel-bio/jobs |
 | 84 | persefoni | Persefoni | https://job-boards.greenhouse.io/persefoniaiinc |
-| 85 | pointone | PointOne | https://www.pointone.com/careers |
+| 85 | pointone | PointOne | https://pointone.com/careers#ashby-board |
 | 86 | polymath-robotics | Polymath Robotics (YC S22) | https://www.ycombinator.com/companies/polymath-robotics/jobs |
 | 87 | polytomic | Polytomic | https://jobs.ashbyhq.com/polytomic |
 | 88 | postal | Postal (YC W22) | https://www.postal.com/careers |
 | 89 | predibase | Predibase | https://predibase.com/careers |
-| 90 | qdrant | Qdrant (US ops) | https://qdrant.tech/careers/ |
+| 90 | qdrant | Qdrant (US ops) | https://jobs.ashbyhq.com/qdrant.tech |
 | 91 | quantumscape | QuantumScape | https://www.quantumscape.com/careers/ |
 | 92 | questflow | Questflow | https://www.questflow.ai/careers |
 | 93 | railway | Railway | https://railway.com/careers |
@@ -187,7 +187,7 @@
 | 97 | replicate | Replicate | https://replicate.com/about |
 | 98 | resend | Resend | https://jobs.ashbyhq.com/resend |
 | 99 | robust-intelligence | Robust Intelligence (Cisco) | https://jobs.cisco.com/jobs/SearchJobs/ |
-| 100 | rove | Rove | https://www.rove.me/careers |
+| 100 | rove | Rove | https://rovebrand.com/pages/careers |
 | 101 | rytr | Rytr | https://rytr.me/careers |
 | 102 | saildrone | Saildrone | https://www.saildrone.com/careers/available-jobs |
 | 103 | sakana-ai | Sakana AI (US) | https://sakana.ai/careers/ |
@@ -196,16 +196,16 @@
 | 106 | saturn | Saturn | https://www.saturn.live/careers |
 | 107 | schmidt-sciences | Schmidt Sciences | https://www.schmidtsciences.org/careers/ |
 | 108 | shaped | Shaped (YC W22) | https://www.ycombinator.com/companies/shaped/jobs |
-| 109 | shiru | Shiru (YC S19) | https://www.shiru.com/careers |
+| 109 | shiru | Shiru (YC S19) | https://wellfound.com/company/shiru/jobs |
 | 110 | shortwave | Shortwave | https://www.shortwave.com/careers |
-| 111 | sohar-health | Sohar Health | https://www.soharhealth.com/careers |
+| 111 | sohar-health | Sohar Health | https://www.ycombinator.com/companies/sohar-health/jobs |
 | 112 | solidigm | Solidigm | https://www.solidigm.com/who-we-are/careers-page/job-listings.html |
 | 113 | solugen | Solugen | https://solugen.com/careers |
 | 114 | sourceful | Sourceful | https://www.sourceful.com/careers |
 | 115 | stoke-space | Stoke Space | https://boards.greenhouse.io/stokespacetechnologies |
 | 116 | structured-ai | Structured AI (YC F25) | https://www.ycombinator.com/companies/structured/jobs |
 | 117 | sullyai | Sully.ai | https://jobs.ashbyhq.com/sully-ai |
-| 118 | sunsama | Sunsama | https://www.sunsama.com/careers |
+| 118 | sunsama | Sunsama | https://wellfound.com/company/sunsama/jobs |
 | 119 | sweep | Sweep | https://jobs.ashbyhq.com/sweep |
 | 120 | syncari | Syncari | https://syncari.com/careers/ |
 | 121 | tability | Tability | https://www.tability.io/careers |
@@ -221,13 +221,13 @@
 | 131 | typeface | Typeface | https://www.typeface.ai/careers |
 | 132 | upstash | Upstash | https://upstash.com/careers |
 | 133 | v0 | v0 (Vercel) | https://vercel.com/careers |
-| 134 | vahan | Vahan | https://vahan.co/careers |
+| 134 | vahan | Vahan | https://app.unberry.com/careers/68399df0f6eadf0013d0df16 |
 | 135 | varos | Varos (YC S21) | https://www.ycombinator.com/companies/varos/jobs |
 | 136 | vast-data | VAST Data | https://vastdata.com/careers |
 | 137 | vatn-systems | Vatn Systems | https://www.vatnsystems.com/careers |
 | 138 | vigilance-security | Vigilance Security | none found |
 | 139 | voltron-data | Voltron Data | https://voltrondata.com/careers |
-| 140 | wayve | Wayve (US) | https://wayve.ai/careers/ |
+| 140 | wayve | Wayve (US) | https://wayve.firststage.co/jobs |
 | 141 | weekend | Weekend (YC W18) | https://www.ycombinator.com/companies/weekend/jobs |
-| 142 | whylabs | WhyLabs | https://whylabs.ai/careers |
+| 142 | whylabs | WhyLabs | https://wellfound.com/company/whylabs |
 | 143 | youshift | YouShift | https://www.ycombinator.com/companies/youshift/jobs |

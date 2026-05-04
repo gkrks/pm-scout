@@ -3,9 +3,11 @@
   "_comment": "ATS routing for job scanner. Slug keys match company slugs in config/targets.json. Run scripts/discoverATS.js to detect ATS for unmapped companies.",
   "routing": {
     "222": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/222/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/222/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "google": {
       "ats": "google-playwright"
@@ -129,10 +131,10 @@
       "_discovered_at": "2026-05-04T17:26:19.084Z"
     },
     "weights-and-biases": {
-      "ats": "smartrecruiters",
-      "slug": "weights-and-biases",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:35.035Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "clari": {
       "ats": "lever",
@@ -163,10 +165,10 @@
       "slug": "pave"
     },
     "salesforce": {
-      "ats": "smartrecruiters",
-      "slug": "salesforce",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:28.048Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "adobe": {
       "ats": "workday",
@@ -177,10 +179,10 @@
       "_discovered_at": "2026-05-02T05:02:44.114Z"
     },
     "servicenow": {
-      "ats": "smartrecruiters",
-      "slug": "servicenow",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:35.830Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://careers.servicenow.com/jobs/?search=&origin=global"
     },
     "workday": {
       "ats": "workday",
@@ -225,16 +227,16 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "tiktok": {
-      "ats": "smartrecruiters",
-      "slug": "tiktok",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:29.479Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "intuit": {
-      "ats": "smartrecruiters",
-      "slug": "intuit",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:29.652Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "capital-one": {
       "ats": "workday",
@@ -277,10 +279,10 @@
       "_discovered_at": "2026-05-02T05:02:37.278Z"
     },
     "8x8": {
-      "ats": "smartrecruiters",
-      "slug": "8x8",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:38.301Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "abridge": {
       "ats": "ashby",
@@ -346,10 +348,10 @@
       "_discovered_at": "2026-05-02T05:02:49.433Z"
     },
     "airbase": {
-      "ats": "smartrecruiters",
-      "slug": "airbase",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:53.387Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "alation": {
       "ats": "custom-playwright",
@@ -365,9 +367,11 @@
       "_discovered_at": "2026-05-02T05:02:51.824Z"
     },
     "alguna": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/alguna/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/alguna/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "alphabet-and-google": {
       "ats": "custom-playwright",
@@ -391,8 +395,10 @@
       "_discovered_at": "2026-05-02T05:02:58.492Z"
     },
     "amazon-web-services": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "ambience-healthcare": {
       "ats": "ashby",
@@ -442,8 +448,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "appdynamics": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "applied-intuition": {
       "ats": "greenhouse",
@@ -488,10 +496,10 @@
       "_discovered_at": "2026-05-02T05:03:19.704Z"
     },
     "archer-aviation": {
-      "ats": "smartrecruiters",
-      "slug": "archer-aviation",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:09.705Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "arctic-wolf": {
       "ats": "workday",
@@ -545,10 +553,10 @@
       "_discovered_at": "2026-05-02T05:03:30.362Z"
     },
     "athletic-greens-and-ag1": {
-      "ats": "smartrecruiters",
-      "slug": "athletic-greens-and-ag1",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:11.912Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "atlan": {
       "ats": "ashby",
@@ -574,10 +582,10 @@
       "_discovered_at": "2026-05-02T05:03:35.462Z"
     },
     "automation-anywhere": {
-      "ats": "smartrecruiters",
-      "slug": "automation-anywhere",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:39.153Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "aurora-innovation": {
       "ats": "greenhouse",
@@ -592,11 +600,12 @@
       "_discovered_at": "2026-05-02T05:03:38.766Z"
     },
     "autonomous": {
-      "ats": "custom-playwright",
+      "ats": "lever",
       "_note": "too small / no PM hiring",
       "_careers_url": "https://www.autonomous.com/careers",
       "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "_discovered_at": "2026-05-04T18:06:29.415Z",
+      "slug": "autonomous"
     },
     "babylist": {
       "ats": "greenhouse",
@@ -611,10 +620,10 @@
       "_discovered_at": "2026-05-02T05:03:43.168Z"
     },
     "bereal": {
-      "ats": "smartrecruiters",
-      "slug": "bereal",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:41.726Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "beautifulai": {
       "ats": "greenhouse",
@@ -623,10 +632,10 @@
       "_discovered_at": "2026-05-02T06:36:48.738Z"
     },
     "bcg-x": {
-      "ats": "smartrecruiters",
-      "slug": "bcg-x",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:36.159Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "betterup": {
       "ats": "ashby",
@@ -670,27 +679,29 @@
       "_discovered_at": "2026-05-02T05:03:51.197Z"
     },
     "blackrock": {
-      "ats": "smartrecruiters",
-      "slug": "blackrock",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:28.339Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "bloomberg": {
-      "ats": "smartrecruiters",
-      "slug": "bloomberg",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:29.445Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "bloom-institute-of-tech": {
-      "ats": "smartrecruiters",
-      "slug": "bloom-institute-of-tech",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:17.479Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "bluecargo": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/bluecargo/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/bluecargo/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "boldvoice": {
       "ats": "custom-playwright",
@@ -710,10 +721,10 @@
       "_discovered_at": "2026-05-02T05:03:56.491Z"
     },
     "bookingcom": {
-      "ats": "smartrecruiters",
-      "slug": "bookingcom",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:54.811Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "booksy": {
       "ats": "workable",
@@ -747,13 +758,17 @@
       "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "brickanta": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/brickanta/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/brickanta/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "bridge": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "brightline": {
       "ats": "ashby",
@@ -806,10 +821,10 @@
       "_discovered_at": "2026-05-02T06:24:05.554Z"
     },
     "bytedance": {
-      "ats": "smartrecruiters",
-      "slug": "bytedance",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:32.098Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://joinbytedance.com/"
     },
     "calm": {
       "ats": "greenhouse",
@@ -848,8 +863,10 @@
       "_discovered_at": "2026-05-02T06:24:00.001Z"
     },
     "careforce": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "custom-playwright",
+      "_note": "too small / no PM hiring",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "carrot-fertility": {
       "ats": "greenhouse",
@@ -893,9 +910,11 @@
       "_discovered_at": "2026-05-02T05:04:35.939Z"
     },
     "centaur": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/centaur/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/centaur/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "cerebras-systems": {
       "ats": "greenhouse",
@@ -904,10 +923,10 @@
       "_discovered_at": "2026-05-02T06:23:33.598Z"
     },
     "chainalysis": {
-      "ats": "smartrecruiters",
-      "slug": "chainalysis",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:06.400Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "chainguard": {
       "ats": "greenhouse",
@@ -916,8 +935,10 @@
       "_discovered_at": "2026-05-02T05:04:39.767Z"
     },
     "chaos-industries": {
-      "ats": "manual",
-      "_note": "dead URL"
+      "ats": "custom-playwright",
+      "_note": "dead URL",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "chargepoint": {
       "ats": "greenhouse",
@@ -933,10 +954,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "chegg": {
-      "ats": "smartrecruiters",
-      "slug": "chegg",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:03.375Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "chroma": {
       "ats": "ashby",
@@ -945,10 +966,10 @@
       "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "circle": {
-      "ats": "smartrecruiters",
-      "slug": "circle",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:46.337Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "circleso": {
       "ats": "greenhouse",
@@ -957,10 +978,10 @@
       "_discovered_at": "2026-05-02T05:04:48.876Z"
     },
     "cisco": {
-      "ats": "smartrecruiters",
-      "slug": "cisco",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:32.243Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "citrix": {
       "ats": "workday",
@@ -1008,9 +1029,11 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "closure": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/closure/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/closure/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "coalition": {
       "ats": "greenhouse",
@@ -1025,10 +1048,10 @@
       "_discovered_at": "2026-05-02T06:36:54.249Z"
     },
     "codecademy": {
-      "ats": "smartrecruiters",
-      "slug": "codecademy",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:17.336Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "codeium-and-windsurf": {
       "ats": "ashby",
@@ -1049,8 +1072,10 @@
       "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "cogram": {
-      "ats": "manual",
-      "_note": "Posts via Y Combinator job board - no standard ATS"
+      "ats": "custom-playwright",
+      "_note": "Posts via Y Combinator job board - no standard ATS",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "cohere-health": {
       "ats": "greenhouse",
@@ -1059,10 +1084,10 @@
       "_discovered_at": "2026-05-02T06:36:51.594Z"
     },
     "cohesity": {
-      "ats": "smartrecruiters",
-      "slug": "cohesity",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:07.570Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "collibra": {
       "ats": "greenhouse",
@@ -1083,9 +1108,11 @@
       "_discovered_at": "2026-05-02T05:05:18.429Z"
     },
     "confido": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/confido/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/confido/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "comet-ml": {
       "ats": "custom-playwright",
@@ -1107,10 +1134,10 @@
       "_discovered_at": "2026-05-02T06:23:37.692Z"
     },
     "conjecture": {
-      "ats": "smartrecruiters",
-      "slug": "conjecture",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:10.800Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "convex": {
       "ats": "ashby",
@@ -1164,15 +1191,17 @@
       "_discovered_at": "2026-05-02T05:05:32.157Z"
     },
     "coval": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/coval/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/coval/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "coupa-software": {
-      "ats": "smartrecruiters",
-      "slug": "coupa-software",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:40.635Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "cresta": {
       "ats": "greenhouse",
@@ -1195,10 +1224,10 @@
       "_discovered_at": "2026-05-02T05:05:37.854Z"
     },
     "cruise": {
-      "ats": "smartrecruiters",
-      "slug": "cruise",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:09.295Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "crusoe-energy": {
       "ats": "ashby",
@@ -1279,10 +1308,10 @@
       "_discovered_at": "2026-05-02T05:05:54.621Z"
     },
     "deepscribe": {
-      "ats": "smartrecruiters",
-      "slug": "deepscribe",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:02.328Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "dell-technologies": {
       "ats": "workday",
@@ -1293,14 +1322,18 @@
       "_discovered_at": "2026-05-02T05:05:58.300Z"
     },
     "dex": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/dex/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/dex/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "dili": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/dili/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/dili/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "docsend": {
       "ats": "custom-playwright",
@@ -1337,15 +1370,17 @@
       "_discovered_at": "2026-05-02T06:24:01.718Z"
     },
     "draftkings": {
-      "ats": "smartrecruiters",
-      "slug": "draftkings",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:43.339Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "dreambase": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/dreambase/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/dreambase/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "drata": {
       "ats": "ashby",
@@ -1354,8 +1389,10 @@
       "_discovered_at": "2026-05-02T06:24:08.134Z"
     },
     "drift": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "dremio": {
       "ats": "greenhouse",
@@ -1378,10 +1415,10 @@
       "_discovered_at": "2026-05-02T05:06:17.908Z"
     },
     "ebay": {
-      "ats": "smartrecruiters",
-      "slug": "ebay",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:29.562Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "eight-sleep": {
       "ats": "ashby",
@@ -1396,10 +1433,10 @@
       "_discovered_at": "2026-05-02T06:23:34.953Z"
     },
     "electronic-arts": {
-      "ats": "smartrecruiters",
-      "slug": "electronic-arts",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:30.429Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "epic-games": {
       "ats": "greenhouse",
@@ -1421,15 +1458,17 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "embeddables": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/embeddables/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/embeddables/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "etsy": {
-      "ats": "smartrecruiters",
-      "slug": "etsy",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:43.314Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "eudia": {
       "ats": "greenhouse",
@@ -1444,16 +1483,16 @@
       "_discovered_at": "2026-05-02T05:06:30.209Z"
     },
     "evenup": {
-      "ats": "smartrecruiters",
-      "slug": "evenup",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:12.383Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "evgo": {
-      "ats": "smartrecruiters",
-      "slug": "evgo",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:08.790Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "evolutioniq": {
       "ats": "greenhouse",
@@ -1468,8 +1507,10 @@
       "_discovered_at": "2026-05-02T05:06:33.855Z"
     },
     "fanatics": {
-      "ats": "manual",
-      "_note": "dead URL"
+      "ats": "custom-playwright",
+      "_note": "dead URL",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "fanduel": {
       "ats": "greenhouse",
@@ -1478,13 +1519,17 @@
       "_discovered_at": "2026-05-02T06:23:43.740Z"
     },
     "extern": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/extern/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/extern/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "fabric": {
-      "ats": "manual",
-      "_note": "Workable fabric-health - server-side blocked"
+      "ats": "custom-playwright",
+      "_note": "Workable fabric-health - server-side blocked",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "falai": {
       "ats": "greenhouse",
@@ -1519,10 +1564,10 @@
       "_discovered_at": "2026-05-02T05:06:46.571Z"
     },
     "flock-safety": {
-      "ats": "smartrecruiters",
-      "slug": "flock-safety",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:12.333Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "fireblocks": {
       "ats": "greenhouse",
@@ -1531,14 +1576,16 @@
       "_discovered_at": "2026-05-02T06:36:48.760Z"
     },
     "forterra": {
-      "ats": "manual",
-      "_note": "dead URL"
+      "ats": "custom-playwright",
+      "_note": "dead URL",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "forward-health": {
-      "ats": "smartrecruiters",
-      "slug": "forward-health",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:56.883Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "flyio": {
       "ats": "custom-playwright",
@@ -1577,10 +1624,10 @@
       "_discovered_at": "2026-05-02T05:06:57.195Z"
     },
     "freed-ai": {
-      "ats": "smartrecruiters",
-      "slug": "freed-ai",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:02.567Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "freightwaves": {
       "ats": "custom-playwright",
@@ -1626,10 +1673,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "galileo-health": {
-      "ats": "smartrecruiters",
-      "slug": "galileo-health",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:36:52.690Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "gamma": {
       "ats": "lever",
@@ -1656,10 +1703,10 @@
       "_discovered_at": "2026-05-02T05:07:09.107Z"
     },
     "gesundai": {
-      "ats": "smartrecruiters",
-      "slug": "gesundai",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:59.797Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "github": {
       "ats": "custom-playwright",
@@ -1670,15 +1717,17 @@
       "_careers_url": "https://www.github.careers/careers-home"
     },
     "goat": {
-      "ats": "smartrecruiters",
-      "slug": "goat",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:43.248Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "gogograndparent": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/gogograndparent/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/gogograndparent/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "goldbelly": {
       "ats": "greenhouse",
@@ -1733,22 +1782,22 @@
       "_discovered_at": "2026-05-02T05:07:24.602Z"
     },
     "greenhouse-software": {
-      "ats": "smartrecruiters",
-      "slug": "greenhouse-software",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:40.397Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "groq": {
-      "ats": "smartrecruiters",
-      "slug": "groq",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:33.200Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "guild-education": {
-      "ats": "smartrecruiters",
-      "slug": "guild-education",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:04.974Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "grow-therapy": {
       "ats": "greenhouse",
@@ -1769,10 +1818,10 @@
       "_discovered_at": "2026-05-02T06:23:34.787Z"
     },
     "hashicorp": {
-      "ats": "smartrecruiters",
-      "slug": "hashicorp",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:38.088Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "havocai": {
       "ats": "ashby",
@@ -1781,10 +1830,10 @@
       "_discovered_at": "2026-05-02T05:07:36.731Z"
     },
     "headspace": {
-      "ats": "smartrecruiters",
-      "slug": "headspace",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:57.334Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "hebbia": {
       "ats": "greenhouse",
@@ -1793,10 +1842,10 @@
       "_discovered_at": "2026-05-02T05:07:40.767Z"
     },
     "heap": {
-      "ats": "smartrecruiters",
-      "slug": "heap",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:38.092Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "heirloom-carbon": {
       "ats": "ashby",
@@ -1805,10 +1854,10 @@
       "_discovered_at": "2026-05-02T05:07:41.713Z"
     },
     "helix": {
-      "ats": "smartrecruiters",
-      "slug": "helix",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:59.990Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "helion-energy": {
       "ats": "ashby",
@@ -1830,8 +1879,10 @@
       "_discovered_at": "2026-05-02T06:23:57.066Z"
     },
     "hewlett-packard-enterprise": {
-      "ats": "manual",
-      "_note": "Phenom People ATS frontend + HPE Workday private"
+      "ats": "custom-playwright",
+      "_note": "Phenom People ATS frontend + HPE Workday private",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "heygen": {
       "ats": "greenhouse",
@@ -1852,10 +1903,10 @@
       "_discovered_at": "2026-05-02T05:07:49.217Z"
     },
     "hipcamp": {
-      "ats": "smartrecruiters",
-      "slug": "hipcamp",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:54.233Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "hippo-insurance": {
       "ats": "greenhouse",
@@ -1977,10 +2028,10 @@
       "_discovered_at": "2026-05-02T05:08:11.368Z"
     },
     "innovaccer": {
-      "ats": "smartrecruiters",
-      "slug": "innovaccer",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:00.944Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "instrumentl": {
       "ats": "custom-playwright",
@@ -1998,10 +2049,10 @@
       "_discovered_at": "2026-05-02T05:08:13.991Z"
     },
     "iodine-software": {
-      "ats": "smartrecruiters",
-      "slug": "iodine-software",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:00.700Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "ironclad": {
       "ats": "ashby",
@@ -2010,8 +2061,10 @@
       "_discovered_at": "2026-05-02T05:08:19.249Z"
     },
     "islandio": {
-      "ats": "manual",
-      "_note": "Comeet ATS - not supported"
+      "ats": "custom-playwright",
+      "_note": "Comeet ATS - not supported",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "iterative-health": {
       "ats": "greenhouse",
@@ -2053,9 +2106,11 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "jiga": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/jiga/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/jiga/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "justworks": {
       "ats": "greenhouse",
@@ -2093,10 +2148,10 @@
       "_discovered_at": "2026-05-02T05:08:33.650Z"
     },
     "klarna": {
-      "ats": "smartrecruiters",
-      "slug": "klarna",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:45.591Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "komodo-health": {
       "ats": "greenhouse",
@@ -2134,9 +2189,11 @@
       "_discovered_at": "2026-05-02T05:08:43.815Z"
     },
     "kyber": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/kyber/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/kyber/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "kyruus-health": {
       "ats": "lever",
@@ -2145,10 +2202,10 @@
       "_discovered_at": "2026-05-02T05:08:43.206Z"
     },
     "lacework": {
-      "ats": "smartrecruiters",
-      "slug": "lacework",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:07.409Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "labelbox": {
       "ats": "greenhouse",
@@ -2206,10 +2263,10 @@
       "_discovered_at": "2026-05-02T05:08:56.274Z"
     },
     "levels": {
-      "ats": "smartrecruiters",
-      "slug": "levels",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:11.063Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "lightup": {
       "ats": "custom-playwright",
@@ -2231,11 +2288,12 @@
       "_discovered_at": "2026-05-02T05:09:01.140Z"
     },
     "living-carbon": {
-      "ats": "custom-playwright",
+      "ats": "lever",
       "_note": "too small / no PM hiring",
       "_careers_url": "https://www.livingcarbon.com/careers",
       "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "_discovered_at": "2026-05-04T18:06:29.415Z",
+      "slug": "livingcarbon"
     },
     "llamaindex": {
       "ats": "ashby",
@@ -2250,16 +2308,22 @@
       "_discovered_at": "2026-05-02T05:09:04.036Z"
     },
     "looker": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "lucid-motors": {
-      "ats": "manual",
-      "_note": "dead URL"
+      "ats": "custom-playwright",
+      "_note": "dead URL",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "loom": {
-      "ats": "manual",
-      "_note": "Atlassian Workday wd5 - private board (401)"
+      "ats": "custom-playwright",
+      "_note": "Atlassian Workday wd5 - private board (401)",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "loops": {
       "ats": "custom-playwright",
@@ -2281,10 +2345,10 @@
       "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "luma-ai": {
-      "ats": "smartrecruiters",
-      "slug": "luma-ai",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:35.837Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "magic-school-ai": {
       "ats": "ashby",
@@ -2310,9 +2374,11 @@
       "_discovered_at": "2026-05-02T06:23:58.343Z"
     },
     "maintouch": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/maintouch/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/maintouch/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "make": {
       "ats": "custom-playwright",
@@ -2328,9 +2394,11 @@
       "_discovered_at": "2026-05-02T06:23:45.900Z"
     },
     "mason": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/mason/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/mason/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "masterclass": {
       "ats": "greenhouse",
@@ -2347,10 +2415,10 @@
       "_discovered_at": "2026-05-02T05:45:49.172Z"
     },
     "match-group-and-tinder-and-hinge": {
-      "ats": "smartrecruiters",
-      "slug": "match-group-and-tinder-and-hinge",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:41.615Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "material-security": {
       "ats": "ashby",
@@ -2404,10 +2472,10 @@
       "_discovered_at": "2026-05-02T05:09:30.136Z"
     },
     "mesh-payments": {
-      "ats": "smartrecruiters",
-      "slug": "mesh-payments",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:47.868Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "metabase": {
       "ats": "lever",
@@ -2416,10 +2484,10 @@
       "_discovered_at": "2026-05-02T06:23:40.601Z"
     },
     "midjourney": {
-      "ats": "smartrecruiters",
-      "slug": "midjourney",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:35.446Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "mimecast": {
       "ats": "custom-playwright",
@@ -2465,10 +2533,10 @@
       "_discovered_at": "2026-05-02T05:09:42.427Z"
     },
     "mode": {
-      "ats": "smartrecruiters",
-      "slug": "mode",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:40.961Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "modern-health": {
       "ats": "greenhouse",
@@ -2489,10 +2557,10 @@
       "_discovered_at": "2026-05-02T05:09:52.035Z"
     },
     "mondaycom": {
-      "ats": "smartrecruiters",
-      "slug": "mondaycom",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:36.639Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "motherduck": {
       "ats": "ashby",
@@ -2520,14 +2588,16 @@
       "_discovered_at": "2026-05-02T06:23:29.073Z"
     },
     "mparticle": {
-      "ats": "smartrecruiters",
-      "slug": "mparticle",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:40.570Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "mulesoft": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "multiverse": {
       "ats": "ashby",
@@ -2573,10 +2643,10 @@
       "_discovered_at": "2026-05-02T05:10:06.495Z"
     },
     "next-insurance": {
-      "ats": "smartrecruiters",
-      "slug": "next-insurance",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:53.214Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "nextdoor": {
       "ats": "greenhouse",
@@ -2597,16 +2667,16 @@
       "_discovered_at": "2026-05-02T05:10:12.253Z"
     },
     "nice-incontact": {
-      "ats": "smartrecruiters",
-      "slug": "nice-incontact",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:38.845Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "nirvana-insurance": {
-      "ats": "smartrecruiters",
-      "slug": "nirvana-insurance",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:53.171Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "notable-health": {
       "ats": "ashby",
@@ -2621,19 +2691,23 @@
       "_discovered_at": "2026-05-02T05:10:16.180Z"
     },
     "nuance": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "numerade": {
-      "ats": "smartrecruiters",
-      "slug": "numerade",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:36:53.729Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "numero": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/numero/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/numero/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "nuro": {
       "ats": "greenhouse",
@@ -2662,10 +2736,10 @@
     },
     "okteto": {
       "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
+      "_note": "YC job board only",
       "_careers_url": "https://www.okteto.com/careers/",
-      "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "offerup": {
       "ats": "greenhouse",
@@ -2680,10 +2754,10 @@
       "_discovered_at": "2026-05-02T06:23:45.368Z"
     },
     "onesignal": {
-      "ats": "smartrecruiters",
-      "slug": "onesignal",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:10.670Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "one-medical": {
       "ats": "greenhouse",
@@ -2692,10 +2766,10 @@
       "_discovered_at": "2026-05-02T06:23:57.575Z"
     },
     "onlyfans": {
-      "ats": "smartrecruiters",
-      "slug": "onlyfans",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:42.127Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "openevidence": {
       "ats": "ashby",
@@ -2712,8 +2786,10 @@
       "_careers_url": "https://careers.oracle.com/en/sites/jobsearch"
     },
     "orangewood-labs": {
-      "ats": "manual",
-      "_note": "dead URL"
+      "ats": "custom-playwright",
+      "_note": "dead URL",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "ori": {
       "ats": "ashby",
@@ -2741,10 +2817,10 @@
       "_discovered_at": "2026-05-02T05:10:40.209Z"
     },
     "outdoorsy": {
-      "ats": "smartrecruiters",
-      "slug": "outdoorsy",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:51.616Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "outschool": {
       "ats": "greenhouse",
@@ -2773,9 +2849,11 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "parallel-bio": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/parallel-bio/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/parallel-bio/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "palo-alto-networks": {
       "ats": "workday",
@@ -2878,16 +2956,16 @@
       "_discovered_at": "2026-05-02T05:11:04.535Z"
     },
     "pipe": {
-      "ats": "smartrecruiters",
-      "slug": "pipe",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:15.120Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "policygenius": {
-      "ats": "smartrecruiters",
-      "slug": "policygenius",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:11.853Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "polymarket": {
       "ats": "ashby",
@@ -2896,9 +2974,11 @@
       "_discovered_at": "2026-05-02T05:11:09.207Z"
     },
     "polymath-robotics": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/polymath-robotics/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/polymath-robotics/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "polytomic": {
       "ats": "ashby",
@@ -2944,20 +3024,22 @@
       "_discovered_at": "2026-05-02T06:36:53.650Z"
     },
     "power-bi": {
-      "ats": "manual",
-      "_note": "subsidiary — covered by parent"
+      "ats": "custom-playwright",
+      "_note": "subsidiary — covered by parent",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "privy": {
-      "ats": "smartrecruiters",
-      "slug": "privy",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:45.830Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "preset": {
-      "ats": "smartrecruiters",
-      "slug": "preset",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:40.681Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "proofpoint": {
       "ats": "workday",
@@ -2980,11 +3062,12 @@
       "_discovered_at": "2026-05-02T05:11:23.323Z"
     },
     "qdrant": {
-      "ats": "custom-playwright",
+      "ats": "ashby",
       "_note": "too small / no PM hiring",
       "_careers_url": "https://qdrant.tech/careers/",
       "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "_discovered_at": "2026-05-04T18:06:29.415Z",
+      "slug": "qdrant.tech"
     },
     "qualcomm": {
       "ats": "custom-playwright",
@@ -3002,10 +3085,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "quizlet": {
-      "ats": "smartrecruiters",
-      "slug": "quizlet",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:03.535Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "questflow": {
       "ats": "custom-playwright",
@@ -3053,10 +3136,10 @@
       "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "recursion": {
-      "ats": "smartrecruiters",
-      "slug": "recursion",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:36:51.211Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "reflection-ai": {
       "ats": "ashby",
@@ -3065,9 +3148,11 @@
       "_discovered_at": "2026-05-02T05:11:38.765Z"
     },
     "reframe": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/reframe/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/reframe/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "reka-ai": {
       "ats": "ashby",
@@ -3095,10 +3180,10 @@
       "_discovered_at": "2026-05-02T05:11:43.638Z"
     },
     "ringcentral": {
-      "ats": "smartrecruiters",
-      "slug": "ringcentral",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:37.978Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "rescale": {
       "ats": "ashby",
@@ -3119,10 +3204,10 @@
       "_discovered_at": "2026-05-02T05:11:48.841Z"
     },
     "riipen": {
-      "ats": "smartrecruiters",
-      "slug": "riipen",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:03.759Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "ro": {
       "ats": "lever",
@@ -3238,10 +3323,10 @@
       "_discovered_at": "2026-05-02T05:12:22.855Z"
     },
     "sentinelone": {
-      "ats": "smartrecruiters",
-      "slug": "sentinelone",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:06.171Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "segment": {
       "ats": "greenhouse",
@@ -3257,9 +3342,11 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "shaped": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/shaped/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/shaped/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "servicetitan": {
       "ats": "workday",
@@ -3289,10 +3376,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "shippo": {
-      "ats": "smartrecruiters",
-      "slug": "shippo",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:10.356Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "shortwave": {
       "ats": "custom-playwright",
@@ -3302,10 +3389,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "shopify": {
-      "ats": "smartrecruiters",
-      "slug": "shopify",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:29.424Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "sierra-ai": {
       "ats": "ashby",
@@ -3417,10 +3504,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "sony-interactive-and-playstation": {
-      "ats": "smartrecruiters",
-      "slug": "sony-interactive-and-playstation",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:33.067Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "sourcegraph": {
       "ats": "greenhouse",
@@ -3429,10 +3516,10 @@
       "_discovered_at": "2026-05-02T05:13:00.269Z"
     },
     "spanio": {
-      "ats": "smartrecruiters",
-      "slug": "spanio",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:36:52.385Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "speak": {
       "ats": "ashby",
@@ -3454,10 +3541,10 @@
       "_discovered_at": "2026-05-02T06:23:32.727Z"
     },
     "spring-health": {
-      "ats": "smartrecruiters",
-      "slug": "spring-health",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:58.662Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "springboard": {
       "ats": "greenhouse",
@@ -3466,10 +3553,10 @@
       "_discovered_at": "2026-05-02T06:24:04.919Z"
     },
     "squire": {
-      "ats": "smartrecruiters",
-      "slug": "squire",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:55.285Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "stackblitz": {
       "ats": "greenhouse",
@@ -3478,8 +3565,10 @@
       "_discovered_at": "2026-05-02T05:49:24.146Z"
     },
     "starcloud": {
-      "ats": "manual",
-      "_note": "dead URL"
+      "ats": "custom-playwright",
+      "_note": "dead URL",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "stability-ai": {
       "ats": "greenhouse",
@@ -3515,10 +3604,10 @@
     },
     "sohar-health": {
       "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
+      "_note": "YC job board only",
       "_careers_url": "https://www.soharhealth.com/careers",
-      "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "strava": {
       "ats": "ashby",
@@ -3527,9 +3616,11 @@
       "_discovered_at": "2026-05-02T05:13:18.392Z"
     },
     "structured-ai": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/structured/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/structured/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "substack": {
       "ats": "ashby",
@@ -3538,10 +3629,10 @@
       "_discovered_at": "2026-05-02T05:13:23.431Z"
     },
     "suki-ai": {
-      "ats": "smartrecruiters",
-      "slug": "suki-ai",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:24:02.936Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "sullyai": {
       "ats": "ashby",
@@ -3650,10 +3741,10 @@
       "_discovered_at": "2026-05-02T05:13:45.580Z"
     },
     "take-two-interactive": {
-      "ats": "smartrecruiters",
-      "slug": "take-two-interactive",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:32.756Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "talkspace": {
       "ats": "greenhouse",
@@ -3719,10 +3810,10 @@
       "_discovered_at": "2026-05-02T05:13:55.249Z"
     },
     "tesla": {
-      "ats": "smartrecruiters",
-      "slug": "tesla",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:31.733Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "tenstorrent": {
       "ats": "greenhouse",
@@ -3751,10 +3842,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "tipalti": {
-      "ats": "smartrecruiters",
-      "slug": "tipalti",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:45.605Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "tonal": {
       "ats": "ashby",
@@ -3825,10 +3916,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "turo": {
-      "ats": "smartrecruiters",
-      "slug": "turo",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:53.593Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "twelve": {
       "ats": "ashby",
@@ -3889,10 +3980,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "vagaro": {
-      "ats": "smartrecruiters",
-      "slug": "vagaro",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:56.150Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "vanta": {
       "ats": "ashby",
@@ -3922,10 +4013,10 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "veho": {
-      "ats": "smartrecruiters",
-      "slug": "veho",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:17.493Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "vetcove": {
       "ats": "ashby",
@@ -3934,14 +4025,16 @@
       "_discovered_at": "2026-05-02T05:14:45.419Z"
     },
     "vigilance-security": {
-      "ats": "manual",
-      "_note": "too small / no PM hiring"
+      "ats": "custom-playwright",
+      "_note": "too small / no PM hiring",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "veeam": {
-      "ats": "smartrecruiters",
-      "slug": "veeam",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:17.422Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "voltron-data": {
       "ats": "custom-playwright",
@@ -3957,16 +4050,18 @@
       "_discovered_at": "2026-05-04T16:09:50.506Z"
     },
     "visa": {
-      "ats": "smartrecruiters",
-      "slug": "visa",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:30.579Z"
+      "ats": "workday",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "host": "visa.wd5.myworkdayjobs.com",
+      "tenant": "visa",
+      "site": "Visa"
     },
     "vouch": {
-      "ats": "smartrecruiters",
-      "slug": "vouch",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:48.364Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://ats.rippling.com/en-GB/vouch-inc/jobs"
     },
     "vrbo": {
       "ats": "workday",
@@ -3976,16 +4071,16 @@
       "pageSize": 20
     },
     "wag": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "slug": "wag",
-      "_discovery_method": "bamboohr-redirect",
-      "_discovered_at": "2026-05-02T06:38:53.628Z"
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:50:35.161Z"
     },
     "warner-bros-discovery": {
-      "ats": "smartrecruiters",
-      "slug": "warner-bros-discovery",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:31.535Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "wayve": {
       "ats": "custom-playwright",
@@ -4007,9 +4102,11 @@
       "_discovered_at": "2026-05-02T05:14:57.178Z"
     },
     "weekend": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/weekend/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/weekend/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "whatnot": {
       "ats": "ashby",
@@ -4018,17 +4115,19 @@
       "_discovered_at": "2026-05-02T06:23:42.963Z"
     },
     "wheels-up": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "slug": "wheels-up",
-      "_discovery_method": "unsupported-ats",
+      "_discovery_method": "manual-to-custom",
       "_original_ats": "icims",
-      "_discovered_at": "2026-05-02T06:34:17.512Z",
+      "_discovered_at": "2026-05-04T19:50:35.161Z",
       "_careers_url": "https://careers-wheelsup.icims.com/jobs/intro"
     },
     "varos": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/varos/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/varos/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "whoop": {
       "ats": "lever",
@@ -4052,10 +4151,10 @@
       "_discovered_at": "2026-05-02T05:15:07.381Z"
     },
     "wise": {
-      "ats": "smartrecruiters",
-      "slug": "wise",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:46.122Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://wise.jobs/jobs"
     },
     "wiz": {
       "ats": "greenhouse",
@@ -4108,10 +4207,10 @@
       "_discovered_at": "2026-05-02T05:15:16.317Z"
     },
     "yelp": {
-      "ats": "smartrecruiters",
-      "slug": "yelp",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:32.173Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "yotpo": {
       "ats": "greenhouse",
@@ -4120,15 +4219,17 @@
       "_discovered_at": "2026-05-02T06:24:12.199Z"
     },
     "youshift": {
-      "ats": "manual",
+      "ats": "custom-playwright",
       "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/youshift/jobs"
+      "_careers_url": "https://www.ycombinator.com/companies/youshift/jobs",
+      "_discovery_method": "manual-to-custom",
+      "_discovered_at": "2026-05-04T19:51:25.849Z"
     },
     "yellowbrick": {
-      "ats": "smartrecruiters",
-      "slug": "yellowbrick",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:36:51.398Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "youcom": {
       "ats": "greenhouse",
@@ -4149,10 +4250,10 @@
       "_discovered_at": "2026-05-02T05:15:25.901Z"
     },
     "zenefits": {
-      "ats": "smartrecruiters",
-      "slug": "zenefits",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:39.721Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://wellfound.com/company/zenefits/jobs"
     },
     "zendesk": {
       "ats": "workday",
@@ -4169,10 +4270,10 @@
       "_discovered_at": "2026-05-02T05:15:30.562Z"
     },
     "zoom": {
-      "ats": "smartrecruiters",
-      "slug": "zoom",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:23:37.390Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "zoox": {
       "ats": "lever",
@@ -4187,22 +4288,22 @@
       "_discovered_at": "2026-05-02T05:15:33.235Z"
     },
     "snap": {
-      "ats": "smartrecruiters",
-      "slug": "snap",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:12.160Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "doordash": {
-      "ats": "smartrecruiters",
-      "slug": "doordash",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:12.106Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "uber": {
-      "ats": "smartrecruiters",
-      "slug": "uber",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:12.315Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://www.uber.com/us/en/careers/list/"
     },
     "cohere": {
       "ats": "ashby",
@@ -4211,16 +4312,16 @@
       "_discovered_at": "2026-05-02T06:50:10.718Z"
     },
     "glean": {
-      "ats": "smartrecruiters",
-      "slug": "glean",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:12.370Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "user-provided",
+      "_discovered_at": "2026-05-04T20:32:08.542Z",
+      "url_override": "https://www.glean.com/careers"
     },
     "tome": {
-      "ats": "smartrecruiters",
-      "slug": "tome",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:13.296Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "descript": {
       "ats": "greenhouse",
@@ -4229,16 +4330,16 @@
       "_discovered_at": "2026-05-02T06:50:14.710Z"
     },
     "coda": {
-      "ats": "smartrecruiters",
-      "slug": "coda",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:13.750Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "miro": {
-      "ats": "smartrecruiters",
-      "slug": "miro",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:14.755Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "box": {
       "ats": "greenhouse",
@@ -4247,46 +4348,479 @@
       "_discovered_at": "2026-05-02T06:50:14.723Z"
     },
     "procore": {
-      "ats": "smartrecruiters",
-      "slug": "procore",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:14.926Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "rippling": {
-      "ats": "smartrecruiters",
-      "slug": "rippling",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:14.996Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "hex": {
-      "ats": "smartrecruiters",
-      "slug": "hex",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:15.084Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "navan": {
-      "ats": "smartrecruiters",
-      "slug": "navan",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:16.492Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "rivian": {
-      "ats": "smartrecruiters",
-      "slug": "rivian",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:17.454Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "anduril": {
-      "ats": "smartrecruiters",
-      "slug": "anduril",
-      "_discovery_method": "api-probe",
-      "_discovered_at": "2026-05-02T06:50:17.432Z"
+      "ats": "custom-playwright",
+      "_discovery_method": "sr-reclassify",
+      "_discovered_at": "2026-05-04T20:05:36.110Z",
+      "_prev_ats": "smartrecruiters"
     },
     "harness": {
       "ats": "greenhouse",
       "slug": "harnessinc",
       "_discovery_method": "api-probe",
       "_discovered_at": "2026-05-02T06:50:17.435Z"
+    },
+    "waymo": {
+      "ats": "custom-playwright",
+      "url_override": "https://careers.withwaymo.com/jobs/search",
+      "_discovery_method": "manual",
+      "_discovered_at": "2026-05-04T18:07:58.108Z"
+    },
+    "atlassian": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "asana": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "dropbox": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "hubspot": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "pinterest": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "robinhood": {
+      "ats": "greenhouse",
+      "slug": "robinhood",
+      "_discovery_method": "url-pattern",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "block": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "instacart": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "coursera": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "coinbase": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "duolingo": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "reddit": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "databricks": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "samsara": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "perplexity": {
+      "ats": "ashby",
+      "slug": "Perplexity",
+      "_discovery_method": "url-pattern",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "lyft": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "netflix": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "airbnb": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "discord": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "openai": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "anthropic": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "characterai": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "anyscale": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "launchdarkly": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "vercel": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "neon": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "outreach": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "salesloft": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "notion": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "stripe": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "snowflake": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "datadog": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "mongodb": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "cloudflare": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "twilio": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "okta": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "airtable": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "linear": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "figma": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "smartsheet": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "freshworks": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "pagerduty": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "elastic": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "gitlab": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "postman": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "retool": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "webflow": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "klaviyo": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "braze": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "mixpanel": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "amplitude": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "pendo": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "intercom": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "dialpad": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "five9": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "toast": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "lattice": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "gusto": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "deel": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "remote": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "carta": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "plaid": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "brex": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "ramp": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "mercury": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "chime": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "affirm": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "sofi": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "cedar": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "faire": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "flexport": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "project44": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "headway": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "udemy": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "handshake": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "zscaler": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "axonius": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "rubrik": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "exabeam": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "fivetran": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "starburst": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "watershed": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "planetscale": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "attentive": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "verkada": {
+      "ats": "custom-playwright",
+      "_discovery_method": "auto-fill-missing",
+      "_discovered_at": "2026-05-04T18:13:26.041Z"
     }
   },
   "unmapped_default": "custom-playwright"

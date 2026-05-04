@@ -109,6 +109,7 @@ export const GenerateRequestBodyZ = z.object({
   summaryHints: z.string().optional(),
   email: z.string().email().optional(),
   customSkills: z.array(z.string()).optional(),
+  skillEdits: z.record(z.string(), z.string()).optional(),
 });
 
 export const TokenQueryZ = z.object({

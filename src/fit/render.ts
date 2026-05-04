@@ -257,6 +257,17 @@ export function renderFitPage(data: FitPageData): string {
     .skill-line { font-size: 0.85rem; margin-bottom: 4px; }
     .skill-line-name { font-weight: 700; color: #111827; }
     .skill-line-list { color: #4b5563; }
+    .skill-edit-btn {
+      background: none; border: 1px solid #d1d5db; color: #6366f1;
+      padding: 1px 8px; border-radius: 4px; font-size: 0.7rem;
+      cursor: pointer; margin-left: 8px; transition: all 0.15s;
+    }
+    .skill-edit-btn:hover { background: #f5f3ff; border-color: #6366f1; }
+    .skill-edit-input {
+      width: 100%; padding: 6px 8px; border: 1px solid #a5b4fc;
+      border-radius: 4px; font-size: 0.82rem; margin-top: 4px;
+    }
+    .skill-edit-actions { margin-top: 4px; display: flex; gap: 6px; }
     .skills-loading { color: #9ca3af; font-style: italic; font-size: 0.85rem; }
 
     /* Footer */

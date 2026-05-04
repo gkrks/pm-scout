@@ -197,42 +197,62 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
   try {
     const body = ScoreRequestBodyZ.parse(req.body);
     const jobId = req.params.jobId;
+    const supabase = getSupabaseClient();
 
-    // Try Python service first; fall back to Node-native scoring if unavailable
-    let validated: any;
-    try {
-      const pyRes = await fetch(`${BULLET_SELECTOR_URL}/score`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job_id: jobId,
-          force_refresh: body.force_refresh,
-        }),
-        timeout: 2_400_000,
-      });
+    // ---- Check cache first ----
+    if (!body.force_refresh) {
+      const { data: cached } = await supabase
+        .from("fit_score_cache")
+        .select("*")
+        .eq("listing_id", jobId)
+        .maybeSingle();
 
-      if (!pyRes.ok) {
-        throw new Error(`Python service returned ${pyRes.status}`);
+      if (cached) {
+        console.log(`[fit] Cache hit for jobId=${jobId}`);
+        const scoreResp = cached.score_response as any;
+        res.json({
+          ...scoreResp,
+          summary_candidates: cached.summary_candidates,
+          summary_recommended: cached.summary_recommended,
+          summary_jd_analysis: cached.summary_jd_analysis,
+          optimized_skills: cached.optimized_skills,
+          skills_gap_filled: cached.skills_gap_filled,
+          skills_gap_remaining: cached.skills_gap_remaining,
+        });
+        return;
       }
-
-      const data = await pyRes.json();
-      validated = ScoreResponseZ.parse(data);
-    } catch (pyErr: any) {
-      // Python unavailable — use Node-native minimal scoring
-      console.log(`[fit] Python unavailable (${pyErr.message}), using Node-native scoring`);
-      validated = {
-        job_id: jobId,
-        model_version: "node-native",
-        system_prompt_hash: "none",
-        ranked_candidates: [],
-        final_selection: { selected_bullets: [], uncovered_qualifications: [], total_score: 0, source_utilization: {} },
-        pre_resolved: [],
-      };
     }
 
-    // Enrich with summary candidates + optimized skills
-    const supabase = getSupabaseClient();
-    const { data: jobRow } = await supabase
+    // ---- Cache miss or force_refresh — compute from scratch ----
+    console.log(`[fit] Cache miss for jobId=${jobId}, computing...`);
+
+    // Kick off Python scorer + job row fetch + resume load in parallel
+    const pyScoreP = fetch(`${BULLET_SELECTOR_URL}/score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        job_id: jobId,
+        force_refresh: body.force_refresh,
+      }),
+      timeout: 30_000, // 30s — fail fast, don't block the UI
+    })
+      .then(async (pyRes) => {
+        if (!pyRes.ok) throw new Error(`Python service returned ${pyRes.status}`);
+        return ScoreResponseZ.parse(await pyRes.json());
+      })
+      .catch((pyErr: any) => {
+        console.log(`[fit] Python unavailable (${pyErr.message}), using Node-native scoring`);
+        return {
+          job_id: jobId,
+          model_version: "node-native",
+          system_prompt_hash: "none",
+          ranked_candidates: [] as any[],
+          final_selection: { selected_bullets: [] as any[], uncovered_qualifications: [] as any[], total_score: 0, source_utilization: {} },
+          pre_resolved: [] as any[],
+        };
+      });
+
+    const jobRowP = supabase
       .from("job_listings")
       .select(`
         title, jd_job_title, jd_company_name, jd_skills, jd_ats_keywords,
@@ -243,7 +263,6 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       .eq("id", jobId)
       .single();
 
-    // Collect recommended bullet texts for summary input
     const masterResume = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
     );
@@ -254,6 +273,9 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
     for (const proj of masterResume.projects || []) {
       for (const b of proj.bullets || []) bulletMap.set(b.id, b.text);
     }
+
+    // Wait for parallel fetches
+    const [validated, { data: jobRow }] = await Promise.all([pyScoreP, jobRowP]);
 
     const selectedBulletTexts = validated.final_selection.selected_bullets
       .map((sb: any) => bulletMap.get(sb.bullet_id) || "")
@@ -271,22 +293,22 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       roleContext ? `About: ${roleContext}` : "",
     ].filter(Boolean).join("\n");
 
-    // Generate summary candidates (OpenAI call)
-    const summaryResult = await generateSummaryCandidates(jdText, selectedBulletTexts);
+    // Generate summary + optimize skills in parallel (skills doesn't need bullet texts)
+    const [summaryResult, skillsResult] = await Promise.all([
+      generateSummaryCandidates(jdText, selectedBulletTexts),
+      Promise.resolve(optimizeSkills(
+        masterResume.skills || [],
+        selectedBulletTexts,
+        jobRow?.jd_skills,
+        jobRow?.jd_ats_keywords,
+        jobRow?.jd_required_qualifications as string[] || [],
+        jobRow?.jd_preferred_qualifications as string[] || [],
+        jobRow?.jd_extracted_skills as string[] || undefined,
+      )),
+    ]);
 
-    // Compute optimized skills (JD-first: only include skills the JD asks for)
-    const skillsResult = optimizeSkills(
-      masterResume.skills || [],
-      selectedBulletTexts,
-      jobRow?.jd_skills,
-      jobRow?.jd_ats_keywords,
-      jobRow?.jd_required_qualifications as string[] || [],
-      jobRow?.jd_preferred_qualifications as string[] || [],
-      jobRow?.jd_extracted_skills as string[] || undefined,
-    );
-
-    // Return enriched response
-    res.json({
+    // Build enriched response
+    const enrichedResponse = {
       ...validated,
       summary_candidates: summaryResult.candidates,
       summary_recommended: summaryResult.recommended,
@@ -294,7 +316,29 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       optimized_skills: skillsResult.lines,
       skills_gap_filled: skillsResult.gapFilled,
       skills_gap_remaining: skillsResult.gapRemaining,
-    });
+    };
+
+    // ---- Save to cache ----
+    const { job_id, model_version, system_prompt_hash, ranked_candidates, final_selection, pre_resolved } = validated;
+    await supabase
+      .from("fit_score_cache")
+      .upsert({
+        listing_id: jobId,
+        score_response: { job_id, model_version, system_prompt_hash, ranked_candidates, final_selection, pre_resolved },
+        summary_candidates: summaryResult.candidates,
+        summary_recommended: summaryResult.recommended,
+        summary_jd_analysis: summaryResult.jdAnalysis || null,
+        optimized_skills: skillsResult.lines,
+        skills_gap_filled: skillsResult.gapFilled,
+        skills_gap_remaining: skillsResult.gapRemaining,
+        model_version: validated.model_version,
+      }, { onConflict: "listing_id" })
+      .then(({ error }) => {
+        if (error) console.error("[fit] Cache write failed:", error.message);
+        else console.log(`[fit] Cache saved for jobId=${jobId}`);
+      });
+
+    res.json(enrichedResponse);
   } catch (err: any) {
     console.error("[fit] score error:", err.message);
     res.status(500).json({ error: err.message });
@@ -348,7 +392,7 @@ app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response
     const body = GenerateRequestBodyZ.parse(req.body);
     const jobId = req.params.jobId;
 
-    const result = await generateResume(jobId, body.selections, undefined, body.email, body.summaryHints, body.customSkills);
+    const result = await generateResume(jobId, body.selections, undefined, body.email, body.summaryHints, body.customSkills, body.skillEdits);
 
     generatedFiles.set(jobId, {
       pdfPath: result.pdfPath,

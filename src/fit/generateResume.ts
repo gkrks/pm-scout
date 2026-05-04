@@ -91,6 +91,7 @@ export async function generateResume(
   email?: string,
   summaryOverride?: string,
   customSkills?: string[],
+  skillEdits?: Record<string, string>,
 ): Promise<GenerateResult> {
   // Load master resume
   const masterResume = JSON.parse(fs.readFileSync(MASTER_RESUME_PATH, "utf-8"));
@@ -290,8 +291,17 @@ export async function generateResume(
     job.jd_preferred_qualifications as string[] || [],
     job.jd_extracted_skills as string[] || undefined,
   );
-  // Append custom skills from UI to the last skill line
+  // Apply per-line skill edits from UI
   const skillLines = [...skillsResult.lines];
+  if (skillEdits) {
+    for (const [idx, editedList] of Object.entries(skillEdits)) {
+      const i = parseInt(idx, 10);
+      if (i >= 0 && i < skillLines.length) {
+        skillLines[i] = { ...skillLines[i], list: editedList };
+      }
+    }
+  }
+  // Append custom skills from UI to the last skill line
   if (customSkills && customSkills.length > 0 && skillLines.length > 0) {
     const last = skillLines[skillLines.length - 1];
     last.list = last.list + ", " + customSkills.join(", ");

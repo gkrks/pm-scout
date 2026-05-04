@@ -18,6 +18,7 @@
   var selectedSummary = null;
   var selectedEmail = DATA.emails && DATA.emails[0] || "";
   var customSkills = [];  // tracks skills added via the UI button
+  var skillEdits = {};    // index -> edited list string (per skill subsection)
   var scoreData = null;
 
   // Email selector behavior
@@ -275,9 +276,20 @@
     }
 
     var html = '';
-    lines.forEach(function (line) {
-      html += '<div class="skill-line"><span class="skill-line-name">' + esc(line.name) + ': </span>';
-      html += '<span class="skill-line-list">' + esc(line.list) + '</span>';
+    lines.forEach(function (line, idx) {
+      html += '<div class="skill-line" data-skill-idx="' + idx + '">';
+      html += '<div style="display:flex;align-items:baseline;justify-content:space-between;">';
+      html += '<div><span class="skill-line-name">' + esc(line.name) + ': </span>';
+      html += '<span class="skill-line-list">' + esc(line.list) + '</span></div>';
+      html += '<button class="skill-edit-btn" data-skill-idx="' + idx + '">Edit</button>';
+      html += '</div>';
+      // Edit area (hidden by default)
+      html += '<div class="skill-edit-area" id="skill-edit-' + idx + '" style="display:none;">';
+      html += '<input type="text" class="skill-edit-input" value="' + esc(line.list) + '">';
+      html += '<div class="skill-edit-actions">';
+      html += '<button class="btn btn-sm" style="background:#6366f1;color:#fff;" data-skill-idx="' + idx + '" data-action="save">Save</button>';
+      html += '<button class="btn btn-sm" style="background:#e5e7eb;color:#374151;" data-skill-idx="' + idx + '" data-action="cancel">Cancel</button>';
+      html += '</div></div>';
       if (line.jdEvidence && line.jdEvidence.length > 0) {
         html += '<div style="font-size:0.7rem;color:#6366f1;margin-top:2px;">JD asks for: ' + line.jdEvidence.map(esc).join(", ") + '</div>';
       }
@@ -302,6 +314,33 @@
     html += '</div></div>';
 
     box.innerHTML = html;
+
+    // Bind edit buttons per skill line
+    box.querySelectorAll(".skill-edit-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = btn.dataset.skillIdx;
+        var area = document.getElementById("skill-edit-" + idx);
+        area.style.display = area.style.display === "none" ? "block" : "none";
+      });
+    });
+
+    // Bind save/cancel in edit areas
+    box.querySelectorAll(".skill-edit-actions button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = btn.dataset.skillIdx;
+        var area = document.getElementById("skill-edit-" + idx);
+        var lineEl = box.querySelector('.skill-line[data-skill-idx="' + idx + '"]');
+        if (btn.dataset.action === "save") {
+          var input = area.querySelector(".skill-edit-input");
+          var newList = input.value.trim();
+          if (newList) {
+            lineEl.querySelector(".skill-line-list").textContent = newList;
+            skillEdits[idx] = newList;
+          }
+        }
+        area.style.display = "none";
+      });
+    });
 
     // Bind add skill
     document.getElementById("add-skill-btn").addEventListener("click", function () {
@@ -394,7 +433,7 @@
       return { qualification_id: qid, bullet_id_or_text: s.isCustom || s.isEdited ? s.text : s.bulletId, is_custom: s.isCustom || s.isEdited };
     });
 
-    api("POST", "/generate", { selections: sels, summaryHints: selectedSummary || "", email: selectedEmail, customSkills: customSkills })
+    api("POST", "/generate", { selections: sels, summaryHints: selectedSummary || "", email: selectedEmail, customSkills: customSkills, skillEdits: skillEdits })
       .then(function (data) {
         if (data.error) throw new Error(data.error);
         window.location.href = "/fit/" + jobId + "/download/" + format + "?token=" + encodeURIComponent(token);
