@@ -1,0 +1,344 @@
+/**
+ * Express web server for the "Check Fit" resume tailoring flow.
+ *
+ * Routes:
+ *   GET  /fit/:jobId            — Render Fit page (server-rendered)
+ *   POST /fit/:jobId/score      — Proxy to Python /score
+ *   POST /fit/:jobId/select     — Proxy to Python /select
+ *   POST /fit/:jobId/generate   — Compose payload, regen summary, fill_resume
+ *   GET  /fit/:jobId/download/pdf   — Stream generated PDF
+ *   GET  /fit/:jobId/download/docx  — Stream generated DOCX
+ */
+
+import crypto from "crypto";
+import fs from "fs";
+import path from "path";
+
+import dotenv from "dotenv";
+dotenv.config();
+
+import express, { Request, Response, NextFunction } from "express";
+import fetch from "node-fetch";
+
+import { getSupabaseClient } from "../storage/supabase";
+import { generateResume } from "./generateResume";
+import { renderFitPage } from "./render";
+import {
+  ScoreRequestBodyZ,
+  ScoreResponseZ,
+  SelectRequestBodyZ,
+  SelectResponseZ,
+  GenerateRequestBodyZ,
+} from "./types";
+
+// In-memory store of generated file paths per jobId (single-user, ephemeral)
+const generatedFiles = new Map<string, { pdfPath: string; docxPath: string }>();
+
+const app = express();
+app.use(express.json());
+
+const PORT = parseInt(process.env.FIT_PORT || "3847", 10);
+const TOKEN_SECRET = process.env.FIT_TOKEN_SECRET || "";
+const BULLET_SELECTOR_URL = process.env.BULLET_SELECTOR_URL || "http://127.0.0.1:8001";
+
+if (!TOKEN_SECRET) {
+  console.warn("[fit] WARNING: FIT_TOKEN_SECRET is not set. Token verification disabled.");
+}
+
+// --------------------------------------------------------------------------- //
+//  Token verification
+// --------------------------------------------------------------------------- //
+
+function generateToken(jobId: string): string {
+  return crypto
+    .createHmac("sha256", TOKEN_SECRET)
+    .update(jobId)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+function verifyToken(req: Request, res: Response, next: NextFunction): void {
+  if (!TOKEN_SECRET) {
+    next();
+    return;
+  }
+
+  const jobId = req.params.jobId;
+  const token = (req.query.token as string) || (req.headers["x-fit-token"] as string) || "";
+  const expected = generateToken(jobId);
+
+  if (token !== expected) {
+    console.warn(`[fit] 401 token mismatch for jobId=${jobId}, token=***`);
+    res.status(401).json({ error: "Invalid token" });
+    return;
+  }
+  next();
+}
+
+// --------------------------------------------------------------------------- //
+//  Logging middleware
+// --------------------------------------------------------------------------- //
+
+app.use("/fit/:jobId", (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    console.log(JSON.stringify({
+      jobId: req.params.jobId,
+      route: req.path,
+      method: req.method,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - start,
+    }));
+  });
+  next();
+});
+
+// --------------------------------------------------------------------------- //
+//  Serve static client.js
+// --------------------------------------------------------------------------- //
+
+app.get("/fit/client.js", (_req: Request, res: Response) => {
+  const jsPath = path.join(__dirname, "client.js");
+  // In dev, try src/ path; in prod, try dist/ path
+  const srcPath = path.resolve(__dirname, "../../src/fit/client.js");
+  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
+  res.setHeader("Content-Type", "application/javascript");
+  fs.createReadStream(filePath).pipe(res);
+});
+
+// --------------------------------------------------------------------------- //
+//  GET /fit/:jobId — Render Fit page
+// --------------------------------------------------------------------------- //
+
+app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const token = (req.query.token as string) || "";
+    const supabase = getSupabaseClient();
+
+    const { data: job, error } = await supabase
+      .from("job_listings")
+      .select(`
+        id, title, location_raw, location_city, is_remote, is_hybrid,
+        role_url, ats_platform,
+        jd_job_title, jd_company_name, jd_required_qualifications,
+        jd_preferred_qualifications, jd_role_context,
+        company:companies!inner(name, slug)
+      `)
+      .eq("id", jobId)
+      .single();
+
+    if (error || !job) {
+      res.status(404).send("Job not found");
+      return;
+    }
+
+    const html = renderFitPage({
+      jobId,
+      token,
+      companyName: (job.company as any)?.name || job.jd_company_name || "Unknown",
+      title: job.jd_job_title || job.title,
+      location: job.location_city || job.location_raw || "",
+      isRemote: job.is_remote,
+      isHybrid: job.is_hybrid,
+      ats: job.ats_platform || "",
+      roleUrl: job.role_url,
+      requiredQuals: (job.jd_required_qualifications as string[]) || [],
+      preferredQuals: (job.jd_preferred_qualifications as string[]) || [],
+    });
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  } catch (err: any) {
+    console.error("[fit] render error:", err.message);
+    res.status(500).send("Internal error");
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/score — Proxy to Python /score
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const body = ScoreRequestBodyZ.parse(req.body);
+    const jobId = req.params.jobId;
+
+    const pyRes = await fetch(`${BULLET_SELECTOR_URL}/score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        job_id: jobId,
+        force_refresh: body.force_refresh,
+      }),
+      timeout: 300_000,
+    });
+
+    if (!pyRes.ok) {
+      const text = await pyRes.text();
+      res.status(pyRes.status).json({ error: text });
+      return;
+    }
+
+    const data = await pyRes.json();
+    const validated = ScoreResponseZ.parse(data);
+    res.json(validated);
+  } catch (err: any) {
+    console.error("[fit] score error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/select — Proxy to Python /select
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/select", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const body = SelectRequestBodyZ.parse(req.body);
+    const jobId = req.params.jobId;
+
+    const pyRes = await fetch(`${BULLET_SELECTOR_URL}/select`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        job_id: jobId,
+        user_selections: body.selections.map((s) => ({
+          qualification_id: s.qualification_id,
+          bullet_id_or_text: s.bullet_id_or_text,
+          is_custom: s.is_custom,
+        })),
+      }),
+      timeout: 10_000,
+    });
+
+    if (!pyRes.ok) {
+      const text = await pyRes.text();
+      res.status(pyRes.status).json({ error: text });
+      return;
+    }
+
+    const data = await pyRes.json();
+    const validated = SelectResponseZ.parse(data);
+    res.json(validated);
+  } catch (err: any) {
+    console.error("[fit] select error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/generate — Build resume
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const body = GenerateRequestBodyZ.parse(req.body);
+    const jobId = req.params.jobId;
+
+    const result = await generateResume(jobId, body.selections);
+
+    generatedFiles.set(jobId, {
+      pdfPath: result.pdfPath,
+      docxPath: result.docxPath,
+    });
+
+    res.json({
+      status: "ok",
+      basename: result.basename,
+      summaryUsed: result.summaryUsed,
+      summaryWarning: result.summaryWarning,
+    });
+  } catch (err: any) {
+    console.error("[fit] generate error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  GET /fit/:jobId/download/:format — Stream file
+// --------------------------------------------------------------------------- //
+
+app.get("/fit/:jobId/download/:format", verifyToken, (req: Request, res: Response) => {
+  const { jobId, format } = req.params;
+  if (format !== "pdf" && format !== "docx") {
+    res.status(400).json({ error: "Format must be pdf or docx" });
+    return;
+  }
+
+  const files = generatedFiles.get(jobId);
+  if (!files) {
+    res.status(404).json({ error: "No generated resume found. Run /generate first." });
+    return;
+  }
+
+  const filePath = format === "pdf" ? files.pdfPath : files.docxPath;
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: `Generated ${format} file not found on disk.` });
+    return;
+  }
+
+  const mimeType = format === "pdf"
+    ? "application/pdf"
+    : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const basename = path.basename(filePath);
+
+  res.setHeader("Content-Type", mimeType);
+  res.setHeader("Content-Disposition", `attachment; filename="${basename}"`);
+  fs.createReadStream(filePath).pipe(res);
+});
+
+// --------------------------------------------------------------------------- //
+//  Start server
+// --------------------------------------------------------------------------- //
+
+// --------------------------------------------------------------------------- //
+//  Cache sweep: delete generated resumes older than 24h
+// --------------------------------------------------------------------------- //
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const SWEEP_INTERVAL_MS = 60 * 60 * 1000; // check every hour
+
+function sweepGeneratedResumes(): void {
+  const outDir = path.resolve(__dirname, "../../out");
+  if (!fs.existsSync(outDir)) return;
+
+  const now = Date.now();
+  let swept = 0;
+
+  for (const file of fs.readdirSync(outDir)) {
+    if (!file.startsWith("Krithik_Gopinath_")) continue;
+    const filePath = path.join(outDir, file);
+    try {
+      const stat = fs.statSync(filePath);
+      if (now - stat.mtimeMs > CACHE_TTL_MS) {
+        fs.unlinkSync(filePath);
+        swept++;
+      }
+    } catch { /* ignore */ }
+  }
+
+  if (swept > 0) {
+    console.log(JSON.stringify({ event: "cache_sweep", swept, dir: outDir }));
+  }
+
+  // Also clear stale entries from in-memory map
+  for (const [jobId, files] of generatedFiles.entries()) {
+    if (!fs.existsSync(files.pdfPath) && !fs.existsSync(files.docxPath)) {
+      generatedFiles.delete(jobId);
+    }
+  }
+}
+
+export { app, generateToken };
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[fit] Server listening on http://127.0.0.1:${PORT}`);
+    console.log(`[fit] Python service at ${BULLET_SELECTOR_URL}`);
+  });
+
+  // Start cache sweep timer
+  setInterval(sweepGeneratedResumes, SWEEP_INTERVAL_MS);
+  sweepGeneratedResumes(); // run once on startup
+}

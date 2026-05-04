@@ -156,6 +156,13 @@ async function writeToSupabase(
       }
     }
 
+    // Thread Supabase UUIDs back to Job objects for Check Fit links
+    const urlToListingId = new Map(results.map((r) => [normalizeRoleUrl(r.roleUrl), r.listingId]));
+    for (const j of dedupedJobs) {
+      const lid = urlToListingId.get(normalizeRoleUrl(j.applyUrl));
+      if (lid) j.supabaseId = lid;
+    }
+
     if (!failedCompanyNames.has(company.name)) {
       listingsDeactivated += await deactivateUnseen(company.id, runStartedAt);
     }

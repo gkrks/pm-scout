@@ -1,0 +1,56 @@
+- canonical: JavaScript
+  variants: [JS, ECMAScript, ES6, ES2015]
+- canonical: Python
+  variants: [py, Python3]
+- canonical: Structured Query Language
+  variants: [SQL]
+- canonical: Financial Planning and Analysis
+  variants: ["FP&A", FPA]
+- canonical: Machine Learning
+  variants: [ML]
+- canonical: Natural Language Processing
+  variants: [NLP]
+- canonical: Large Language Model
+  variants: [LLM]
+- canonical: Continuous Integration / Continuous Deployment
+  variants: [CI/CD, CICD]
+- canonical: Amazon Web Services
+  variants: [AWS]
+- canonical: Project Management
+  variants: [PM, Program Management]
+- canonical: Product Management
+  variants: [PM, Product Manager]
+- canonical: Associate Product Manager
+  variants: [APM]
+- canonical: TypeScript
+  variants: [TS]
+- canonical: Application Programming Interface
+  variants: [API, APIs]
+- canonical: User Experience
+  variants: [UX]
+- canonical: User Interface
+  variants: [UI]
+- canonical: Key Performance Indicator
+  variants: [KPI, KPIs]
+- canonical: Return on Investment
+  variants: [ROI]
+- canonical: Artificial Intelligence
+  variants: [AI]
+- canonical: Software Development Life Cycle
+  variants: [SDLC]
+- canonical: Object-Oriented Programming
+  variants: [OOP]
+- canonical: Minimum Viable Product
+  variants: [MVP]
+- canonical: Objectives and Key Results
+  variants: [OKR, OKRs]
+- canonical: Product Requirements Document
+  variants: [PRD, PRDs]
+- canonical: Cross-Functional
+  variants: [cross functional, x-functional]
+- canonical: Business-to-Business
+  variants: [B2B]
+- canonical: Business-to-Consumer
+  variants: [B2C]
+- canonical: Software as a Service
+  variants: [SaaS]

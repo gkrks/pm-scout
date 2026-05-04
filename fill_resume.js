@@ -5,6 +5,11 @@
  *
  * Generates both .docx (via docx-js) and .pdf (via pdfkit).
  * No LibreOffice or external binary dependencies — runs in GitHub Actions.
+ *
+ * CLI flags (all optional, defaults preserve original behavior):
+ *   --input <path>        Path to resume JSON (default: ./config/master_resume.json)
+ *   --out-basename <name> Output filename without extension (default: Resume_Krithik_Gopinath)
+ *   --summary <text>      Override the professional summary text
  */
 
 const {
@@ -22,12 +27,23 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 
-const data = require("./config/master_resume.json");
+// ---------- CLI args ----------
+const args = process.argv.slice(2);
+function getArg(name) {
+  const idx = args.indexOf(name);
+  return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : null;
+}
+
+const inputPath = getArg("--input") || path.join(__dirname, "config/master_resume.json");
+const outBasename = getArg("--out-basename") || "Resume_Krithik_Gopinath";
+const summaryOverride = getArg("--summary") || null;
+
+const data = JSON.parse(fs.readFileSync(inputPath, "utf-8"));
 
 // ---------- constants ----------
 const OUT_DIR = path.join(__dirname, "out");
-const DOCX_PATH = path.join(OUT_DIR, "Resume_Krithik_Gopinath.docx");
-const PDF_PATH = path.join(OUT_DIR, "Resume_Krithik_Gopinath.pdf");
+const DOCX_PATH = path.join(OUT_DIR, outBasename + ".docx");
+const PDF_PATH = path.join(OUT_DIR, outBasename + ".pdf");
 
 // Page geometry (twips for docx, points for PDF)
 const PAGE_WIDTH = 12240;
@@ -85,7 +101,7 @@ const LINKEDIN = contact.linkedin_url;
 const GITHUB = contact.github_url;
 const WEBSITE = contact.website_url;
 
-const SUMMARY = "Product-minded engineer with experience spanning consumer robotics, mobile apps, fitness tech, and enterprise SaaS. Combines product management (user research, roadmapping, stakeholder alignment) with hands-on engineering (Rust, Python, TypeScript, AWS) to ship end-to-end systems that move business metrics.";
+const SUMMARY = summaryOverride || data.__summary_override || "Product-minded engineer with experience spanning consumer robotics, mobile apps, fitness tech, and enterprise SaaS. Combines product management (user research, roadmapping, stakeholder alignment) with hands-on engineering (Rust, Python, TypeScript, AWS) to ship end-to-end systems that move business metrics.";
 
 const exps = data.experiences.slice(0, 4).map(exp => ({
   role: exp.role,

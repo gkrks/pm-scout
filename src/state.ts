@@ -50,6 +50,9 @@ export interface Job {
 
   // JD extraction (populated for new/reactivated listings)
   extractedJD?: ExtractedJD;
+
+  // Supabase UUID (populated after upsert, used for Check Fit links)
+  supabaseId?: string;
 }
 
 // ── Scan / score status ───────────────────────────────────────────────────────

@@ -16,6 +16,7 @@
  *   DISPLAY_TIMEZONE  (default: America/Los_Angeles)
  */
 
+import crypto from "crypto";
 import * as nodemailer from "nodemailer";
 import type { Job } from "../state";
 import type { RunStats } from "./telegram";
@@ -29,6 +30,33 @@ import {
   formatLocation,
   formatExperience,
 } from "./labels";
+
+// ── Check Fit link helpers ───────────────────────────────────────────────────
+
+const FIT_BASE_URL    = process.env.FIT_BASE_URL || "";
+const FIT_TOKEN_SECRET = process.env.FIT_TOKEN_SECRET || "";
+
+function fitUrl(job: Job): string {
+  if (!FIT_BASE_URL || !FIT_TOKEN_SECRET || !job.supabaseId) return "";
+  const token = crypto
+    .createHmac("sha256", FIT_TOKEN_SECRET)
+    .update(job.supabaseId)
+    .digest("hex")
+    .slice(0, 32);
+  return `${FIT_BASE_URL}/fit/${job.supabaseId}?token=${token}`;
+}
+
+function fitButton(job: Job): string {
+  const url = fitUrl(job);
+  if (!url) return "";
+  return ` <a href="${url}" style="border:1px solid #6366f1;color:#6366f1;padding:7px 16px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;display:inline-block;margin-left:8px;" target="_blank">Check Fit</a>`;
+}
+
+function fitPlaintext(job: Job): string {
+  const url = fitUrl(job);
+  if (!url) return "";
+  return `\n  - Check Fit: ${url}`;
+}
 
 // ── Subject ───────────────────────────────────────────────────────────────────
 
@@ -120,7 +148,7 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
   <div style="color:#6b7280;font-size:13px;margin-bottom:10px;">${esc(subtitle)}</div>
   <table style="font-size:13px;color:#374151;border-collapse:collapse;">${rows.join("")}</table>
   <div style="margin-top:12px;">
-    <a href="${j.applyUrl}" style="background:${btnColor};color:white;padding:8px 20px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;display:inline-block;">Apply →</a>
+    <a href="${j.applyUrl}" style="background:${btnColor};color:white;padding:8px 20px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;display:inline-block;">Apply →</a>${fitButton(j)}
   </div>
 </div>`;
     }
@@ -134,7 +162,7 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
   <div style="color:#6b7280;font-size:13px;margin-bottom:10px;">${esc(subtitle)}</div>
   <table style="font-size:13px;color:#374151;border-collapse:collapse;">${rows.join("")}</table>
   <div style="margin-top:12px;">
-    <a href="${j.applyUrl}" style="background:${accentColor};color:white;padding:7px 16px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:500;display:inline-block;">Apply →</a>
+    <a href="${j.applyUrl}" style="background:${accentColor};color:white;padding:7px 16px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:500;display:inline-block;">Apply →</a>${fitButton(j)}
   </div>
 </div>`;
   }
@@ -211,6 +239,8 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     ];
     if (apm) parts.push(`- APM Program: ${apm}`);
     parts.push(`- Apply:       ${j.applyUrl}`);
+    const fitLine = fitPlaintext(j);
+    if (fitLine) parts.push(fitLine.trimStart());
     return parts.join("\n");
   }
 

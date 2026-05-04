@@ -1,0 +1,98 @@
+"""Configuration constants for the bullet selection pipeline."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Try .env in ats_bullet_selector/ first, then parent (JobSearch/.env)
+load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[2].parent / ".env")
+
+# --------------------------------------------------------------------------- #
+#  Paths
+# --------------------------------------------------------------------------- #
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = PROJECT_ROOT.parent  # JobSearch/
+CACHE_DIR = PROJECT_ROOT / "cache"
+EMBEDDINGS_CACHE_DIR = CACHE_DIR / "embeddings"
+JUDGE_CACHE_DIR = CACHE_DIR / "judge"
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+SYNONYMS_PATH = PROJECT_ROOT / "data" / "synonyms.yaml"
+PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
+
+DEFAULT_MASTER_RESUME_PATH = REPO_ROOT / "config" / "master_resume.json"
+
+# --------------------------------------------------------------------------- #
+#  LLM (Groq)
+# --------------------------------------------------------------------------- #
+
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+JUDGE_MODEL = os.environ.get("JUDGE_MODEL", "llama-3.3-70b-versatile")
+JUDGE_TEMPERATURE = 0
+JUDGE_MAX_TOKENS = 1024
+JUDGE_CONCURRENCY_CAP = 1  # sequential for Groq free tier (12K TPM)
+
+# --------------------------------------------------------------------------- #
+#  Embeddings (local sentence-transformers)
+# --------------------------------------------------------------------------- #
+
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 output dimension
+RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "15"))
+SEMANTIC_SIM_FLOOR = 0.25
+
+# --------------------------------------------------------------------------- #
+#  Database (Supabase REST API)
+# --------------------------------------------------------------------------- #
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+
+# --------------------------------------------------------------------------- #
+#  Scoring weights
+# --------------------------------------------------------------------------- #
+
+# Dimension order: keyword, semantic, evidence, quantification, seniority, recency
+WEIGHTS_BASIC = {
+    "keyword": 0.20,
+    "semantic": 0.20,
+    "evidence": 0.15,
+    "quantification": 0.15,
+    "seniority": 0.20,
+    "recency": 0.10,
+}
+
+WEIGHTS_PREFERRED = {
+    "keyword": 0.10,
+    "semantic": 0.30,
+    "evidence": 0.20,
+    "quantification": 0.15,
+    "seniority": 0.10,
+    "recency": 0.15,
+}
+
+# --------------------------------------------------------------------------- #
+#  ILP constraints
+# --------------------------------------------------------------------------- #
+
+SOURCE_BULLET_CAP = 2
+MATCH_SCORE_FLOOR = 30  # y[q,b] = 0 if match_score < this
+ILP_RANDOM_SEED = 42
+ILP_THREADS = 1
+
+# --------------------------------------------------------------------------- #
+#  Recency scoring
+# --------------------------------------------------------------------------- #
+
+RECENCY_FULL_CREDIT_MONTHS = 24
+RECENCY_DECAY_RATE = 0.15  # score drops by this per month after full credit
+
+# --------------------------------------------------------------------------- #
+#  spaCy
+# --------------------------------------------------------------------------- #
+
+SPACY_MODEL = "en_core_web_sm"  # sm is sufficient for noun_chunks + lemma
