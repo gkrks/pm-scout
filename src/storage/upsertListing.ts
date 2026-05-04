@@ -220,7 +220,7 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     requires_sponsorship_unclear: enrichment.requires_sponsorship_unclear,
     sponsorship_offered: enrichment.sponsorship_offered ?? null,
     domain_tags:    company.domain_tags ?? [],
-    raw_jd_excerpt: job.description?.slice(0, 500) ?? null,
+    raw_jd_excerpt: job.description?.slice(0, 5000) ?? null,
     apm_signal:     item.apm_signal ?? "none",
     ats_platform:   item.ats_platform ?? null,
     last_seen_at:   new Date().toISOString(),

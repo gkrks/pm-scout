@@ -102,16 +102,30 @@ export async function fetchJobDescription(
 ): Promise<string> {
   const page = await context.newPage();
   try {
-    await page.goto(applyUrl, { waitUntil: "load", timeout: 15_000 });
+    await page.goto(applyUrl, { waitUntil: "networkidle", timeout: 20_000 });
     const html = await page.evaluate((selectors: string[]) => {
       // Collect ALL matching elements (not just the first) and concatenate.
       // Google Careers splits JD and qualifications into separate divs.
       const parts: string[] = [];
+      const seen = new Set<string>();
       for (const sel of selectors) {
         document.querySelectorAll(sel).forEach((el) => {
           const text = (el.textContent ?? "").trim();
-          if (text.length > 100) parts.push(el.innerHTML);
+          const key = text.substring(0, 100);
+          if (text.length > 80 && !seen.has(key)) {
+            parts.push(el.innerHTML);
+            seen.add(key);
+          }
         });
+      }
+      // If selectors found content but missed qualifications, grab the whole main content
+      const combined = parts.join("\n\n");
+      if (combined.length > 0 && !combined.includes("Minimum") && !combined.includes("qualifications")) {
+        // Try to find qualifications section separately
+        const qualSel = document.querySelector(".KwJkGe, .gc-qualification, [data-field='minimum_qualifications']");
+        if (qualSel) {
+          parts.push(qualSel.innerHTML);
+        }
       }
       if (parts.length > 0) return parts.join("\n\n");
       return "";
