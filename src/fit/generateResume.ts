@@ -168,7 +168,14 @@ export async function generateResume(
   });
   const selectedExpIds = rankedExps.slice(0, 4);
 
+  // Search Engine in Rust (proj_searchengine_rust_0) always gets a slot — it's the
+  // latest ongoing project and demonstrates systems-level builder instinct.
+  const PRIORITY_PROJECT = "proj_searchengine_rust_0";
+
   const rankedProjs = [...projSources].sort((a: string, b: string) => {
+    // Priority project always first
+    if (a === PRIORITY_PROJECT) return -1;
+    if (b === PRIORITY_PROJECT) return 1;
     const countA = (sourceBullets.get(a) || []).length;
     const countB = (sourceBullets.get(b) || []).length;
     if (countB !== countA) return countB - countA;

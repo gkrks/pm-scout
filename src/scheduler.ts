@@ -20,6 +20,7 @@ import {
 import { acquireLock, releaseLock } from "./orchestrator/lock";
 import { extractSkillsForNewListings } from "./storage/extractSkillsInline";
 import { extractYoeForNewListings } from "./storage/extractYoeInline";
+import { cleanQualsForNewListings } from "./storage/cleanQualsInline";
 import { orchestrateRun, type OrchestratorResult } from "./orchestrator/runScan";
 import type { CompanyResult } from "./orchestrator/classify";
 import { extractJD } from "./jdExtractor";
@@ -170,6 +171,10 @@ async function writeToSupabase(
       .filter((r) => r.seenState === "new")
       .map((r) => r.listingId);
     if (newListingIds.length > 0) {
+      // Clean qualifications first (remove noise), then extract skills + YOE
+      await cleanQualsForNewListings(newListingIds).catch((err) => {
+        console.warn(`[scheduler] Quals cleaning failed for ${company.name}: ${err.message}`);
+      });
       await Promise.all([
         extractSkillsForNewListings(newListingIds).catch((err) => {
           console.warn(`[scheduler] Skill extraction failed for ${company.name}: ${err.message}`);
