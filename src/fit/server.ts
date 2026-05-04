@@ -21,7 +21,7 @@ import express, { Request, Response, NextFunction } from "express";
 import fetch from "node-fetch";
 
 import { getSupabaseClient } from "../storage/supabase";
-import { generateCoverLetter } from "./coverLetterGenerator";
+import { generateCoverLetter, buildCoverLetterDocx } from "./coverLetterGenerator";
 import { generateResume } from "./generateResume";
 import { renderFitPage } from "./render";
 import { optimizeSkills } from "./skillsOptimizer";
@@ -395,11 +395,36 @@ app.post("/fit/:jobId/cover-letter", verifyToken, async (req: Request, res: Resp
       bulletTexts || [],
     );
 
+    // Build DOCX
+    if (result.letter && result.wordCount > 0) {
+      const docxPath = await buildCoverLetterDocx(result.letter, companyName, roleTitle);
+      result.docxPath = docxPath;
+      // Store for download
+      generatedFiles.set(`cover-${jobId}`, { pdfPath: "", docxPath });
+    }
+
     res.json(result);
   } catch (err: any) {
     console.error("[fit] cover-letter error:", err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// --------------------------------------------------------------------------- //
+//  GET /fit/:jobId/download/cover-letter — Stream cover letter DOCX
+// --------------------------------------------------------------------------- //
+
+app.get("/fit/:jobId/download/cover-letter", verifyToken, (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  const files = generatedFiles.get(`cover-${jobId}`);
+  if (!files || !files.docxPath || !fs.existsSync(files.docxPath)) {
+    res.status(404).json({ error: "No cover letter generated. Click 'Cover Letter' first." });
+    return;
+  }
+  const basename = path.basename(files.docxPath);
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  res.setHeader("Content-Disposition", `attachment; filename="${basename}"`);
+  fs.createReadStream(files.docxPath).pipe(res);
 });
 
 // --------------------------------------------------------------------------- //

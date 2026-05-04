@@ -9,8 +9,16 @@
  */
 
 import fs from "fs";
+import os from "os";
 import path from "path";
 import OpenAI from "openai";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+} from "docx";
 
 export interface CoverLetterResult {
   letter: string;
@@ -18,6 +26,7 @@ export interface CoverLetterResult {
   priorities: string[];
   assumptions: string[];
   alternativeHook: string;
+  docxPath?: string;
 }
 
 const SYSTEM_PROMPT = `You are drafting a cover letter for a technical builder who applies to PM roles. This is NOT a generic cover letter. It must read like a person who deeply understands the company's product wrote it specifically for them.
@@ -37,14 +46,6 @@ Do NOT write generic "achieved X% growth" bullets. Instead, write bullets that t
 3. Write the cover letter as a narrative connecting the candidate's builder instincts to the company's mission.
 
 # Fixed output format
-
-[Name]
-[City, State] | [Phone] | [Email]
-[LinkedIn] | [GitHub] | [Portfolio]
-
-[Today's date]
-
-[Company Name]
 
 Dear [Hiring Manager or "Hiring Manager"],
 
@@ -175,4 +176,80 @@ function parseResponse(raw: string): CoverLetterResult {
   const alternativeHook = altMatch ? altMatch[1].trim() : "";
 
   return { letter, wordCount, priorities, assumptions, alternativeHook };
+}
+
+/**
+ * Generate a DOCX file from the cover letter text.
+ * Returns the file path.
+ */
+export async function buildCoverLetterDocx(
+  letterText: string,
+  companyName: string,
+  roleName: string,
+): Promise<string> {
+  const paragraphs: Paragraph[] = [];
+
+  // Split letter into paragraphs and render
+  const lines = letterText.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === "") {
+      paragraphs.push(new Paragraph({ spacing: { after: 100 } }));
+      continue;
+    }
+
+    // "Best regards," and signature get special treatment
+    if (trimmed === "Best regards,") {
+      paragraphs.push(new Paragraph({
+        spacing: { before: 200, after: 0 },
+        children: [new TextRun({ text: trimmed, font: "Calibri", size: 22 })],
+      }));
+      continue;
+    }
+
+    // "Dear Hiring Manager," gets bold
+    if (trimmed.startsWith("Dear ")) {
+      paragraphs.push(new Paragraph({
+        spacing: { before: 0, after: 100 },
+        children: [new TextRun({ text: trimmed, font: "Calibri", size: 22 })],
+      }));
+      continue;
+    }
+
+    // Regular paragraph
+    paragraphs.push(new Paragraph({
+      spacing: { before: 0, after: 100, line: 276, lineRule: "auto" as any },
+      children: [new TextRun({ text: trimmed, font: "Calibri", size: 22 })],
+    }));
+  }
+
+  const doc = new Document({
+    styles: {
+      default: {
+        document: { run: { font: "Calibri", size: 22 } },
+      },
+    },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 },
+          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+        },
+      },
+      children: paragraphs,
+    }],
+  });
+
+  const buffer = await Packer.toBuffer(doc);
+
+  // Slugify for filename
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+  const outDir = path.resolve(__dirname, "../../out");
+  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+
+  const filename = `Cover_Letter_Krithik_Gopinath_${slug(companyName)}_${slug(roleName)}.docx`;
+  const filePath = path.join(outDir, filename);
+  fs.writeFileSync(filePath, buffer);
+
+  return filePath;
 }

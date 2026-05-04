@@ -409,6 +409,18 @@
         }
         metaEl.innerHTML = metaHtml;
 
+        // Show download DOCX button if available
+        if (data.docxPath) {
+          var dlBtn = document.createElement("a");
+          dlBtn.href = "/fit/" + jobId + "/download/cover-letter?token=" + encodeURIComponent(token);
+          dlBtn.className = "btn";
+          dlBtn.style.cssText = "background:#2563eb;color:#fff;margin-left:8px;text-decoration:none;";
+          dlBtn.textContent = "Download DOCX";
+          dlBtn.download = "";
+          var modalBtns = document.querySelector("#cover-letter-modal .modal div:last-child");
+          if (modalBtns && !modalBtns.querySelector("a")) modalBtns.appendChild(dlBtn);
+        }
+
         document.getElementById("cover-letter-modal").classList.add("open");
         btn.textContent = "Cover Letter";
         btn.disabled = false;
