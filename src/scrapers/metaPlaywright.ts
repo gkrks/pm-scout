@@ -16,7 +16,6 @@ import {
   LI_UA,
   launchChromium,
   withPlaywright,
-  fetchDescriptionBatch,
 } from "./playwright";
 
 const SEARCH_URL =
@@ -35,6 +34,81 @@ interface MetaGQLResponse {
       all_jobs?: MetaGQLJob[];
     };
   };
+}
+
+/**
+ * Meta detail pages are React SPAs. The reliable extraction strategy:
+ *   1. Wait for networkidle so React hydrates and data loads
+ *   2. Try Meta-specific selectors (these rotate, so we try several)
+ *   3. Fall back to the largest content block on the page
+ */
+async function fetchMetaDescription(
+  context: import("playwright").BrowserContext,
+  url: string,
+): Promise<string> {
+  const page = await context.newPage();
+  try {
+    await page.goto(url, { waitUntil: "networkidle", timeout: 20_000 });
+
+    const html = await page.evaluate(() => {
+      // Meta-specific selectors (obfuscated classes rotate — try known + structural)
+      const selectors = [
+        "._job_requirements", "._6nq", "._1n3p",
+        "[data-testid='job-description']",
+        "[role='main'] [dir='auto']",
+      ];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && (el.textContent ?? "").trim().length > 150) return el.innerHTML;
+      }
+
+      // Fallback: find the largest text block inside [role="main"] or body.
+      // Meta renders JD content in nested divs — grab the one with the most text.
+      const root = document.querySelector("[role='main']") ?? document.body;
+      let best: Element | null = null;
+      let bestLen = 0;
+      root.querySelectorAll("div, section, article").forEach((el) => {
+        const len = (el.textContent ?? "").trim().length;
+        // Must be substantial (>300 chars) and a leaf-ish container (not a huge wrapper)
+        if (len > 300 && len < 15_000 && len > bestLen) {
+          // Prefer elements that contain <li> or <p> — they look like JD content
+          const hasList = el.querySelector("li, p, ul, ol");
+          if (hasList || len > 500) {
+            bestLen = len;
+            best = el;
+          }
+        }
+      });
+      return best ? best.innerHTML : "";
+    });
+
+    return html;
+  } catch {
+    return "";
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * Fetch Meta descriptions in batches of 2, mutating job.description in-place.
+ */
+async function fetchMetaDescriptionBatch(
+  context: import("playwright").BrowserContext,
+  jobs: RawJob[],
+): Promise<void> {
+  let done = 0;
+  const BATCH = 2;
+  for (let i = 0; i < jobs.length; i += BATCH) {
+    const batch = jobs.slice(i, i + BATCH);
+    await Promise.all(
+      batch.map(async (job) => {
+        job.description = await fetchMetaDescription(context, job.role_url);
+        done++;
+      }),
+    );
+    console.log(`[meta] fetched descriptions ${done}/${jobs.length}`);
+  }
 }
 
 async function interceptMetaJobs(
@@ -75,7 +149,7 @@ async function scrapeOnce(company: Company): Promise<RawJob[]> {
       if (company.program_url) {
         try {
           const earlyPage = await context.newPage();
-          earlyRaw = await interceptMetaJobs(mainPage, company.program_url);
+          earlyRaw = await interceptMetaJobs(earlyPage, company.program_url);
           await earlyPage.close();
         } catch (err) {
           console.warn(
@@ -109,9 +183,9 @@ async function scrapeOnce(company: Company): Promise<RawJob[]> {
         },
       }));
 
-      // Fetch descriptions in-session (concurrency 2)
+      // Fetch descriptions in-session (concurrency 2, Meta-specific strategy)
       if (jobs.length > 0) {
-        await fetchDescriptionBatch(context, jobs, "Meta");
+        await fetchMetaDescriptionBatch(context, jobs);
       }
 
       return jobs;

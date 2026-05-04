@@ -2,17 +2,23 @@
 
 ## System Overview
 
-Fully automated job discovery pipeline that scans 754 companies every hour for Product Manager and Associate Product Manager roles. Scrapes job boards, filters/ranks results, persists to multiple stores, and emails a digest of new matches.
+Fully automated job discovery pipeline that scans 754 companies every hour for Product Manager and Associate Product Manager roles. Scrapes job boards, filters/ranks results, extracts structured job data via a deterministic pipeline, persists to multiple stores, and sends a digest of new matches via email and Telegram. Also includes standalone tools for ATS-optimized resume generation and a CLI resume-vs-JD matcher.
 
 ```
 GitHub Actions (hourly cron)
   -> Config (754 companies + filter rules + ATS routing)
     -> Orchestrator (two-pool concurrent scraper)
       -> 11 ATS Scrapers (API + Playwright)
-        -> Filter Pipeline (6 filters + tier ranking)
-          -> Local Diff (fingerprint-based dedup)
-            -> Persistence (Supabase + Airtable + JSON buffers)
-              -> Notifications (email + Telegram + health alerts)
+        -> Filter Pipeline (7 filters + tier ranking)
+          -> JD Extraction (deterministic, no LLM)
+            -> Local Diff (fingerprint-based dedup)
+              -> Persistence (Supabase + Airtable + JSON buffers)
+                -> Notifications (email + Telegram + health alerts)
+
+Resume Tools (standalone):
+  -> build_template.js (ATS-validated .docx/.pdf template)
+  -> fill_resume.js (populate template from master_resume.json)
+  -> CLI matcher (scrape JD -> extract requirements -> match against resume -> report)
 ```
 
 ---
@@ -26,13 +32,15 @@ GitHub Actions (hourly cron)
 5. [Scrapers](#5-scrapers)
 6. [Filter Pipeline](#6-filter-pipeline)
 7. [Ranking System](#7-ranking-system)
-8. [Local Diff & State](#8-local-diff--state)
-9. [Storage Layer](#9-storage-layer)
-10. [Notification System](#10-notification-system)
-11. [People Finder](#11-people-finder)
-12. [Blackout & Safety](#12-blackout--safety)
-13. [Data Flow Diagram](#13-data-flow-diagram)
-14. [Key Design Decisions](#14-key-design-decisions)
+8. [JD Extraction](#8-jd-extraction)
+9. [Local Diff & State](#9-local-diff--state)
+10. [Storage Layer](#10-storage-layer)
+11. [Notification System](#11-notification-system)
+12. [Resume Tools](#12-resume-tools)
+13. [People Finder](#13-people-finder)
+14. [Blackout & Safety](#14-blackout--safety)
+15. [Data Flow Diagram](#15-data-flow-diagram)
+16. [Key Design Decisions](#16-key-design-decisions)
 
 ---
 
@@ -60,14 +68,22 @@ GitHub Actions cron (0 * * * *)
 resume-matcher match --job <url> --resume <file> [--verbose]
 ```
 
-A standalone 5-stage pipeline: Scrape -> Extract -> Parse -> Match -> Report. Uses Claude API for requirement extraction and matching. Completely independent from the scanner.
+A standalone 5-stage pipeline: Scrape -> Extract -> Parse -> Match -> Report. Uses Claude API for requirement extraction and matching. Completely independent from the scanner. See [Section 12](#12-resume-tools) for details.
 
-### C. Utility Scripts — `scripts/`
+### C. Resume Generator Scripts (root)
+
+| Script | Purpose |
+|--------|---------|
+| `build_template.js` | Generate ATS-validated `.docx` + `.pdf` template with `{{PLACEHOLDERS}}` |
+| `fill_resume.js` | Populate template from `config/master_resume.json` → `out/` |
+
+### D. Utility Scripts — `scripts/`
 
 | Script | Purpose |
 |--------|---------|
 | `syncCompanies.ts` | Seed/update Supabase `companies` table from `config/targets.json` |
 | `discoverATS.js` | Probe unknown companies to detect their ATS platform |
+| `extractOne.ts` | Extract structured JD from a single job URL |
 | `replayPendingBuffer.ts` | Manually replay buffered Supabase writes |
 | `clearDatabase.ts` | Reset Supabase state |
 
@@ -280,7 +296,7 @@ SCRAPER_REGISTRY: {
 | **Greenhouse** | `GET /v1/boards/{slug}/jobs?content=true` | Descriptions inline; uses `first_published` for date |
 | **Lever** | `GET /v0/postings/{slug}?mode=json` | `createdAt` is epoch ms |
 | **Ashby** | `GET /posting-api/job-board/{slug}` | Handles both `jobs` and `jobPostings` response fields |
-| **Workday** | `POST /wday/cxs/{tenant}/{site}/jobs` | Paginated; descriptions fetched separately; parses relative dates |
+| **Workday** | `POST /wday/cxs/{tenant}/{site}/jobs` | Paginated; descriptions fetched inline (5 concurrent per company); parses relative dates ("Posted 3 Days Ago" → ISO); fallback: retries without `searchText` if rejected |
 | **Amazon** | `GET /en/search.json?base_query=...` | Dual pass: main + university/early-career; dedup by ICIMS id |
 | **SmartRecruiters** | Platform-specific REST | -- |
 | **Workable** | Platform-specific REST | -- |
@@ -317,7 +333,7 @@ SCRAPER_REGISTRY: {
 
 **Source:** `src/filters/`
 
-Six filters run in order; first rejection stops the chain. Enrichment accumulates through all passing filters.
+Seven filters run in order; first rejection stops the chain (tier ranking never rejects). Enrichment accumulates through all passing filters.
 
 ```typescript
 runFilterPipeline(rawJob, company, filterConfig, runStartedAt) -> PipelineResult
@@ -387,7 +403,69 @@ detectApmSignal(input) -> "priority_apm" | "apm_company" | "none"
 
 ---
 
-## 8. Local Diff & State
+## 8. JD Extraction
+
+**Source:** `src/jdExtractor.ts` + `src/lib/headingAliases.ts` + `src/types/extractedJD.ts`
+
+Fully deterministic pipeline that extracts structured job data from raw HTML or text — no LLM calls on the primary path. Groq LLM is used only as a fallback to classify truly unrecognized headings.
+
+### Two-phase architecture
+
+**Phase 1 — Section Splitting** (`parseSections()` / `parseSectionsFromText()`):
+1. Parse HTML into heading-based sections using `<h1>`–`<h6>` tags + `<strong>` tag heuristics
+2. Classify each heading into a canonical bucket via `classifyHeading()` → `HeadingBucket`
+3. Fallback for plain text: detect ALL-CAPS lines, colon-suffixed headers, bullet patterns, dash-underlined lines
+
+**Phase 2 — Field Extraction**:
+1. Regex-based extraction for: location (cities/states/remote), employment type, education, compensation, work authorization, benefits, logistics
+2. Skill matching via curated keyword lists: `TECHNICAL_SKILLS`, `TOOLS`, `METHODOLOGIES`, `SOFT_SKILLS`, `DOMAIN_EXPERTISE`, `CERTIFICATIONS`
+3. Confidence scoring: `meaningful sections found + unknown heading count → "high" | "medium" | "low"`
+
+### Heading Classification (`headingAliases.ts`)
+
+Maps 196 heading aliases → 11 canonical buckets:
+
+| Bucket | Examples |
+|--------|----------|
+| `required_qualifications` | "minimum qualifications", "what you need", "must have" |
+| `preferred_qualifications` | "nice to have", "bonus points", "preferred experience" |
+| `responsibilities` | "what you'll do", "key responsibilities", "the role" |
+| `role_summary` | "about the role", "overview", "position summary" |
+| `team_info` | "about the team", "who we are" |
+| `company_info` | "about us", "our mission" |
+| `benefits` | "perks", "what we offer" |
+| `compensation` | "salary", "pay range", "total rewards" |
+| `application` | "how to apply", "next steps" |
+| `legal` | "equal opportunity", "eeo statement" |
+| `unknown` | Unrecognized headings (LLM fallback) |
+
+### ExtractedJD Output Schema (`extractedJD.ts`)
+
+Zod-validated structure written to the `job_listings.extracted_jd` JSONB column:
+
+```typescript
+{
+  job_title, company_name,
+  location: { raw, cities[], states[], countries[], is_remote, is_hybrid, ... },
+  employment: { type, seniority_level, is_people_manager, is_early_career, team_size, duration_months },
+  experience: { years_min, years_max, is_new_grad_friendly, domains_required[] },
+  education: { minimum_degree, preferred_degree, fields_of_study[], accepts_equivalent_experience },
+  required_qualifications[], preferred_qualifications[], responsibilities[],
+  skills: { technical[], tools[], methodologies[], soft[], languages[], domain_expertise[] },
+  certifications: { required[], preferred[] },
+  compensation: { base_salary_min, base_salary_max, currency, equity_offered, bonus, sign_on_bonus },
+  work_authorization: { sponsorship_available, security_clearance, citizenship_required },
+  benefits: { health, dental, vision, retirement_401k, pto_days, unlimited_pto, parental_leave_weeks, ... },
+  logistics: { travel_percentage, on_call },
+  application: { deadline, process_steps[], recruiter_name, cover_letter_required, portfolio_required },
+  ats_keywords: { high_priority[], medium_priority[], low_priority[], acronyms[], buzzwords[] },
+  extraction_meta: { schema_version, confidence, source_ats, source_url, missing_sections[], extraction_notes[] }
+}
+```
+
+---
+
+## 9. Local Diff & State
 
 **Source:** `src/jobStore.ts` + `src/state.ts`
 
@@ -456,7 +534,7 @@ interface Job {
 
 ---
 
-## 9. Storage Layer
+## 10. Storage Layer
 
 **Source:** `src/storage/`
 
@@ -506,19 +584,24 @@ SHA-1 fingerprint dedup, rate-limited (5 req/s), with retry and pending buffer f
 
 ---
 
-## 10. Notification System
+## 11. Notification System
 
 **Source:** `src/notify/`
 
 ### Email Digest (`email.ts`)
 
-- **Subject:** `[New PM/APM Roles] N new jobs found - May 2, 2026 . 2:00 PM PT`
-- **Sort:** newest-first primary, tier as tiebreak
-- **Sections:** APM Programs (purple) -> APM Companies (cyan) -> Tier 1 (green) -> Tier 2 (blue) -> Tier 3 (gray)
-- **APM cards:** gradient background, pill badge ("APM PROGRAM" / "APM COMPANY"), thicker border, bolder title, box shadow
-- **Standard cards:** tier-colored left border on gray background
-- **Per-job card:** company, location, work type, posted-ago, experience, APM badge, tier label, apply button
+- **Subject:** `[New PM/APM Roles] N new jobs found — May 2, 2026 · 2:00 PM PT` (includes APM count if any)
+- **Sort:** strict newest-first by posted date (fallback to firstSeenAt). No tier grouping.
+- **Three sections:**
+  1. `📋 New roles — newest first` — all standard jobs, sorted by recency
+  2. `🎯 APM Program roles` — jobs with `apmSignal === "priority_apm"` (purple gradient cards, pill badge)
+  3. `⭐ APM Company roles` — jobs with `apmSignal === "apm_company"` (cyan gradient cards)
+- **APM cards:** gradient background, thick colored border, pill badges ("APM PROGRAM" / "APM COMPANY"), box shadow
+- **Standard cards:** muted grey border, grey tier label
+- **"NEW" badge:** for jobs posted today
+- **Per-job card:** company, location, work type, posted-ago, experience, APM badge, apply button
 - Sends via SMTP (Gmail app password)
+- HTML + plaintext versions with consistent structure
 
 ### Telegram Digest (`telegram.ts`)
 
@@ -539,7 +622,60 @@ MarkdownV2 messages split at 4000 chars. Grouped by company within each tier sec
 
 ---
 
-## 11. People Finder
+## 12. Resume Tools
+
+### A. ATS-Validated Resume Generator (standalone scripts)
+
+Two standalone Node.js scripts produce ATS-optimized resumes without any external binary dependencies:
+
+**`build_template.js`** — Generates a placeholder-driven template:
+- Output: `config/Resume_Template.docx` + `.pdf`
+- Uses `docx-js` for OOXML generation, `pdfkit` for PDF
+- ATS-optimized layout: Calibri 10pt, 0.65" margins, paragraph borders (no tables)
+- Proper bullet numbering config (not literal `•` characters)
+- Tab-stopped right-aligned dates
+- Placeholders: `{{FULL_NAME}}`, `{{SUMMARY}}`, `{{EXP_1_TITLE}}`, etc.
+
+**`fill_resume.js`** — Populates template with real data:
+- Input: `config/master_resume.json` (structured resume: contact, summary, experience, projects, skills)
+- Output: `out/Resume_<Name>.docx` + `.pdf`
+- Selects longest bullets from each role to maximize content density
+- Sorts skills alphabetically within categories
+
+**Character budgets enforced:**
+
+| Element | Max chars |
+|---------|-----------|
+| Contact line | 90 |
+| Summary | 340 |
+| Experience header (left) | 75 |
+| Date column (right) | 22 |
+| Bullet point | 155 |
+| Skills line | 110 |
+
+**Layout:** 4 experiences × 2 bullets, 2 projects × 2 bullets, 3 skill categories — fits one page.
+
+### B. CLI Resume Matcher (`src/index.ts`)
+
+Standalone 5-stage pipeline (independent from the scanner):
+
+```
+scraper.ts → extractor.ts → parser.ts → matcher.ts → reporter.ts
+```
+
+1. **Scrape** (`scraper.ts`): Fetch job page, extract requirement sections using heading patterns
+2. **Extract** (`extractor.ts`): Claude API parses raw text → atomic requirement phrases (5–15 words)
+3. **Parse** (`parser.ts`): Parse resume PDF/text → structured `ResumeData` (sections, work entries with dates)
+4. **Match** (`matcher.ts`): Claude API matches each requirement against resume (parallel, ≤10 concurrent, semaphore-capped)
+5. **Report** (`reporter.ts`): Chalk terminal report + `match-report.json`
+
+```bash
+npm run match -- --job <url> --resume <file> [--verbose]
+```
+
+---
+
+## 13. People Finder
 
 **Source:** `src/peopleFinder.ts` + `src/apolloClient.ts`
 
@@ -551,7 +687,7 @@ MarkdownV2 messages split at 4000 chars. Grouped by company within each tier sec
 
 ---
 
-## 12. Blackout & Safety
+## 14. Blackout & Safety
 
 **Source:** `src/lib/`
 
@@ -571,7 +707,7 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 
 ---
 
-## 13. Data Flow Diagram
+## 15. Data Flow Diagram
 
 ```
 +------------------------------------------------------------------+
@@ -623,6 +759,15 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
               +--------------+-----------------------+
                              |  Job[]
               +--------------+-----------------------+
+              |  JD EXTRACTION (jdExtractor.ts)      |
+              |  +-- parseSections() (heading-based) |
+              |  +-- classifyHeading() (196 aliases) |
+              |  +-- regex field extraction          |
+              |  +-- skill keyword matching          |
+              |  -> ExtractedJD (Zod-validated)      |
+              +--------------+-----------------------+
+                             |
+              +--------------+-----------------------+
               |  LOCAL DIFF (jobStore.ts)             |
               |  +-- SHA-1 fingerprint               |
               |  +-- Mark isNew / firstSeenAt        |
@@ -644,9 +789,10 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
               +-------------+------------------------+
               |  NOTIFICATIONS                       |
               |  +-- Email digest (rich HTML)        |
-              |  |   APM: purple/cyan cards          |
-              |  |   Standard: tier-colored cards    |
-              |  |   Sorted: newest-first            |
+              |  |   Sorted: strict newest-first     |
+              |  |   APM: purple/cyan gradient cards |
+              |  |   Standard: muted grey cards      |
+              |  |   No tier grouping                |
               |  +-- Telegram digest (Markdown)      |
               |  +-- Health alerts                   |
               +--------------------------------------+
@@ -654,7 +800,7 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 
 ---
 
-## 14. Key Design Decisions
+## 16. Key Design Decisions
 
 | Decision | Why |
 |----------|-----|
@@ -668,6 +814,10 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 | **Normalized URLs** | Strip tracking params, force HTTPS, sort query params. Prevents duplicate listings from URL variants. |
 | **APM signal system** | Differentiates the actual APM program posting (`priority_apm`) from other PM roles at APM companies (`apm_company`). Drives tier-1 ranking + distinct email styling. |
 | **Companies seeded separately** | `syncCompanies.ts` runs before each scan. job_listings FK to companies -- without seeding, all upserts fail. |
+| **Deterministic JD extraction** | Regex + keyword matching instead of LLM calls. Faster, cheaper, reproducible. LLM only used as fallback for unrecognized headings. |
+| **Inline Workday JD fetch** | Descriptions fetched during scrape (5 concurrent) instead of deferred. Eliminates a separate pass and simplifies the pipeline. |
+| **Flat email digest (no tiers)** | Strict newest-first sort replaced tier grouping. APM roles get their own sections with distinct visual treatment. Simpler for the reader. |
+| **ATS-validated resume generation** | Pure Node.js (docx-js + pdfkit) — no LibreOffice or external binary. Character budgets enforce one-page fit. |
 
 ---
 
@@ -752,20 +902,35 @@ src/
   airtable/
     upsert.ts               Legacy Airtable upsert
 
+  jdExtractor.ts            Deterministic JD extraction (no LLM primary path)
+  types/
+    extractedJD.ts          Zod schema for ExtractedJD
+
   lib/
     blackout.ts             Blackout window check
     normalizeUrl.ts         URL normalization for dedup
+    headingAliases.ts       196 heading aliases → 11 canonical buckets
+    skillsList.ts           Curated skill/tool/methodology keyword lists
+    htmlToText.ts           HTML → plain text converter
     timeout.ts              Promise timeout wrapper
 
 config/
   targets.json              754 company configs + filter rules
   ats_routing.json          ATS platform routing overrides
   supabase_schema.sql       Database schema (5 tables)
+  master_resume.json        Structured resume data (for fill_resume.js)
+  ats_research.md           ATS compatibility research & spec
+  Resume_Template.docx      Generated ATS-validated template
+  Resume_Template.pdf       PDF version of template
+
+build_template.js           ATS-validated resume template generator (docx + pdf)
+fill_resume.js              Populate template from master_resume.json (docx + pdf)
 
 scripts/
   runScan.ts                Scan entry point (blackout + scheduler)
   syncCompanies.ts          Seed Supabase companies table
   discoverATS.js            ATS auto-detection probe
+  extractOne.ts             Extract JD from a single job URL
   replayPendingBuffer.ts    Manual Supabase buffer replay
   clearDatabase.ts          Reset Supabase state
 
@@ -773,6 +938,10 @@ migrations/
   2_upsert_returning_state.sql
   3_apm_signal_column.sql
   4_apm_signal_backfill.sql
+
+out/                        Generated resume output
+  Resume_<Name>.docx        Filled resume (docx)
+  Resume_<Name>.pdf         Filled resume (pdf)
 
 data/                       Runtime data (gitignored)
   jobs.json                 Current job list
@@ -800,6 +969,7 @@ data/                       Runtime data (gitignored)
 | Browser automation | `playwright` (Chromium) |
 | Database | Supabase (`@supabase/supabase-js`) |
 | Legacy DB | Airtable (`airtable`) |
+| Resume generation | `docx` (docx-js), `pdfkit` |
 | Email | `nodemailer` (SMTP/Gmail) |
 | CLI | `commander` |
 | Terminal output | `chalk` v4 (CommonJS) |
