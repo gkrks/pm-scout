@@ -81,6 +81,40 @@
       });
     });
 
+    // Render pre-resolved qualifications (education, years, skills)
+    var preResolved = data.pre_resolved || [];
+    preResolved.forEach(function (pr) {
+      var qid = pr.qualification_id;
+      var container = document.getElementById("candidates-" + qid);
+      if (!container) return;
+
+      var status = pr.met ? "MET" : "NOT MET";
+      var statusClass = pr.met ? "score-high" : "score-low";
+      var icon = pr.met ? "\u2705" : "\u274C";
+      var categoryLabel = pr.category.replace(/_/g, " ");
+
+      var html = '<div class="candidate active" style="border-color:' + (pr.met ? '#22c55e' : '#ef4444') + ';background:' + (pr.met ? '#f0fdf4' : '#fef2f2') + ';">';
+      html += '<div class="candidate-header">';
+      html += '<span class="candidate-source">' + esc(categoryLabel) + '</span>';
+      html += '<div class="candidate-scores">';
+      html += '<span class="score-badge ' + statusClass + '">' + icon + ' ' + status + '</span>';
+      html += '</div></div>';
+      html += '<div class="candidate-text" style="font-weight:600;">' + esc(pr.evidence || "No evidence found") + '</div>';
+      html += '<div class="candidate-rationale">Confidence: ' + (pr.confidence * 100).toFixed(0) + '% | Source: ' + esc(pr.source_section) + '</div>';
+      html += '</div>';
+
+      container.innerHTML = html;
+
+      // Auto-select pre-resolved quals
+      selections[qid] = {
+        bulletId: "__pre_resolved__",
+        text: pr.evidence || "",
+        isCustom: false,
+        isEdited: false,
+      };
+      container.closest(".qual-card").classList.add("selected");
+    });
+
     data.ranked_candidates.forEach(function (qc) {
       var qid = qc.qualification.id;
       var container = document.getElementById("candidates-" + qid);

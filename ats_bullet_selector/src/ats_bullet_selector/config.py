@@ -42,7 +42,7 @@ JUDGE_CONCURRENCY_CAP = 1  # sequential for Groq free tier (12K TPM)
 
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 output dimension
-RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "15"))
+RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "5"))
 SEMANTIC_SIM_FLOOR = 0.25
 
 # --------------------------------------------------------------------------- #

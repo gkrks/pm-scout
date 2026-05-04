@@ -68,14 +68,29 @@ const BULLET_LEFT = 288;
 const BULLET_HANGING = 288;
 
 // Spacing (twips for docx)
-const SECTION_BEFORE = 160;
-const SECTION_AFTER = 40;
-const ENTRY_BEFORE = 80;
-const LAST_BULLET_AFTER = 40;
+const SECTION_BEFORE = 120;
+const SECTION_AFTER = 60;
+const ENTRY_BEFORE = 60;
+const LAST_BULLET_AFTER = 30;
 
 // ---------- data helpers ----------
 function cleanText(text) {
-  return text.replace(/\u2014/g, " | ").replace(/ — /g, " | ");
+  return text
+    .replace(/\u2014/g, ",")          // em dash -> comma
+    .replace(/\u2013/g, "-")          // en dash -> hyphen
+    .replace(/ — /g, ", ")            // spaced em dash -> comma
+    .replace(/ -- /g, ", ")           // double hyphen -> comma
+    .replace(/\u201C|\u201D/g, '"')   // smart double quotes
+    .replace(/\u2018|\u2019/g, "'")   // smart single quotes
+    .replace(/\u2026/g, "...")         // ellipsis
+    .replace(/\u00A0/g, " ")          // non-breaking space
+    .replace(/\u03C9/g, "w")          // omega -> w
+    .replace(/\u00D7/g, "x")          // multiplication sign -> x
+    .replace(/\u00A7/g, "S.")         // section sign -> S.
+    .replace(/\u2248/g, "~")          // approximately -> ~
+    .replace(/`/g, "'")               // backtick -> single quote
+    .replace(/,,/g, ",")              // clean up double commas
+    .replace(/, ,/g, ",");            // clean up spaced double commas
 }
 
 function fmtDate(dateStr) {
@@ -176,11 +191,12 @@ function headerLine(boldText, regularText, dateText, fontSize = BODY_SIZE, spaci
 }
 
 const BULLET_SPACING = 20; // spacing between bullets within same entry
+const FIRST_BULLET_BEFORE = 30; // extra space between header line and first bullet
 
-function bulletParagraph(text, fontSize = BODY_SIZE, isLast = false) {
+function bulletParagraph(text, fontSize = BODY_SIZE, isLast = false, isFirst = false) {
   return new Paragraph({
     numbering: { reference: "bullets", level: 0 },
-    spacing: { before: BULLET_SPACING, after: isLast ? LAST_BULLET_AFTER : 0, line: LINE_SPACING, lineRule: "auto" },
+    spacing: { before: isFirst ? FIRST_BULLET_BEFORE : BULLET_SPACING, after: isLast ? LAST_BULLET_AFTER : 0, line: LINE_SPACING, lineRule: "auto" },
     children: [
       new TextRun({ text, font: "Calibri", size: fontSize }),
     ],
@@ -200,24 +216,24 @@ function skillsLine(catName, listText) {
 function buildDocx() {
   const paragraphs = [];
 
-  // Contact
+  // Contact — add breathing room between name, contact line, and links
   paragraphs.push(new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { after: 0, line: LINE_SPACING, lineRule: "auto" },
+    spacing: { after: 20, line: LINE_SPACING, lineRule: "auto" },
     children: [
       new TextRun({ text: NAME, bold: true, font: "Calibri", size: NAME_SIZE, allCaps: true }),
     ],
   }));
   paragraphs.push(new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { before: 0, after: 0, line: LINE_SPACING, lineRule: "auto" },
+    spacing: { before: 0, after: 20, line: LINE_SPACING, lineRule: "auto" },
     children: [
       new TextRun({ text: `${LOCATION} | ${PHONE} | ${EMAIL}`, font: "Calibri", size: BODY_SIZE }),
     ],
   }));
   paragraphs.push(new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { before: 0, after: 0, line: LINE_SPACING, lineRule: "auto" },
+    spacing: { before: 0, after: 20, line: LINE_SPACING, lineRule: "auto" },
     children: [
       new TextRun({ text: `${LINKEDIN} | ${GITHUB} | ${WEBSITE}`, font: "Calibri", size: BODY_SIZE }),
     ],
@@ -243,7 +259,7 @@ function buildDocx() {
       idx === 0 ? 0 : ENTRY_BEFORE,
     ));
     exp.bullets.forEach((b, bi) => {
-      paragraphs.push(bulletParagraph(b, BODY_SIZE, bi === exp.bullets.length - 1));
+      paragraphs.push(bulletParagraph(b, BODY_SIZE, bi === exp.bullets.length - 1, bi === 0));
     });
   });
 
@@ -258,7 +274,7 @@ function buildDocx() {
       idx === 0 ? 0 : ENTRY_BEFORE,
     ));
     proj.bullets.forEach((b, bi) => {
-      paragraphs.push(bulletParagraph(b, BODY_SIZE, bi === proj.bullets.length - 1));
+      paragraphs.push(bulletParagraph(b, BODY_SIZE, bi === proj.bullets.length - 1, bi === 0));
     });
   });
 
@@ -369,12 +385,12 @@ function buildPdf() {
   }
 
   function drawSectionHeading(text) {
-    advanceY(160 / 20); // SECTION_BEFORE in pts (~8pt)
+    advanceY(120 / 20); // SECTION_BEFORE in pts (~6pt)
     doc.font(FONT_BOLD).fontSize(9.5);
     doc.text(text.toUpperCase(), leftX, y);
     advanceY(lineH + 2);
     doc.moveTo(leftX, y).lineTo(rightX, y).lineWidth(0.5).stroke("#000000");
-    advanceY(40 / 20); // SECTION_AFTER (~2pt)
+    advanceY(60 / 20); // SECTION_AFTER (~3pt)
   }
 
   function drawHeaderLine(bold, regular, dateText, size = 9.5, extraBefore = 0) {
@@ -392,7 +408,8 @@ function buildPdf() {
     advanceY(lineH);
   }
 
-  function drawBullet(text, size = 9.5, isLast = false) {
+  function drawBullet(text, size = 9.5, isLast = false, isFirst = false) {
+    if (isFirst) advanceY(3); // breathing room after header line
     doc.font(FONT).fontSize(size);
     // Bullet character
     doc.text("\u2022", leftX, y, { lineBreak: false });
@@ -412,13 +429,13 @@ function buildPdf() {
     y += textHeight;
   }
 
-  // --- Contact ---
+  // --- Contact (with breathing room) ---
   centerText(NAME, 15, FONT_BOLD);
-  advanceY(lineH + 4);
+  advanceY(lineH + 6);
   centerText(`${LOCATION} | ${PHONE} | ${EMAIL}`, 10);
-  advanceY(lineH);
+  advanceY(lineH + 2);
   centerText(`${LINKEDIN} | ${GITHUB} | ${WEBSITE}`, 10);
-  advanceY(lineH);
+  advanceY(lineH + 4);
 
   // --- Summary ---
   drawSectionHeading("Summary");
@@ -430,14 +447,14 @@ function buildPdf() {
   drawSectionHeading("Experience");
   exps.forEach((exp, idx) => {
     drawHeaderLine(exp.role, ` | ${exp.company}, ${exp.location}`, exp.dates, 10, idx === 0 ? 0 : 4);
-    exp.bullets.forEach((b, bi) => drawBullet(b, 10, bi === exp.bullets.length - 1));
+    exp.bullets.forEach((b, bi) => drawBullet(b, 10, bi === exp.bullets.length - 1, bi === 0));
   });
 
   // --- Projects ---
   drawSectionHeading("Projects");
   projs.forEach((proj, idx) => {
     drawHeaderLine(proj.name, ` | ${proj.desc}`, proj.link, 10, idx === 0 ? 0 : 4);
-    proj.bullets.forEach((b, bi) => drawBullet(b, 10, bi === proj.bullets.length - 1));
+    proj.bullets.forEach((b, bi) => drawBullet(b, 10, bi === proj.bullets.length - 1, bi === 0));
   });
 
   // --- Education ---

@@ -12,12 +12,11 @@ from .assign import solve_assignment
 from .classify import classify_qualifications
 from .config import JUDGE_MODEL
 from .db import extract_qualifications, load_job_listing, load_master_resume, load_master_resume_raw
-from .judge import get_system_prompt_hash, judge_pairs_async
+from .judge import get_system_prompt_hash
+from .map_lookup import rank_all_from_map
 from .models import PreResolvedResult, QualCategory
 from .report import generate_report
 from .resolve import resolve_education, resolve_experience_years, resolve_skill_check
-from .retrieve import retrieve_top_k
-from .score import score_candidate
 
 
 async def _run(job_id: str, resume_path: str | None, verbose: bool) -> None:
@@ -68,40 +67,13 @@ async def _run(job_id: str, resume_path: str | None, verbose: bool) -> None:
             if pr.evidence:
                 print(f"    Evidence: {pr.evidence}")
 
-    # Stage A
-    print(f"\nStage A: Retrieving candidates for {len(bullet_quals)} quals...")
-    qual_retrieved = []
-    for qual in bullet_quals:
-        retrieved = retrieve_top_k(qual, bullets)
-        qual_retrieved.append((qual, retrieved))
-        if verbose:
-            print(f"  {qual.id}: {len(retrieved)} candidates")
-
-    # Stage B
-    all_pairs = []
-    pair_index = []
-    for qi, (qual, retrieved) in enumerate(qual_retrieved):
-        for ci, (bullet, sem_sim, lit_cov) in enumerate(retrieved):
-            all_pairs.append((qual, bullet, lit_cov, sem_sim))
-            pair_index.append((qi, ci))
-
-    print(f"\nStage B: Judging {len(all_pairs)} pairs...")
-    judge_results = await judge_pairs_async(all_pairs, ats_vendor=ats_vendor)
-
-    # Stage C
-    print("Stage C: Scoring...")
-    from .models import QualCandidates
-    ranked = []
-    for qi, (qual, retrieved) in enumerate(qual_retrieved):
-        scored = []
-        for ci, (bullet, sem_sim, lit_cov) in enumerate(retrieved):
-            flat_idx = next(
-                fi for fi, (q, c) in enumerate(pair_index) if q == qi and c == ci
-            )
-            sc = score_candidate(qual, bullet, judge_results[flat_idx], lit_cov, sem_sim)
-            scored.append(sc)
-        scored.sort(key=lambda s: s.match_score, reverse=True)
-        ranked.append(QualCandidates(qualification=qual, candidates=scored[:3]))
+    # Stages A+B+C: map lookup (0 Groq LLM calls)
+    print(f"\nRanking bullets for {len(bullet_quals)} quals via qualification map...")
+    ranked = rank_all_from_map(bullet_quals, bullets, top_k=3)
+    for qc in ranked:
+        top = qc.candidates[0] if qc.candidates else None
+        if top and verbose:
+            print(f"  {qc.qualification.id}: top={top.match_score:.1f} ({top.source_label[:30]})")
 
     # Stage D
     print("Stage D: Solving ILP...")

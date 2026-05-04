@@ -171,7 +171,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         job_id: jobId,
         force_refresh: body.force_refresh,
       }),
-      timeout: 300_000,
+      timeout: 2_400_000,
     });
 
     if (!pyRes.ok) {

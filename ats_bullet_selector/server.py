@@ -21,8 +21,8 @@ from src.ats_bullet_selector.db import (
 from src.ats_bullet_selector.judge import (
     get_judge_cache_size,
     get_system_prompt_hash,
-    judge_pairs_async,
 )
+from src.ats_bullet_selector.map_lookup import rank_all_from_map
 from src.ats_bullet_selector.models import (
     FinalSelection,
     HealthResponse,
@@ -41,8 +41,7 @@ from src.ats_bullet_selector.resolve import (
     resolve_experience_years,
     resolve_skill_check,
 )
-from src.ats_bullet_selector.retrieve import get_cache_size, retrieve_top_k
-from src.ats_bullet_selector.score import score_candidate
+from src.ats_bullet_selector.retrieve import get_cache_size
 
 logger = structlog.get_logger()
 
@@ -89,39 +88,10 @@ async def score_job(req: ScoreRequest) -> ScoreResponse:
         else:
             bullet_quals.append(qual)
 
-    # Stage A: retrieve top-K candidates per bullet-match qualification
-    qual_retrieved: list[tuple] = []  # (qual, [(bullet, sem_sim, lit_cov)])
-    for qual in bullet_quals:
-        retrieved = retrieve_top_k(qual, bullets)
-        qual_retrieved.append((qual, retrieved))
-
-    # Stage B: judge all pairs
-    all_pairs = []
-    pair_index = []  # (qual_idx, cand_idx) for reassembly
-    for qi, (qual, retrieved) in enumerate(qual_retrieved):
-        for ci, (bullet, sem_sim, lit_cov) in enumerate(retrieved):
-            all_pairs.append((qual, bullet, lit_cov, sem_sim))
-            pair_index.append((qi, ci))
-
-    judge_results = await judge_pairs_async(all_pairs, ats_vendor=ats_vendor)
-
-    # Stage C: score and build top-3
-    ranked: list[QualCandidates] = []
-    for qi, (qual, retrieved) in enumerate(qual_retrieved):
-        scored = []
-        for ci, (bullet, sem_sim, lit_cov) in enumerate(retrieved):
-            flat_idx = next(
-                fi for fi, (q, c) in enumerate(pair_index) if q == qi and c == ci
-            )
-            judge_result = judge_results[flat_idx]
-            sc = score_candidate(qual, bullet, judge_result, lit_cov, sem_sim)
-            scored.append(sc)
-
-        scored.sort(key=lambda s: s.match_score, reverse=True)
-        ranked.append(QualCandidates(
-            qualification=qual,
-            candidates=scored[:3],
-        ))
+    # Stages A+B+C replaced by map lookup (0 Groq LLM calls)
+    # Map hits: instant from precomputed qualification_map.json
+    # Map misses: OpenAI embedding + cosine similarity (<1s each)
+    ranked = rank_all_from_map(bullet_quals, bullets, top_k=3)
 
     # Stage D: ILP assignment
     selection = solve_assignment(ranked)

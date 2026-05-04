@@ -16,7 +16,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
-import Groq from "groq-sdk";
+import OpenAI from "openai";
 
 import { getSupabaseClient } from "../storage/supabase";
 import { slug, resumeBasename } from "./slug";
@@ -321,9 +321,9 @@ async function regenerateSummary(
 ): Promise<{ summary: string; warning: string | null }> {
   const staticSummary = "Product-minded engineer with experience spanning consumer robotics, mobile apps, fitness tech, and enterprise SaaS. Combines product management (user research, roadmapping, stakeholder alignment) with hands-on engineering (Rust, Python, TypeScript, AWS) to ship end-to-end systems that move business metrics.";
 
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) {
-    return { summary: staticSummary, warning: "GROQ_API_KEY not set; using static summary" };
+  const openaiKey = process.env.OPENAI_KEY;
+  if (!openaiKey) {
+    return { summary: staticSummary, warning: "OPENAI_KEY not set; using static summary" };
   }
 
   const jdTitle = job.jd_job_title || job.title || "";
@@ -357,7 +357,7 @@ CANDIDATE FACTS:
 
 Generate 3 summary candidates following all 9 rules. Maximum 340 characters each.`;
 
-  const client = new Groq({ apiKey: groqKey });
+  const client = new OpenAI({ apiKey: openaiKey });
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -370,7 +370,7 @@ Generate 3 summary candidates following all 9 rules. Maximum 340 characters each
       ];
 
       const response = await client.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "gpt-4o",
         temperature: 0,
         max_tokens: 1024,
         messages,
