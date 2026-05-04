@@ -33,8 +33,9 @@ import {
 
 // ── Check Fit link helpers ───────────────────────────────────────────────────
 
-const FIT_BASE_URL    = process.env.FIT_BASE_URL || "";
-const FIT_TOKEN_SECRET = process.env.FIT_TOKEN_SECRET || "";
+const FIT_BASE_URL      = process.env.FIT_BASE_URL || "";
+const FIT_TOKEN_SECRET  = process.env.FIT_TOKEN_SECRET || "";
+const DASHBOARD_TOKEN   = process.env.DASHBOARD_TOKEN || "";
 
 function fitUrl(job: Job): string {
   if (!FIT_BASE_URL || !FIT_TOKEN_SECRET || !job.supabaseId) return "";
@@ -56,6 +57,16 @@ function fitPlaintext(job: Job): string {
   const url = fitUrl(job);
   if (!url) return "";
   return `\n  - Check Fit: ${url}`;
+}
+
+function dashboardUrl(): string {
+  if (!FIT_BASE_URL || !DASHBOARD_TOKEN) return "";
+  return `${FIT_BASE_URL}/dashboard?token=${DASHBOARD_TOKEN}`;
+}
+
+function trackerUrl(): string {
+  if (!FIT_BASE_URL || !DASHBOARD_TOKEN) return "";
+  return `${FIT_BASE_URL}/tracker?token=${DASHBOARD_TOKEN}`;
 }
 
 // ── Subject ───────────────────────────────────────────────────────────────────
@@ -195,7 +206,11 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
   <p style="color:#6b7280;font-size:12px;margin-top:8px;">
     Configured to scan companies hourly.
     Reply STOP to mute alerts for 24h.
-  </p>
+  </p>${dashboardUrl() ? `
+  <p style="margin-top:8px;">
+    <a href="${dashboardUrl()}" style="color:#0d9488;text-decoration:none;font-size:12px;font-weight:600;">Analytics Dashboard</a>
+    ${trackerUrl() ? ` &middot; <a href="${trackerUrl()}" style="color:#0ea5e9;text-decoration:none;font-size:12px;font-weight:600;">Applications Tracker</a>` : ""}
+  </p>` : ""}
 </body>
 </html>`;
 }
@@ -255,6 +270,12 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
   appendSection(standard,    "New roles — newest first");
   appendSection(priorityApm, "APM Program roles");
   appendSection(apmCompany,  "APM Company roles");
+
+  const dashUrl = dashboardUrl();
+  if (dashUrl) lines.push("", "Analytics Dashboard: " + dashUrl);
+  const trkUrl = trackerUrl();
+  if (trkUrl) lines.push("Applications Tracker: " + trkUrl);
+
   return lines.join("\n");
 }
 

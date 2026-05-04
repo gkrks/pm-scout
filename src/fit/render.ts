@@ -327,7 +327,9 @@ export function renderFitPage(data: FitPageData): string {
         ${data.location ? `<span>${esc(data.location)}</span>` : ""}
         ${workTypeBadge(data.isRemote, data.isHybrid)}
         ${atsBadge(data.ats)}
-        <a href="${esc(data.roleUrl)}" target="_blank">View posting</a>
+        <a href="${esc(data.roleUrl)}" target="_blank">View posting</a>${process.env.DASHBOARD_TOKEN ? `
+        <a href="/dashboard?token=${esc(process.env.DASHBOARD_TOKEN)}" style="margin-left:auto;background:#0d9488;color:#fff;padding:4px 12px;border-radius:5px;text-decoration:none;font-size:0.78rem;font-weight:600;">Dashboard</a>
+        <a href="/tracker?token=${esc(process.env.DASHBOARD_TOKEN)}" style="background:#0ea5e9;color:#fff;padding:4px 12px;border-radius:5px;text-decoration:none;font-size:0.78rem;font-weight:600;">Tracker</a>` : ""}
       </div>
       <div class="email-selector" style="margin-top:10px;display:flex;align-items:center;gap:8px;">
         <span style="font-size:0.8rem;color:#6b7280;">Resume email:</span>

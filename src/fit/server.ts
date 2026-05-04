@@ -2,10 +2,11 @@
  * Express web server for the "Check Fit" resume tailoring flow.
  *
  * Routes:
- *   GET  /fit/:jobId            — Render Fit page (server-rendered)
- *   POST /fit/:jobId/score      — Proxy to Python /score
- *   POST /fit/:jobId/select     — Proxy to Python /select
- *   POST /fit/:jobId/generate   — Compose payload, regen summary, fill_resume
+ *   GET  /dashboard                 — Analytics dashboard
+ *   GET  /fit/:jobId                — Render Fit page (server-rendered)
+ *   POST /fit/:jobId/score          — Proxy to Python /score
+ *   POST /fit/:jobId/select         — Proxy to Python /select
+ *   POST /fit/:jobId/generate       — Compose payload, regen summary, fill_resume
  *   GET  /fit/:jobId/download/pdf   — Stream generated PDF
  *   GET  /fit/:jobId/download/docx  — Stream generated DOCX
  */
@@ -24,6 +25,7 @@ console.log("[fit] env check:", {
   SUPABASE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "MISSING",
   FIT_TOKEN_SECRET: process.env.FIT_TOKEN_SECRET ? "set" : "MISSING",
   OPENAI_KEY: process.env.OPENAI_KEY ? "set" : "MISSING",
+  DASHBOARD_TOKEN: process.env.DASHBOARD_TOKEN ? "set" : "MISSING",
   RAILWAY: process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || "not railway",
 });
 
@@ -33,7 +35,9 @@ import fetch from "node-fetch";
 import { getSupabaseClient } from "../storage/supabase";
 import { splitCompoundQualifications } from "../jdExtractor";
 import { generateCoverLetter, buildCoverLetterDocx } from "./coverLetterGenerator";
+import { handleDashboard } from "./dashboard";
 import { generateResume } from "./generateResume";
+import { handleTracker, handleTrackerUpdate } from "./tracker";
 import { renderFitPage } from "./render";
 import { optimizeSkills } from "./skillsOptimizer";
 import { generateSummaryCandidates } from "./summaryGenerator";
@@ -119,6 +123,35 @@ app.get("/fit/client.js", (_req: Request, res: Response) => {
   res.setHeader("Content-Type", "application/javascript");
   fs.createReadStream(filePath).pipe(res);
 });
+
+// --------------------------------------------------------------------------- //
+//  Serve dashboard client.js + dashboard route
+// --------------------------------------------------------------------------- //
+
+app.get("/dashboard/client.js", (_req: Request, res: Response) => {
+  const jsPath = path.join(__dirname, "dashboardClient.js");
+  const srcPath = path.resolve(__dirname, "../../src/fit/dashboardClient.js");
+  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
+  res.setHeader("Content-Type", "application/javascript");
+  fs.createReadStream(filePath).pipe(res);
+});
+
+app.get("/dashboard", handleDashboard);
+
+// --------------------------------------------------------------------------- //
+//  Tracker routes
+// --------------------------------------------------------------------------- //
+
+app.get("/tracker/client.js", (_req: Request, res: Response) => {
+  const jsPath = path.join(__dirname, "trackerClient.js");
+  const srcPath = path.resolve(__dirname, "../../src/fit/trackerClient.js");
+  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
+  res.setHeader("Content-Type", "application/javascript");
+  fs.createReadStream(filePath).pipe(res);
+});
+
+app.get("/tracker", handleTracker);
+app.patch("/tracker/api/applications/:id", express.json(), handleTrackerUpdate);
 
 // --------------------------------------------------------------------------- //
 //  GET /fit/:jobId — Render Fit page
