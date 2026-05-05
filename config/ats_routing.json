@@ -183,10 +183,9 @@
       "_discovered_at": "2026-05-02T05:02:44.114Z"
     },
     "servicenow": {
-      "ats": "custom-playwright",
-      "_discovery_method": "user-provided",
-      "_discovered_at": "2026-05-04T20:32:08.542Z",
-      "url_override": "https://careers.servicenow.com/jobs/?search=&origin=global"
+      "ats": "smartrecruiters",
+      "slug": "servicenow",
+      "_discovery_method": "api-probe-verified"
     },
     "workday": {
       "ats": "workday",
@@ -936,11 +935,9 @@
       "_discovered_at": "2026-05-02T06:24:08.385Z"
     },
     "charm-industrial": {
-      "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
-      "_careers_url": "https://charmindustrial.com/jobs",
-      "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "ats": "lever",
+      "slug": "charmindustrial",
+      "_discovery_method": "api-probe-verified"
     },
     "chegg": {
       "ats": "custom-playwright",
@@ -1341,12 +1338,9 @@
       "_discovered_at": "2026-05-02T05:06:04.100Z"
     },
     "docusign": {
-      "ats": "custom-playwright",
+      "ats": "smartrecruiters",
       "slug": "docusign",
-      "_discovery_method": "manual-companies-md",
-      "_original_ats": "icims",
-      "_discovered_at": "2026-05-04T17:26:19.085Z",
-      "_careers_url": "https://careers.docusign.com/jobs"
+      "_discovery_method": "api-probe-verified"
     },
     "doximity": {
       "ats": "greenhouse",
@@ -3281,11 +3275,9 @@
       "_discovered_at": "2026-05-04T17:26:19.085Z"
     },
     "shaped": {
-      "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.ycombinator.com/companies/shaped/jobs",
-      "_discovery_method": "manual-to-custom",
-      "_discovered_at": "2026-05-04T19:51:25.849Z"
+      "ats": "smartrecruiters",
+      "slug": "shaped",
+      "_discovery_method": "api-probe-verified"
     },
     "servicetitan": {
       "ats": "workday",
@@ -3308,11 +3300,9 @@
       "_discovered_at": "2026-05-02T06:24:10.616Z"
     },
     "shiru": {
-      "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.shiru.com/careers",
-      "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "ats": "lever",
+      "slug": "shiru",
+      "_discovery_method": "api-probe-verified"
     },
     "shippo": {
       "ats": "custom-playwright",
@@ -3394,11 +3384,9 @@
       "_discovered_at": "2026-05-02T05:12:45.859Z"
     },
     "solidigm": {
-      "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.solidigm.com/who-we-are/careers-page/job-listings.html",
-      "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "ats": "smartrecruiters",
+      "slug": "solidigm",
+      "_discovery_method": "api-probe-verified"
     },
     "snorkel-ai": {
       "ats": "greenhouse",
@@ -3767,11 +3755,9 @@
       "_discovery_method": "api-probe"
     },
     "tinybird": {
-      "ats": "custom-playwright",
-      "_note": "too small / no PM hiring",
-      "_careers_url": "https://www.tinybird.co/careers",
-      "_discovery_method": "manual-companies-md",
-      "_discovered_at": "2026-05-04T17:26:19.085Z"
+      "ats": "lever",
+      "slug": "tinybird",
+      "_discovery_method": "api-probe-verified"
     },
     "tipalti": {
       "ats": "custom-playwright",
@@ -3982,10 +3968,9 @@
       "site": "Visa"
     },
     "vouch": {
-      "ats": "custom-playwright",
-      "_discovery_method": "user-provided",
-      "_discovered_at": "2026-05-04T20:32:08.542Z",
-      "url_override": "https://ats.rippling.com/en-GB/vouch-inc/jobs"
+      "ats": "smartrecruiters",
+      "slug": "vouch",
+      "_discovery_method": "api-probe-verified"
     },
     "vrbo": {
       "ats": "workday",
@@ -4071,10 +4056,9 @@
       "_discovered_at": "2026-05-02T05:15:07.381Z"
     },
     "wise": {
-      "ats": "custom-playwright",
-      "_discovery_method": "user-provided",
-      "_discovered_at": "2026-05-04T20:32:08.542Z",
-      "url_override": "https://wise.jobs/jobs"
+      "ats": "smartrecruiters",
+      "slug": "wise",
+      "_discovery_method": "api-probe-verified"
     },
     "wiz": {
       "ats": "greenhouse",
@@ -4170,10 +4154,9 @@
       "_discovered_at": "2026-05-02T05:15:25.901Z"
     },
     "zenefits": {
-      "ats": "custom-playwright",
-      "_discovery_method": "user-provided",
-      "_discovered_at": "2026-05-04T20:32:08.542Z",
-      "url_override": "https://wellfound.com/company/zenefits/jobs"
+      "ats": "smartrecruiters",
+      "slug": "zenefits",
+      "_discovery_method": "api-probe-verified"
     },
     "zendesk": {
       "ats": "workday",
