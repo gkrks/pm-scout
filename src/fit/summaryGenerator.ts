@@ -68,7 +68,7 @@ export async function generateSummaryCandidates(
     systemPrompt += `\n\n## CRITICAL OVERRIDE\nThe JD specifies "${jdYears}" years. You MUST use "${jdYears}+ yrs" or "${jdYears}+ years" in the summary. Do NOT use "4+ yrs" or any other number. This overrides rule 8.`;
   }
 
-  const client = new OpenAI({ apiKey: openaiKey });
+  const client = new OpenAI({ apiKey: openaiKey, timeout: 30_000 });
 
   try {
     const response = await client.chat.completions.create({

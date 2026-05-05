@@ -408,7 +408,7 @@ CANDIDATE FACTS:
 
 Generate 3 summary candidates following all 9 rules. Maximum 340 characters each.`;
 
-  const client = new OpenAI({ apiKey: openaiKey });
+  const client = new OpenAI({ apiKey: openaiKey, timeout: 30_000 });
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

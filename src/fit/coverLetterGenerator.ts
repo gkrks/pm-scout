@@ -101,7 +101,7 @@ export async function generateCoverLetter(
     };
   }
 
-  const client = new OpenAI({ apiKey: openaiKey });
+  const client = new OpenAI({ apiKey: openaiKey, timeout: 30_000 });
 
   const bulletsStr = selectedBulletTexts
     .map((t, i) => `${i + 1}. ${t}`)

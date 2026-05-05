@@ -79,7 +79,7 @@ async function fetchMetaDescription(
           }
         }
       });
-      return best ? best.innerHTML : "";
+      return best ? (best as Element).innerHTML : "";
     });
 
     return html;

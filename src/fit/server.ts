@@ -260,6 +260,8 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
     console.log(`[fit] Cache miss for jobId=${jobId}, computing...`);
 
     // Kick off Python scorer + job row fetch + resume load in parallel
+    const pyAbort = new AbortController();
+    const pyTimer = setTimeout(() => pyAbort.abort(), 15_000); // 15s hard kill
     const pyScoreP = fetch(`${BULLET_SELECTOR_URL}/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -267,13 +269,16 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         job_id: jobId,
         force_refresh: body.force_refresh,
       }),
-      timeout: 60_000, // 60s — fail fast, don't block the UI
+      signal: pyAbort.signal as any,
+      timeout: 15_000, // 15s — covers response timeout too
     })
       .then(async (pyRes) => {
+        clearTimeout(pyTimer);
         if (!pyRes.ok) throw new Error(`Python service returned ${pyRes.status}`);
         return ScoreResponseZ.parse(await pyRes.json());
       })
       .catch((pyErr: any) => {
+        clearTimeout(pyTimer);
         console.log(`[fit] Python unavailable (${pyErr.message}), using Node-native scoring`);
         return {
           job_id: jobId,

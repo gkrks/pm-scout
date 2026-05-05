@@ -1,8 +1,8 @@
-# PM/APM Job Scanner — Architecture
+# PM Scout — Architecture
 
 ## System Overview
 
-Fully automated job discovery pipeline that scans 754 companies every hour for Product Manager and Associate Product Manager roles. Scrapes job boards, filters/ranks results, extracts structured job data via a deterministic pipeline, persists to multiple stores, and sends a digest of new matches via email and Telegram. Also includes standalone tools for ATS-optimized resume generation and a CLI resume-vs-JD matcher.
+Fully automated job discovery pipeline that scans 754 companies every hour for Product Manager and Associate Product Manager roles. Scrapes job boards, filters/ranks results, extracts structured job data via a deterministic pipeline, persists to multiple stores, and sends a digest of new matches via email and Telegram. Also includes a web-based analytics dashboard, applications tracker, standalone tools for ATS-optimized resume generation, and a CLI resume-vs-JD matcher.
 
 ```
 GitHub Actions (hourly cron)
@@ -15,8 +15,12 @@ GitHub Actions (hourly cron)
               -> Persistence (Supabase + Airtable + JSON buffers)
                 -> Notifications (email + Telegram + health alerts)
 
+Web UI (Express server, port 3847):
+  -> /dashboard        — Analytics dashboard (35+ charts, Chart.js)
+  -> /tracker          — Applications tracker (status, referrals, notes)
+  -> /fit/:jobId       — Check Fit UI (score bullets -> select -> generate tailored resume)
+
 Resume Tools:
-  -> Check Fit UI (Express server: score bullets -> select -> generate tailored resume)
   -> build_template.js (ATS-validated .docx/.pdf template)
   -> fill_resume.js (populate template from master_resume.json)
   -> CLI matcher (scrape JD -> extract requirements -> match against resume -> report)
@@ -38,11 +42,13 @@ Resume Tools:
 9. [Local Diff & State](#9-local-diff--state)
 10. [Storage Layer](#10-storage-layer)
 11. [Notification System](#11-notification-system)
-12. [Resume Tools](#12-resume-tools) (CLI matcher, ATS generator, Check Fit UI, Qualification Map, Inline Extractors)
-13. [People Finder](#13-people-finder)
-14. [Blackout & Safety](#14-blackout--safety)
-15. [Data Flow Diagram](#15-data-flow-diagram)
-16. [Key Design Decisions](#16-key-design-decisions)
+12. [Resume Tools](#12-resume-tools)
+13. [Analytics Dashboard](#13-analytics-dashboard)
+14. [Applications Tracker](#14-applications-tracker)
+15. [People Finder](#15-people-finder)
+16. [Blackout & Safety](#16-blackout--safety)
+17. [Data Flow Diagram](#17-data-flow-diagram)
+18. [Key Design Decisions](#18-key-design-decisions)
 
 ---
 
@@ -72,21 +78,26 @@ resume-matcher match --job <url> --resume <file> [--verbose]
 
 A standalone 5-stage pipeline: Scrape -> Extract -> Parse -> Match -> Report. Uses Claude API for requirement extraction and matching. Completely independent from the scanner. See [Section 12](#12-resume-tools) for details.
 
-### C. Check Fit Server — `src/fit/server.ts`
+### C. Web Server — `src/fit/server.ts`
 
 ```bash
 npm run fit:serve
 # Express on http://localhost:3847
 ```
 
-Token-gated web UI for tailoring resumes to specific job listings. Proxies to a Python scoring service for bullet-level scoring, then generates ATS-optimized PDF/DOCX via `fill_resume.js`. See [Section 12C](#12-resume-tools) for full route table and generation flow.
+Unified Express server hosting three web products:
+- **Check Fit UI** — Token-gated resume tailoring per job listing
+- **Analytics Dashboard** — 35+ Chart.js visualizations of pipeline data
+- **Applications Tracker** — CRUD interface for tracking application status
+
+Deployed on Railway (auto-detects `RAILWAY_ENVIRONMENT`). See sections [12C](#c-check-fit--resume-tailoring-web-ui), [13](#13-analytics-dashboard), [14](#14-applications-tracker) for details.
 
 ### D. Resume Generator Scripts (root)
 
 | Script | Purpose |
 |--------|---------|
 | `build_template.js` | Generate ATS-validated `.docx` + `.pdf` template with `{{PLACEHOLDERS}}` |
-| `fill_resume.js` | Populate template from `config/master_resume.json` → `out/` |
+| `fill_resume.js` | Populate template from `config/master_resume.json` -> `out/` |
 
 ### E. Utility Scripts — `scripts/`
 
@@ -95,8 +106,17 @@ Token-gated web UI for tailoring resumes to specific job listings. Proxies to a 
 | `syncCompanies.ts` | Seed/update Supabase `companies` table from `config/targets.json` |
 | `discoverATS.js` | Probe unknown companies to detect their ATS platform |
 | `extractOne.ts` | Extract structured JD from a single job URL |
+| `extractSkills.ts` | Extract skills from a job description |
+| `extractYoe.ts` | Extract YOE from a job description |
+| `cleanQualifications.ts` | Normalize qualification strings |
+| `backfillLocationCity.ts` | Backfill `location_city` from `location_raw` (deterministic) |
+| `seedQualMapToSupabase.ts` | Persist qualification map JSON to Supabase |
 | `replayPendingBuffer.ts` | Manually replay buffered Supabase writes |
 | `clearDatabase.ts` | Reset Supabase state |
+| `testAllCompanies.ts` | Integration test for all company scrapers |
+| `testCustomPlaywright.ts` | Test custom Playwright scraper |
+| `inferSelectors.js` | Infer CSS selectors for custom-playwright companies |
+| `probeATS.js` | Probe unknown ATS platforms |
 
 ---
 
@@ -307,7 +327,7 @@ SCRAPER_REGISTRY: {
 | **Greenhouse** | `GET /v1/boards/{slug}/jobs?content=true` | Descriptions inline; uses `first_published` for date |
 | **Lever** | `GET /v0/postings/{slug}?mode=json` | `createdAt` is epoch ms |
 | **Ashby** | `GET /posting-api/job-board/{slug}` | Handles both `jobs` and `jobPostings` response fields |
-| **Workday** | `POST /wday/cxs/{tenant}/{site}/jobs` | Paginated; descriptions fetched inline (5 concurrent per company); parses relative dates ("Posted 3 Days Ago" → ISO); fallback: retries without `searchText` if rejected |
+| **Workday** | `POST /wday/cxs/{tenant}/{site}/jobs` | Paginated; descriptions fetched inline (5 concurrent per company); parses relative dates ("Posted 3 Days Ago" -> ISO); fallback: retries without `searchText` if rejected |
 | **Amazon** | `GET /en/search.json?base_query=...` | Dual pass: main + university/early-career; dedup by ICIMS id |
 | **SmartRecruiters** | Platform-specific REST | -- |
 | **Workable** | Platform-specific REST | -- |
@@ -319,7 +339,7 @@ SCRAPER_REGISTRY: {
 |---------|--------|-------|
 | **Google** | Headless Chromium | Scrolls 3x, extracts DOM cards, fetches descriptions in-session; no posting dates |
 | **Meta** | GraphQL intercept | Captures `/graphql` response for `job_search_with_featured_jobs`; no posting dates |
-| **Custom** | Configurable CSS selectors | Per-company selectors from `ats_routing.json`; supports scrollToLoad, waitForSelector |
+| **Custom** | Configurable CSS selectors | Per-company selectors from `ats_routing.json`; supports scrollToLoad, waitForSelector; generic fallback for companies without selectors |
 
 ### `jobScraper.ts` — Scraper dispatcher
 
@@ -423,18 +443,18 @@ Fully deterministic pipeline that extracts structured job data from raw HTML or 
 ### Two-phase architecture
 
 **Phase 1 — Section Splitting** (`parseSections()` / `parseSectionsFromText()`):
-1. Parse HTML into heading-based sections using `<h1>`–`<h6>` tags + `<strong>` tag heuristics
-2. Classify each heading into a canonical bucket via `classifyHeading()` → `HeadingBucket`
+1. Parse HTML into heading-based sections using `<h1>`-`<h6>` tags + `<strong>` tag heuristics
+2. Classify each heading into a canonical bucket via `classifyHeading()` -> `HeadingBucket`
 3. Fallback for plain text: detect ALL-CAPS lines, colon-suffixed headers, bullet patterns, dash-underlined lines
 
 **Phase 2 — Field Extraction**:
 1. Regex-based extraction for: location (cities/states/remote), employment type, education, compensation, work authorization, benefits, logistics
 2. Skill matching via curated keyword lists: `TECHNICAL_SKILLS`, `TOOLS`, `METHODOLOGIES`, `SOFT_SKILLS`, `DOMAIN_EXPERTISE`, `CERTIFICATIONS`
-3. Confidence scoring: `meaningful sections found + unknown heading count → "high" | "medium" | "low"`
+3. Confidence scoring: `meaningful sections found + unknown heading count -> "high" | "medium" | "low"`
 
 ### Heading Classification (`headingAliases.ts`)
 
-Maps 196 heading aliases → 11 canonical buckets:
+Maps 196 heading aliases -> 11 canonical buckets:
 
 | Bucket | Examples |
 |--------|----------|
@@ -549,7 +569,7 @@ interface Job {
 
 **Source:** `src/storage/`
 
-### Supabase (primary) — 5 tables
+### Supabase (primary) — 6 tables
 
 ```
 companies (754 rows)           <- seeded by syncCompanies.ts
@@ -560,11 +580,28 @@ listing_runs                   <- junction: which listings seen on which run
     | FK: run_id
 parser_runs                    <- one row per scan execution
 
-applications                   <- optional user tracker (listing_id FK)
+applications                   <- user application tracker (listing_id FK)
+    | status: not_started/researching/applied/phone_screen/interviewing/offer/rejected/withdrawn
+    | email_used, is_referral, referrer_name
+
+qualification_map_quals        <- qualification -> bullet mappings (embedding-based)
 ```
 
 **Schema:** `config/supabase_schema.sql`
-**Migrations:** `migrations/` (incremental: upsert returning state, apm_signal column, backfill)
+
+**Migrations (10 total):** `migrations/`
+| # | Migration | Purpose |
+|---|-----------|---------|
+| 2 | `upsert_returning_state.sql` | Upsert returning seen state |
+| 3 | `apm_signal_column.sql` | Add APM signal column |
+| 4 | `apm_signal_backfill.sql` | Backfill APM signal data |
+| 5 | `extracted_jd_column.sql` | Add extracted JD JSONB column |
+| 6 | `ats_platform_column.sql` | Add ATS platform tracking |
+| 7 | `jd_extracted_skills.sql` | Add extracted skills columns |
+| 8 | `applications_applied_by.sql` | Add applied_by to applications |
+| 9 | `fit_score_cache.sql` | Cache fit scores |
+| 10 | `qualification_map.sql` | Qualification map table |
+| 11 | `tracker_columns.sql` | Phone screen status + tracker columns |
 
 **Upsert key:** `(company_id, role_url)` — normalized via `normalizeRoleUrl()`
 
@@ -604,13 +641,14 @@ SHA-1 fingerprint dedup, rate-limited (5 req/s), with retry and pending buffer f
 - **Subject:** `[New PM/APM Roles] N new jobs found — May 2, 2026 · 2:00 PM PT` (includes APM count if any)
 - **Sort:** strict newest-first by posted date (fallback to firstSeenAt). No tier grouping.
 - **Three sections:**
-  1. `📋 New roles — newest first` — all standard jobs, sorted by recency
-  2. `🎯 APM Program roles` — jobs with `apmSignal === "priority_apm"` (purple gradient cards, pill badge)
-  3. `⭐ APM Company roles` — jobs with `apmSignal === "apm_company"` (cyan gradient cards)
+  1. New roles — newest first (all standard jobs, sorted by recency)
+  2. APM Program roles (jobs with `apmSignal === "priority_apm"` — purple gradient cards, pill badge)
+  3. APM Company roles (jobs with `apmSignal === "apm_company"` — cyan gradient cards)
 - **APM cards:** gradient background, thick colored border, pill badges ("APM PROGRAM" / "APM COMPANY"), box shadow
 - **Standard cards:** muted grey border, grey tier label
 - **"NEW" badge:** for jobs posted today
 - **Per-job card:** company, location, work type, posted-ago, experience, APM badge, apply button
+- **Footer links:** Dashboard + Tracker URLs included in every digest
 - Sends via SMTP (Gmail app password)
 - HTML + plaintext versions with consistent structure
 
@@ -643,7 +681,7 @@ Two standalone Node.js scripts produce ATS-optimized resumes without any externa
 - Output: `config/Resume_Template.docx` + `.pdf`
 - Uses `docx-js` for OOXML generation, `pdfkit` for PDF
 - ATS-optimized layout: Calibri 10pt, 0.65" margins, paragraph borders (no tables)
-- Proper bullet numbering config (not literal `•` characters)
+- Proper bullet numbering config (not literal characters)
 - Tab-stopped right-aligned dates
 - Placeholders: `{{FULL_NAME}}`, `{{SUMMARY}}`, `{{EXP_1_TITLE}}`, etc.
 
@@ -664,20 +702,20 @@ Two standalone Node.js scripts produce ATS-optimized resumes without any externa
 | Bullet point | 155 |
 | Skills line | 110 |
 
-**Layout:** 4 experiences × 2 bullets, 2 projects × 2 bullets, 3 skill categories — fits one page.
+**Layout:** 4 experiences x 2 bullets, 2 projects x 2 bullets, 3 skill categories — fits one page.
 
 ### B. CLI Resume Matcher (`src/index.ts`)
 
 Standalone 5-stage pipeline (independent from the scanner):
 
 ```
-scraper.ts → extractor.ts → parser.ts → matcher.ts → reporter.ts
+scraper.ts -> extractor.ts -> parser.ts -> matcher.ts -> reporter.ts
 ```
 
 1. **Scrape** (`scraper.ts`): Fetch job page, extract requirement sections using heading patterns
-2. **Extract** (`extractor.ts`): Claude API parses raw text → atomic requirement phrases (5–15 words)
-3. **Parse** (`parser.ts`): Parse resume PDF/text → structured `ResumeData` (sections, work entries with dates)
-4. **Match** (`matcher.ts`): Claude API matches each requirement against resume (parallel, ≤10 concurrent, semaphore-capped)
+2. **Extract** (`extractor.ts`): Claude API parses raw text -> atomic requirement phrases (5-15 words)
+3. **Parse** (`parser.ts`): Parse resume PDF/text -> structured `ResumeData` (sections, work entries with dates)
+4. **Match** (`matcher.ts`): Claude API matches each requirement against resume (parallel, <=10 concurrent, semaphore-capped)
 5. **Report** (`reporter.ts`): Chalk terminal report + `match-report.json`
 
 ```bash
@@ -697,7 +735,7 @@ Express-based web application that lets users tailor their resume to a specific 
 | `GET` | `/fit/:jobId` | Token-gated, server-rendered Fit page |
 | `POST` | `/fit/:jobId/score` | Proxy to Python `/score` — retrieve bullet scores |
 | `POST` | `/fit/:jobId/select` | Proxy to Python `/select` — apply user selections |
-| `POST` | `/fit/:jobId/generate` | Compose payload → regen summary → call `fill_resume.js` |
+| `POST` | `/fit/:jobId/generate` | Compose payload -> regen summary -> call `fill_resume.js` |
 | `GET` | `/fit/:jobId/download/pdf` | Stream generated PDF |
 | `GET` | `/fit/:jobId/download/docx` | Stream generated DOCX |
 
@@ -724,15 +762,24 @@ Express-based web application that lets users tailor their resume to a specific 
 
 Separate Python process (default `http://127.0.0.1:8001`) that scores resume bullets against job qualifications using `text-embedding-3-large`. Handles type-routed scoring for education, years-of-experience, and skills qualifications.
 
-### D. Qualification Map (`src/qualificationMap.ts`)
+### D. Qualification Map (`src/qualificationMap.ts` + `src/storage/updateQualMap.ts`)
 
-Generates a qualification-to-resume-bullet knowledge base for the Python ATS scorer:
+Two-tier system for mapping qualifications to resume bullets:
 
+**Batch generation** (`qualificationMap.ts`):
 1. Fetch all qualifications from `job_listings` (required + preferred)
 2. Deduplicate exact strings
 3. Load master resume bullets
-4. Call Claude to group qualifications into 15–30 semantic clusters, extract ATS keywords per cluster, and map relevant resume bullets by ID
+4. Call Claude to group qualifications into 15-30 semantic clusters, extract ATS keywords per cluster, and map relevant resume bullets by ID
 5. Write output to `ats_bullet_selector/outputs/qualification_map.json`
+
+**Incremental updates** (`storage/updateQualMap.ts`):
+1. After each scan, identify qualification texts not yet in the map
+2. Embed them via OpenAI `text-embedding-3-large`
+3. Rank top-5 resume bullets by cosine similarity
+4. Assign each to the best-matching semantic group
+5. Upsert rows into `qualification_map_quals` in Supabase
+6. Cost: ~$0.001 per scan for ~20 new quals
 
 ### E. Inline LLM Extractors (`src/storage/`)
 
@@ -746,7 +793,80 @@ Three LLM-powered extractors that enrich job listings during the Supabase write 
 
 ---
 
-## 13. People Finder
+## 13. Analytics Dashboard
+
+**Source:** `src/fit/dashboard.ts` + `src/fit/dashboardClient.js` + `src/fit/dashboardRender.ts`
+
+Full-featured analytics dashboard accessible at `GET /dashboard?token=xxx&from=YYYY-MM-DD&to=YYYY-MM-DD`.
+
+### Data Pipeline
+
+1. Fetches 5 parallel Supabase queries: job_listings, applications, parser_runs, listing_runs, companies
+2. Aggregates server-side into 35+ chart datasets
+3. Renders Chart.js-powered page with server-rendered HTML shell
+
+### Dashboard Sections (11 categories)
+
+| Section | Charts/Metrics |
+|---------|---------------|
+| **KPIs** | Total discovered, active, applied count, interview rate, avg fit score, application rate, avg YOE |
+| **Pipeline funnel** | Status counts (not_started -> applied -> phone_screen -> interviewing -> offer/rejected) |
+| **Discovery trends** | Discovered per week, applied vs discovered per week, applications per week |
+| **Skills demand** | Top skills across listings, skills gap treemap, most reused resume bullets |
+| **Geography** | Location distribution, work type breakdown (remote/hybrid/onsite) |
+| **Companies** | Top hiring companies, ATS platform distribution |
+| **Timing** | Application response time, days-to-first-action |
+| **Fit scores** | Fit score vs outcome correlation, score distribution |
+| **Stale opportunities** | Active listings with no action, aging analysis |
+| **Pipeline mechanics** | Filter rejection reasons, scraper success rates |
+| **Improvement trends** | Week-over-week application quality, response rates |
+
+### Frontend
+
+- **Chart.js** with treemap plugin for visualizations
+- **Dark/light theme** with localStorage persistence
+- **Color palette:** Vibrant neon (cyan, green, amber, pink, purple)
+- **Responsive layout:** CSS grid with card-based sections
+- Token-gated (uses `DASHBOARD_TOKEN` env var)
+
+---
+
+## 14. Applications Tracker
+
+**Source:** `src/fit/tracker.ts` + `src/fit/trackerClient.js` + `src/fit/trackerRender.ts`
+
+CRUD interface for tracking job application status.
+
+### Routes
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/tracker` | Render tracker page |
+| `GET` | `/tracker/api/applications` | JSON list of all applications |
+| `PATCH` | `/tracker/api/applications/:id` | Update application fields |
+
+### Data Model (applications table)
+
+```
+id, listing_id (FK -> job_listings),
+status: not_started | researching | applied | phone_screen | interviewing | offer | rejected | withdrawn,
+applied_date, applied_by (email_used),
+is_referral, referrer_name, referral_contact,
+notes, created_at, updated_at
+```
+
+### Features
+
+- Inline-editable status dropdown (no page reload)
+- Referral tracking (boolean flag + contact name)
+- Notes field per application
+- Sorted by applied_date descending
+- Joins with job_listings + companies for display (title, company, location)
+- Token-gated (same `DASHBOARD_TOKEN` as dashboard)
+
+---
+
+## 15. People Finder
 
 **Source:** `src/peopleFinder.ts` + `src/apolloClient.ts`
 
@@ -758,7 +878,7 @@ Three LLM-powered extractors that enrich job listings during the Supabase write 
 
 ---
 
-## 14. Blackout & Safety
+## 16. Blackout & Safety
 
 **Source:** `src/lib/`
 
@@ -778,7 +898,7 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 
 ---
 
-## 15. Data Flow Diagram
+## 17. Data Flow Diagram
 
 ```
 +------------------------------------------------------------------+
@@ -855,7 +975,9 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
    | Jobs       |    | job_listings|    | supabase.json  |
    | mark       |    | listing_runs|    | pending-       |
    | Stale      |    | parser_runs |    | airtable.json  |
-   +------------+    +------+------+    +----------------+
+   +------------+    | applications|    +----------------+
+                     | qual_map    |
+                     +------+------+
                             |
               +-------------+------------------------+
               |  NOTIFICATIONS                       |
@@ -863,28 +985,36 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
               |  |   Sorted: strict newest-first     |
               |  |   APM: purple/cyan gradient cards |
               |  |   Standard: muted grey cards      |
-              |  |   No tier grouping                |
+              |  |   Footer: Dashboard + Tracker     |
               |  +-- Telegram digest (Markdown)      |
               |  +-- Health alerts                   |
               +--------------------------------------+
 
 +------------------------------------------------------------------+
-|  CHECK FIT — Resume Tailoring (standalone web UI)                |
+|  WEB SERVER (Express, port 3847, deployed on Railway)            |
 |                                                                  |
-|  Email digest "Check Fit" link                                   |
-|    -> Express /fit/:jobId (token-gated)                          |
-|      -> POST /score -> Python scorer (text-embedding-3-large)    |
-|        -> User selects bullets in UI                             |
-|          -> POST /generate                                       |
-|            -> Claude: regen summary + optimize skills            |
-|            -> fill_resume.js -> out/ (PDF + DOCX)               |
-|              -> GET /download/pdf or /download/docx              |
+|  /dashboard?token=xxx                                            |
+|    -> 5 parallel Supabase queries                                |
+|    -> Server-side aggregation (35+ chart datasets)               |
+|    -> Chart.js + treemap (dark/light theme)                      |
+|                                                                  |
+|  /tracker?token=xxx                                              |
+|    -> applications + job_listings + companies join               |
+|    -> Inline-editable status, referral tracking, notes           |
+|                                                                  |
+|  /fit/:jobId?token=xxx (Check Fit — Resume Tailoring)            |
+|    -> POST /score -> Python scorer (text-embedding-3-large)      |
+|      -> User selects bullets in UI                               |
+|        -> POST /generate                                         |
+|          -> Claude: regen summary + optimize skills              |
+|          -> fill_resume.js -> out/ (PDF + DOCX)                 |
+|            -> GET /download/pdf or /download/docx                |
 +------------------------------------------------------------------+
 ```
 
 ---
 
-## 16. Key Design Decisions
+## 18. Key Design Decisions
 
 | Decision | Why |
 |----------|-----|
@@ -897,13 +1027,17 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 | **Pending buffer replay** | If Supabase fails, results are serialized to JSON and automatically replayed at the start of the next run. |
 | **Normalized URLs** | Strip tracking params, force HTTPS, sort query params. Prevents duplicate listings from URL variants. |
 | **APM signal system** | Differentiates the actual APM program posting (`priority_apm`) from other PM roles at APM companies (`apm_company`). Drives tier-1 ranking + distinct email styling. |
-| **Companies seeded separately** | `syncCompanies.ts` runs before each scan. job_listings FK to companies -- without seeding, all upserts fail. |
+| **Companies seeded separately** | `syncCompanies.ts` runs before each scan. job_listings FK to companies — without seeding, all upserts fail. |
 | **Deterministic JD extraction** | Regex + keyword matching instead of LLM calls. Faster, cheaper, reproducible. LLM only used as fallback for unrecognized headings. |
 | **Inline Workday JD fetch** | Descriptions fetched during scrape (5 concurrent) instead of deferred. Eliminates a separate pass and simplifies the pipeline. |
 | **Flat email digest (no tiers)** | Strict newest-first sort replaced tier grouping. APM roles get their own sections with distinct visual treatment. Simpler for the reader. |
 | **ATS-validated resume generation** | Pure Node.js (docx-js + pdfkit) — no LibreOffice or external binary. Character budgets enforce one-page fit. |
-| **Token-gated Fit UI** | Check Fit routes require `FIT_TOKEN_SECRET` — prevents unauthorized resume generation. Python scorer runs as a separate process for isolation. |
+| **Token-gated web UI** | Check Fit + Dashboard + Tracker all require tokens — prevents unauthorized access. Python scorer runs as a separate process for isolation. |
 | **Qualification clustering** | Claude groups raw qualifications into semantic clusters with ATS keywords, enabling the Python scorer to match bullets by meaning rather than exact text. |
+| **Incremental qual map updates** | New qualifications are embedded and mapped incrementally per scan (~$0.001/run) rather than regenerating the full map. |
+| **Unified Express server** | Dashboard, tracker, and Check Fit share one server process — simplifies deployment on Railway with a single port. |
+| **Server-side chart aggregation** | Dashboard queries are aggregated server-side to avoid shipping raw data to the client. Only chart-ready datasets are sent. |
+| **Railway deployment** | Auto-detects Railway environment. Uses `PORT` env var from Railway, falls back to `FIT_PORT` for local dev. |
 
 ---
 
@@ -913,9 +1047,11 @@ Strips tracking params (UTM, gh_src, lever-source), forces HTTPS, lowercase host
 src/
   index.ts                  CLI entrypoint (resume matcher)
   scheduler.ts              Top-level scan orchestration
-  jobScraper.ts             Scraper dispatcher (1488 lines)
+  jobScraper.ts             Scraper dispatcher
   jobStore.ts               Local fingerprint diff + persistence
   state.ts                  Job interface, AppState singleton
+  jdExtractor.ts            Deterministic JD extraction (no LLM primary path)
+  qualificationMap.ts       Claude: group qualifications -> semantic clusters
   scraper.ts                Job page scraper (for resume matcher)
   extractor.ts              Claude-based requirement extraction
   parser.ts                 Resume PDF/text parser
@@ -976,6 +1112,7 @@ src/
     parserRuns.ts           Parser run tracking
     deactivateUnseen.ts     Mark stale listings inactive
     pendingBuffer.ts        JSON buffer for Supabase outages
+    updateQualMap.ts        Incremental qualification map updater (embeddings)
     extractSkillsInline.ts  LLM: extract skills from descriptions
     extractYoeInline.ts     LLM: extract YOE from descriptions
     cleanQualsInline.ts     LLM: normalize qualifications
@@ -989,21 +1126,24 @@ src/
     healthState.ts          Per-company error history
 
   fit/
-    server.ts               Express server (port 3847) + routes
-    generateResume.ts       Bullet selection → fill_resume.js
+    server.ts               Express server (port 3847) + all routes
+    generateResume.ts       Bullet selection -> fill_resume.js
     render.ts               Server-render Fit page (token-gated)
     skillsOptimizer.ts      Claude: optimize skills section
     summaryGenerator.ts     Claude: generate professional summary
     coverLetterGenerator.ts Claude: tailored cover letters
     types.ts                Zod schemas for scoring/selection
     slug.ts                 Filename slug generator
-    client.js               Frontend JS
+    client.js               Check Fit frontend JS
+    dashboard.ts            Analytics dashboard route handler + aggregation
+    dashboardClient.js      Dashboard frontend JS (Chart.js)
+    dashboardRender.ts      Dashboard server-side HTML rendering
+    tracker.ts              Applications tracker route handlers
+    trackerClient.js        Tracker frontend JS
+    trackerRender.ts        Tracker server-side HTML rendering
 
   airtable/
     upsert.ts               Legacy Airtable upsert
-
-  jdExtractor.ts            Deterministic JD extraction (no LLM primary path)
-  qualificationMap.ts       Claude: group qualifications → semantic clusters
 
   types/
     extractedJD.ts          Zod schema for ExtractedJD
@@ -1011,24 +1151,48 @@ src/
   lib/
     blackout.ts             Blackout window check
     normalizeUrl.ts         URL normalization for dedup
-    headingAliases.ts       196 heading aliases → 11 canonical buckets
+    headingAliases.ts       196 heading aliases -> 11 canonical buckets
     skillsList.ts           Curated skill/tool/methodology keyword lists
-    htmlToText.ts           HTML → plain text converter
+    htmlToText.ts           HTML -> plain text converter
     timeout.ts              Promise timeout wrapper
+
+  __tests__/
+    jdExtractor.test.ts     JD extraction tests
+
+  fit/__tests__/
+    fill-resume-flags.test.ts
+    slug.test.ts
+    token.test.ts
 
 config/
   targets.json              754 company configs + filter rules
   ats_routing.json          ATS platform routing overrides
-  supabase_schema.sql       Database schema (5 tables)
+  supabase_schema.sql       Database schema (6 tables)
   master_resume.json        Structured resume data (for fill_resume.js)
-  ats_research.md           ATS compatibility research & spec
   Resume_Template.docx      Generated ATS-validated template
   Resume_Template.pdf       PDF version of template
 
 ats_bullet_selector/        Python scoring service for resume tailoring
-  models.py                 Scoring models (text-embedding-3-large)
+  server.py                 Flask-based HTTP service (port 8001)
+  src/ats_bullet_selector/
+    assign.py               Bullet assignment logic
+    classify.py             Qualification type classification
+    cli.py                  CLI interface
+    config.py               Configuration
+    db.py                   Database access
+    judge.py                Scoring judgment
+    map_lookup.py           Qualification map lookup
+    models.py               Scoring models (text-embedding-3-large)
+    normalize.py            Text normalization
+    report.py               Score reporting
+    resolve.py              Resolution logic
+    retrieve.py             Bullet retrieval
+    score.py                Embedding-based scoring
   outputs/
-    qualification_map.json  Qualification clusters → bullet mappings
+    qualification_map.json  Qualification clusters -> bullet mappings
+  tests/                    Python test suite
+  pyproject.toml            Python project config
+  requirements.txt          Python dependencies
 
 build_template.js           ATS-validated resume template generator (docx + pdf)
 fill_resume.js              Populate template from master_resume.json (docx + pdf)
@@ -1037,18 +1201,24 @@ scripts/
   runScan.ts                Scan entry point (blackout + scheduler)
   syncCompanies.ts          Seed Supabase companies table
   discoverATS.js            ATS auto-detection probe
+  probeATS.js               Probe unknown ATS platforms
+  inferSelectors.js         Infer CSS selectors for custom-playwright
   extractOne.ts             Extract JD from a single job URL
+  extractSkills.ts          Extract skills from JD
+  extractYoe.ts             Extract YOE from JD
+  cleanQualifications.ts    Normalize qualifications
+  backfillLocationCity.ts   Backfill location_city from location_raw
+  seedQualMapToSupabase.ts  Persist qualification map to Supabase
   replayPendingBuffer.ts    Manual Supabase buffer replay
   clearDatabase.ts          Reset Supabase state
+  testAllCompanies.ts       Integration test for all scrapers
+  testCustomPlaywright.ts   Test custom Playwright scraper
 
-migrations/
-  2_upsert_returning_state.sql
-  3_apm_signal_column.sql
-  4_apm_signal_backfill.sql
+migrations/                 Incremental SQL schema migrations (11 total)
 
-out/                        Generated resume output
-  Resume_<Name>.docx        Filled resume (docx)
-  Resume_<Name>.pdf         Filled resume (pdf)
+docs/                       Design documents and test reports
+
+out/                        Generated resume output (PDF + DOCX)
 
 data/                       Runtime data (gitignored)
   jobs.json                 Current job list
@@ -1070,19 +1240,25 @@ data/                       Runtime data (gitignored)
 | Language | TypeScript (Node.js 20+) |
 | Build | `tsc` -> `dist/`, dev via `ts-node` |
 | AI | Claude API (`@anthropic-ai/sdk`), Groq LLaMA 3.1 (`groq-sdk`) |
+| Embeddings | OpenAI `text-embedding-3-large` (Python scorer + qual map) |
 | HTTP | `node-fetch` (CommonJS v2) |
 | HTML parsing | `cheerio` |
 | PDF parsing | `pdf-parse` |
 | Browser automation | `playwright` (Chromium) |
 | Database | Supabase (`@supabase/supabase-js`) |
 | Legacy DB | Airtable (`airtable`) |
+| Web server | Express (port 3847) |
+| Charts | Chart.js + chartjs-chart-treemap |
 | Resume generation | `docx` (docx-js), `pdfkit` |
 | Email | `nodemailer` (SMTP/Gmail) |
 | CLI | `commander` |
 | Terminal output | `chalk` v4 (CommonJS) |
 | Validation | `zod` |
 | Env | `dotenv` |
-| CI/CD | GitHub Actions |
+| Testing | Jest |
+| CI/CD | GitHub Actions (hourly cron) |
+| Deployment | Railway |
+| Python service | Flask, OpenAI SDK, numpy |
 
 ---
 
@@ -1092,6 +1268,7 @@ data/                       Runtime data (gitignored)
 # AI
 ANTHROPIC_API_KEY=sk-ant-...
 GROQ_API_KEY=gsk_...
+OPENAI_KEY=...              # For text-embedding-3-large in Python scorer
 
 # People finder
 APOLLO_API_KEY=...
@@ -1105,7 +1282,7 @@ NOTIFY_EMAIL_DIGEST=true
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_USER=...
-SMTP_PASS=...          # Gmail App Password
+SMTP_PASS=...               # Gmail App Password
 EMAIL_FROM=...
 EMAIL_TO=...
 
@@ -1125,12 +1302,13 @@ BLACKOUT_END_HOUR=5
 
 # Scan control
 IGNORE_BLACKOUT=false
-SCAN_POOL=all          # all | api | playwright
+SCAN_POOL=all               # all | api | playwright
 
-# Check Fit server
-FIT_PORT=3847
-FIT_TOKEN_SECRET=...
+# Web server (unified)
+PORT=3847                   # Railway sets this automatically
+FIT_PORT=3847               # Fallback for local dev
+FIT_TOKEN_SECRET=...        # HMAC secret for Check Fit token generation
 FIT_BASE_URL=https://pm-scout.example.com
+DASHBOARD_TOKEN=...         # Token for dashboard + tracker access
 BULLET_SELECTOR_URL=http://127.0.0.1:8001
-OPENAI_KEY=...         # For text-embedding-3-large in Python scorer
 ```
