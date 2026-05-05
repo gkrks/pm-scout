@@ -320,6 +320,13 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
     // Wait for parallel fetches
     const [validated, { data: jobRow }] = await Promise.all([pyScoreP, jobRowP]);
 
+    // Bail early if scorer returned nothing — no point generating summary/skills
+    if (validated.ranked_candidates.length === 0 && validated.pre_resolved.length === 0) {
+      console.error(`[fit] Scoring produced no candidates for jobId=${jobId} (Python scorer likely unreachable)`);
+      res.status(503).json({ error: "Bullet scoring service unavailable. Please try again later." });
+      return;
+    }
+
     const selectedBulletTexts = validated.final_selection.selected_bullets
       .map((sb: any) => bulletMap.get(sb.bullet_id) || "")
       .filter(Boolean);
