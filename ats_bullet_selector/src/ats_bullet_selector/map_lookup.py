@@ -24,7 +24,7 @@ import httpx
 import numpy as np
 import structlog
 
-from .config import OUTPUTS_DIR, PROJECT_ROOT, SUPABASE_KEY, SUPABASE_URL
+from .config import EMBEDDER_PROVIDER, OUTPUTS_DIR, PROJECT_ROOT, SUPABASE_KEY, SUPABASE_URL
 from .models import (
     Bullet,
     QualCandidates,
@@ -147,6 +147,18 @@ def _load_map() -> dict:
         quals=_map_data.get("stats", {}).get("quals", 0),
         embedding_model=_map_data.get("embedding_model", "unknown"),
     )
+
+    # Warn on provider mismatch between map and active embedder
+    map_provider = _map_data.get("embedder_provider", "openai")
+    if map_provider != EMBEDDER_PROVIDER:
+        logger.warning(
+            "embedder_provider_mismatch",
+            map_provider=map_provider,
+            active_provider=EMBEDDER_PROVIDER,
+            note="Map hits use precomputed vectors; misses use active provider. "
+                 "Consider regenerating the map with the active provider.",
+        )
+
     return _map_data
 
 
@@ -178,8 +190,8 @@ def _get_openai():
 #  Embedding helpers
 # --------------------------------------------------------------------------- #
 
-def _embed_texts(texts: list[str]) -> np.ndarray:
-    """Embed multiple texts in one API call. Returns normalized (N, dim) array."""
+def _embed_texts_openai(texts: list[str]) -> np.ndarray:
+    """Embed multiple texts via OpenAI in one API call. Returns normalized (N, dim) array."""
     client = _get_openai()
     resp = client.embeddings.create(
         model="text-embedding-3-large",
@@ -190,6 +202,22 @@ def _embed_texts(texts: list[str]) -> np.ndarray:
     return vecs / norms
 
 
+def _embed_texts(texts: list[str]) -> np.ndarray:
+    """Embed multiple texts. Delegates to active provider."""
+    if EMBEDDER_PROVIDER == "voyage":
+        from .embed_voyage import embed_qualifications
+        from .models import QualKind
+        from .models import Qualification as _Q
+
+        # Wrap raw texts as Qualification objects for the Voyage API
+        pseudo_quals = [
+            _Q(id=f"_tmp_{i}", kind=QualKind.basic, text=t)
+            for i, t in enumerate(texts)
+        ]
+        return embed_qualifications(pseudo_quals)
+    return _embed_texts_openai(texts)
+
+
 def _get_bullet_embeddings(bullets: list[Bullet]) -> tuple[np.ndarray, list[str]]:
     """Get or compute embeddings for all bullets. Caches in memory."""
     global _bullet_embeddings, _bullet_ids_order
@@ -197,13 +225,24 @@ def _get_bullet_embeddings(bullets: list[Bullet]) -> tuple[np.ndarray, list[str]
     if _bullet_embeddings is not None and _bullet_ids_order is not None:
         return _bullet_embeddings, _bullet_ids_order
 
-    vecs = _embed_texts([b.text for b in bullets])
-    ids = [b.bullet_id for b in bullets]
+    if EMBEDDER_PROVIDER == "voyage":
+        from .embed_voyage import bullets_to_role_groups, embed_bullets_contextual
+
+        role_groups = bullets_to_role_groups(bullets)
+        vecs, ids = embed_bullets_contextual(role_groups)
+    else:
+        vecs = _embed_texts_openai([b.text for b in bullets])
+        ids = [b.bullet_id for b in bullets]
 
     _bullet_embeddings = vecs
     _bullet_ids_order = ids
 
-    logger.info("bullet_embeddings_computed", count=len(ids), dim=vecs.shape[1])
+    logger.info(
+        "bullet_embeddings_computed",
+        count=len(ids),
+        dim=vecs.shape[1],
+        provider=EMBEDDER_PROVIDER,
+    )
     return vecs, ids
 
 

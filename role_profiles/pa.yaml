@@ -1,0 +1,17 @@
+role_family: pa
+display_name: "Product Analyst"
+status: stub  # MUST appear; loader refuses to use a stub for live scoring
+
+detection:
+  title_patterns:
+    - "product analyst"
+    - "data analyst, product"
+  responsibilities_signals: []
+
+keyword_taxonomy: {}    # empty; will inherit nothing
+bullet_format:
+  inherit: pm
+rubric_weights:
+  inherit: pm
+banned_phrases: []
+preferred_verbs: []

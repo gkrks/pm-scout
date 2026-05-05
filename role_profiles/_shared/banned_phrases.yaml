@@ -1,0 +1,22 @@
+# Phrases that must NEVER appear in a rewritten bullet.
+# Role profiles can extend this list per-role.
+global:
+  - responsible for
+  - duties included
+  - tasks included
+  - in charge of
+  - helped with
+  - worked on
+  - assisted with
+  - assisted in
+  - participated in
+  - synergy
+  - synergies
+  - leveraged          # tolerated only in past tense if the original used it
+  - utilized           # always replaceable with "used"
+  - thrilled to
+  - excited to
+  - passionate about
+  - results-driven
+  - team player
+  - dynamic

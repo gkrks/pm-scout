@@ -50,6 +50,8 @@ export const SelectedBulletZ = z.object({
 export const FinalSelectionZ = z.object({
   selected_bullets: z.array(SelectedBulletZ),
   uncovered_qualifications: z.array(z.string()),
+  uncovered_keywords: z.array(z.string()).default([]),
+  impossible_keywords: z.array(z.string()).default([]),
   total_score: z.number(),
   source_utilization: z.record(z.string(), z.number()),
 });
@@ -117,6 +119,44 @@ export const TokenQueryZ = z.object({
 });
 
 // --------------------------------------------------------------------------- //
+//  JD Keyword Extraction (Phase 3)
+// --------------------------------------------------------------------------- //
+
+export const KeywordCategoryEnum = z.enum([
+  "product_craft",
+  "data_and_experimentation",
+  "technical_depth",
+  "collaboration",
+  "domain_signals",
+  "uncategorized",
+]);
+
+export const KeywordTermZ = z.object({
+  surface: z.string(),         // exact JD phrasing as it appeared
+  canonical: z.string(),       // canonical form per synonyms.yaml
+  aliases: z.array(z.string()),// all known aliases including surface and canonical
+  jd_count: z.number().int(),
+  position_score: z.number(),  // 3.0 if in title, 2.0 in basic quals, 1.5 in preferred, 1.0 in responsibilities
+  weight: z.number(),          // jd_count * position_score * category_weight
+  source_qual_ids: z.array(z.string()),
+  category: KeywordCategoryEnum,
+  required: z.boolean(),       // true if appeared in basic_qualifications
+});
+
+export const RoleFamilyEnum = z.enum(["pm", "pa", "swe", "tpm", "data_analyst", "program_manager", "engineering_manager"]);
+
+export const JDKeywordsZ = z.object({
+  role_family: RoleFamilyEnum,
+  detected_role_confidence: z.number().min(0).max(1),
+  must_have: z.array(KeywordTermZ),     // required=true OR weight in top quartile
+  nice_to_have: z.array(KeywordTermZ),
+  domain: z.array(KeywordTermZ),         // industry/vertical (fintech, B2B SaaS, etc.)
+  action_verbs: z.array(KeywordTermZ),
+  banned_in_jd: z.array(z.string()),     // phrases the JD explicitly says NOT to do (rare)
+  jd_hash: z.string(),                   // SHA256(jd_text)[:16] for caching
+});
+
+// --------------------------------------------------------------------------- //
 //  Type exports
 // --------------------------------------------------------------------------- //
 
@@ -130,3 +170,6 @@ export type PreResolvedResult = z.infer<typeof PreResolvedResultZ>;
 export type ScoreResponse = z.infer<typeof ScoreResponseZ>;
 export type SelectResponse = z.infer<typeof SelectResponseZ>;
 export type UserSelection = z.infer<typeof UserSelectionZ>;
+export type KeywordTerm = z.infer<typeof KeywordTermZ>;
+export type JDKeywords = z.infer<typeof JDKeywordsZ>;
+export type RoleFamily = z.infer<typeof RoleFamilyEnum>;

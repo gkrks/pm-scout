@@ -41,13 +41,28 @@ JUDGE_MAX_TOKENS = 1024
 JUDGE_CONCURRENCY_CAP = 1  # sequential for Groq free tier (12K TPM)
 
 # --------------------------------------------------------------------------- #
-#  Embeddings (local sentence-transformers)
+#  Embeddings
 # --------------------------------------------------------------------------- #
 
+# Provider selection: "openai" (default, current behavior) or "voyage"
+EMBEDDER_PROVIDER = os.environ.get("EMBEDDER_PROVIDER", "openai")
+
+# Local sentence-transformers (used by retrieve.py for local fallback)
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 output dimension
 RETRIEVAL_TOP_K = int(os.environ.get("RETRIEVAL_TOP_K", "5"))
 SEMANTIC_SIM_FLOOR = 0.25
+
+# Voyage AI configuration (active when EMBEDDER_PROVIDER=voyage)
+VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
+VOYAGE_MODEL = "voyage-context-3"
+VOYAGE_OUTPUT_DIMENSION = 1024
+VOYAGE_OUTPUT_DTYPE = "float"
+VOYAGE_TIMEOUT_S = 30
+VOYAGE_MAX_RETRIES = 3
+
+# OpenAI embedding (active when EMBEDDER_PROVIDER=openai)
+OPENAI_EMBEDDING_MODEL = "text-embedding-3-large"
 
 # --------------------------------------------------------------------------- #
 #  Database (Supabase REST API)
@@ -86,9 +101,15 @@ WEIGHTS_PREFERRED = {
 SOURCE_BULLET_CAP = 2
 GLOBAL_BULLET_CAP = 12
 MATCH_SCORE_FLOOR = 30  # y[q,b] = 0 if match_score < this
+MATCH_SCORE_FLOOR_LOWERED = 20  # used when keyword coverage needs borderline bullets
 ILP_RANDOM_SEED = 42
 ILP_THREADS = 1
 VALUES_QUAL_SCORE_SCALE = 0.5
+
+# Keyword coverage constraint (Phase 4)
+# When enabled, the ILP forces selection of at least one bullet per must-have keyword
+KEYWORD_COVERAGE_ENABLED = os.environ.get("KEYWORD_COVERAGE_ENABLED", "false").lower() == "true"
+KEYWORD_SLACK_PENALTY = 300  # penalty for uncovered must-have keyword
 
 # --------------------------------------------------------------------------- #
 #  Recency scoring

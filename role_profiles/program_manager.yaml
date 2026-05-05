@@ -1,0 +1,19 @@
+role_family: program_manager
+display_name: "Program Manager"
+status: stub  # MUST appear; loader refuses to use a stub for live scoring
+
+detection:
+  # NOTE: Must NOT match "technical program manager" (that's TPM).
+  # Detection order ensures TPM is checked first; this only catches
+  # titles with "program manager" that DON'T have "technical" prefix.
+  title_patterns:
+    - "program manager"
+  responsibilities_signals: []
+
+keyword_taxonomy: {}    # empty; will inherit nothing
+bullet_format:
+  inherit: pm
+rubric_weights:
+  inherit: pm
+banned_phrases: []
+preferred_verbs: []

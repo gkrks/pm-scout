@@ -267,3 +267,38 @@ order by jl.first_seen_at desc;
 --    and last_seen_at < $2;                               -- $2 = run.started_at
 --
 -- ============================================================
+
+-- ============================================================
+--  jd_keyword_cache (Phase 3: JD keyword extraction cache)
+-- ============================================================
+create table if not exists public.jd_keyword_cache (
+  jd_hash                text not null,
+  role_profile_version   text not null,
+  keywords               jsonb not null,
+  cached_at              timestamptz not null default now(),
+
+  primary key (jd_hash, role_profile_version)
+);
+
+comment on table public.jd_keyword_cache is
+  'Caches JD keyword extraction results. Keyed on JD content hash + role profile version.';
+
+-- ============================================================
+--  bullet_rewrite_cache (Phase 5: bullet rewrite cache)
+-- ============================================================
+create table if not exists public.bullet_rewrite_cache (
+  bullet_id              text not null,
+  jd_hash                text not null,
+  role_profile_version   text not null,
+  target_keywords_hash   text not null,
+  rewritten_text         text not null,
+  was_rewritten          boolean not null default true,
+  claims_preserved       jsonb,
+  keywords_embedded      text[],
+  cached_at              timestamptz not null default now(),
+
+  primary key (bullet_id, jd_hash, role_profile_version, target_keywords_hash)
+);
+
+comment on table public.bullet_rewrite_cache is
+  'Caches bullet rewrites by (bullet_id, jd_hash, role_profile_version, target_keywords_hash).';

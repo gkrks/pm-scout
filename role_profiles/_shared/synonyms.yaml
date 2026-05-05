@@ -1,0 +1,212 @@
+# Bidirectional canonical mapping. Used by both:
+#  (a) JD keyword extraction (canonicalize JD's acronyms to their spelled-out form)
+#  (b) Bullet-keyword carryability check (a bullet with "PRD" carries the keyword "product requirements document")
+#
+# Format: canonical_form: [list of aliases including the canonical itself]
+canonical_to_aliases:
+  product requirements document:
+    - product requirements document
+    - prd
+    - prds
+    - product spec
+    - product specification
+    - product specifications
+
+  objectives and key results:
+    - objectives and key results
+    - okr
+    - okrs
+    - objective and key result
+
+  go-to-market:
+    - go-to-market
+    - gtm
+    - gtm strategy
+    - launch strategy
+
+  key performance indicators:
+    - key performance indicators
+    - key performance indicator
+    - kpi
+    - kpis
+    - performance metrics
+    - performance metric
+
+  minimum viable product:
+    - minimum viable product
+    - mvp
+    - mvps
+
+  north star metric:
+    - north star metric
+    - north star
+    - nsm
+
+  a/b testing:
+    - a/b testing
+    - a/b test
+    - a/b tests
+    - ab testing
+    - ab test
+    - split testing
+    - split test
+    - bucket testing
+    - randomized testing
+    - controlled experiment
+    - controlled experiments
+
+  daily active users:
+    - daily active users
+    - dau
+    - daus
+
+  monthly active users:
+    - monthly active users
+    - mau
+    - maus
+
+  application programming interface:
+    - api
+    - apis
+    - application programming interface
+    - application programming interfaces
+
+  software development kit:
+    - sdk
+    - sdks
+    - software development kit
+    - software development kits
+
+  user experience:
+    - user experience
+    - ux
+    - user experience design
+
+  user interface:
+    - user interface
+    - ui
+    - user interface design
+
+  product manager:
+    - product manager
+    - pm
+    - pms
+
+  associate product manager:
+    - associate product manager
+    - apm
+    - apms
+
+  technical program manager:
+    - technical program manager
+    - tpm
+    - tpms
+
+  group product manager:
+    - group product manager
+    - gpm
+
+  chief product officer:
+    - chief product officer
+    - cpo
+
+  return on investment:
+    - return on investment
+    - roi
+
+  customer acquisition cost:
+    - customer acquisition cost
+    - cac
+
+  lifetime value:
+    - lifetime value
+    - ltv
+    - customer lifetime value
+    - clv
+
+  net promoter score:
+    - net promoter score
+    - nps
+
+  service level agreement:
+    - service level agreement
+    - sla
+    - slas
+
+  continuous integration and continuous deployment:
+    - continuous integration and continuous deployment
+    - ci/cd
+    - cicd
+    - continuous integration
+    - continuous deployment
+
+  extract transform load:
+    - extract transform load
+    - etl
+
+  extract load transform:
+    - extract load transform
+    - elt
+
+  machine learning:
+    - machine learning
+    - ml
+
+  artificial intelligence:
+    - artificial intelligence
+    - ai
+
+  natural language processing:
+    - natural language processing
+    - nlp
+
+  large language model:
+    - large language model
+    - large language models
+    - llm
+    - llms
+
+  business to business:
+    - business to business
+    - b2b
+
+  business to consumer:
+    - business to consumer
+    - b2c
+
+  software as a service:
+    - software as a service
+    - saas
+
+  product-led growth:
+    - product-led growth
+    - plg
+
+  total addressable market:
+    - total addressable market
+    - tam
+
+  annual recurring revenue:
+    - annual recurring revenue
+    - arr
+
+  monthly recurring revenue:
+    - monthly recurring revenue
+    - mrr
+
+  cross-functional:
+    - cross-functional
+    - cross functional
+    - x-functional
+
+  stakeholder management:
+    - stakeholder management
+    - stakeholder alignment
+    - stakeholder communication
+
+  agile:
+    - agile
+    - agile methodology
+    - agile development
+    - scrum
+    - kanban

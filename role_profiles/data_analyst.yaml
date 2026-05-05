@@ -1,0 +1,18 @@
+role_family: data_analyst
+display_name: "Data Analyst"
+status: stub  # MUST appear; loader refuses to use a stub for live scoring
+
+detection:
+  title_patterns:
+    - "data analyst"
+    - "business intelligence analyst"
+    - "analytics engineer"
+  responsibilities_signals: []
+
+keyword_taxonomy: {}    # empty; will inherit nothing
+bullet_format:
+  inherit: pm
+rubric_weights:
+  inherit: pm
+banned_phrases: []
+preferred_verbs: []

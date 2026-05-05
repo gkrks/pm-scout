@@ -1,0 +1,72 @@
+# Resume OUTPUT rules. Does NOT affect input parsing or keyword matching.
+#
+# always_spell_out: when the rewriter produces output, expand the acronym to its full form.
+# keep_as_acronym: when the rewriter produces output, keep the acronym as-is.
+# Anything not in either list defaults to spell-out behavior.
+#
+# JD-aware override: if the JD itself uses the expanded form for a term in keep_as_acronym,
+# mirror the expanded form in the resume output. This is handled by the rewriter at runtime.
+
+always_spell_out:
+  PRD: product requirements document
+  OKR: objectives and key results
+  OKRs: objectives and key results
+  KPI: key performance indicator
+  KPIs: key performance indicators
+  MVP: minimum viable product
+  NSM: north star metric
+  GTM: go-to-market
+  APM: associate product manager
+  TPM: technical program manager
+  PM: product manager
+  GPM: group product manager
+  CPO: chief product officer
+  VP: vice president
+  "B.S.": bachelor of science
+  "M.S.": master of science
+  "Ph.D.": doctor of philosophy
+  MBA: master of business administration
+  CS: computer science
+  EE: electrical engineering
+  ME: mechanical engineering
+  "FP&A": financial planning and analysis
+  "P&L": profit and loss
+
+keep_as_acronym:
+  - SQL
+  - API
+  - APIs
+  - AWS
+  - GCP
+  - Azure
+  - REST
+  - GraphQL
+  - JSON
+  - XML
+  - HTML
+  - CSS
+  - ML
+  - AI
+  - NLP
+  - LLM
+  - LLMs
+  - "A/B testing"
+  - "A/B test"
+  - "CI/CD"
+  - gRPC
+  - SDK
+  - SDKs
+  - IDE
+  - OS
+  - IoT
+  - "AR/VR"
+  - SaaS
+  - B2B
+  - B2C
+  - ETL
+  - ELT
+  - DAU
+  - MAU
+  # NOTE: DAU/MAU are also in synonyms (canonical "daily active users") — when matching,
+  # we use the canonical; when producing output, we keep the acronym because it's industry-standard.
+  # This is intentional and not a contradiction.

@@ -127,6 +127,8 @@ class FinalSelection(BaseModel):
 
     selected_bullets: list[SelectedBullet]
     uncovered_qualifications: list[str]
+    uncovered_keywords: list[str] = Field(default_factory=list)      # keywords no selected bullet carries
+    impossible_keywords: list[str] = Field(default_factory=list)     # keywords no bullet CAN carry
     total_score: float
     source_utilization: dict[str, int]  # source_id -> count
 

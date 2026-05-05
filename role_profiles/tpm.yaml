@@ -1,0 +1,20 @@
+role_family: tpm
+display_name: "Technical Program Manager"
+status: stub  # MUST appear; loader refuses to use a stub for live scoring
+
+detection:
+  # NOTE: "Technical Product Manager" contains "product manager" and resolves to PM, not TPM.
+  # This is correct because PM detection runs after TPM in priority order, and "technical program
+  # manager" is a longer/more-specific match than "product manager" substring.
+  title_patterns:
+    - "technical program manager"
+    - "tpm"
+  responsibilities_signals: []
+
+keyword_taxonomy: {}    # empty; will inherit nothing
+bullet_format:
+  inherit: pm
+rubric_weights:
+  inherit: pm
+banned_phrases: []
+preferred_verbs: []

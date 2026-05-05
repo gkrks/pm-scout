@@ -1,0 +1,136 @@
+role_family: pm
+display_name: "Product Manager"
+
+detection:
+  # Substring patterns matched case-insensitive against the JD title.
+  # First family with a match wins. Patterns within a family are checked in order.
+  # Match logic: pattern.lower() in jd_title.lower()
+  title_patterns:
+    - "product manager"        # matches "Senior Product Manager", "Forward Deployed Associate Product Manager", etc.
+    - "product management"
+    - "head of product"
+    - "vp product"
+    - "vp of product"
+    - "chief product officer"
+    - "director of product"
+    - "director, product"
+  # Optional: signals from the JD body that strengthen the detection if title is ambiguous.
+  responsibilities_signals:
+    - roadmap
+    - prd
+    - product requirements document
+    - okrs
+    - product strategy
+    - go-to-market
+    - launch
+    - prioritization
+
+keyword_taxonomy:
+  # Each category has a weight that multiplies its keywords' importance in JD extraction.
+  # Categories are sorted highest-weight first when the rewriter chooses which keywords to embed.
+  product_craft:
+    weight: 3
+    terms:
+      - roadmap
+      - product requirements document  # canonical form; "PRD" appears as alias in synonyms.yaml
+      - user research
+      - customer interviews
+      - usability testing
+      - prioritization
+      - product strategy
+      - vision
+      - objectives and key results       # canonical for OKR
+      - north star metric
+      - go-to-market
+      - launch
+      - beta
+      - rollout
+  data_and_experimentation:
+    weight: 3
+    terms:
+      - a/b testing
+      - experimentation
+      - sql
+      - dashboards
+      - analytics
+      - metrics
+      - key performance indicators
+      - funnel analysis
+      - retention
+      - activation
+      - daily active users
+      - monthly active users
+      - cohort analysis
+  technical_depth:
+    weight: 2
+    terms:
+      - api
+      - sdk
+      - system design
+      - technical architecture
+      - scalability
+      - latency
+      - throughput
+      - infrastructure
+  collaboration:
+    weight: 2
+    terms:
+      - cross-functional
+      - stakeholder management
+      - engineering partnership
+      - design partnership
+      - executive communication
+  domain_signals:
+    # Populated dynamically from JD per-request. Leave empty in the YAML.
+    weight: 1
+    terms: []
+
+bullet_format:
+  primary: xyz
+  fallback: car
+  char_limit: 225
+  must_have_components:
+    - quantified_outcome     # at least one numeric result
+    - action_verb            # from preferred_verbs list
+    - scope_signal           # who/what/how-many
+
+rubric_weights:
+  basic:
+    keyword_overlap: 0.35
+    semantic: 0.25
+    evidence: 0.10
+    quantification: 0.10
+    seniority: 0.15
+    recency: 0.05
+  preferred:
+    keyword_overlap: 0.20
+    semantic: 0.30
+    evidence: 0.15
+    quantification: 0.15
+    seniority: 0.10
+    recency: 0.10
+
+banned_phrases:
+  - responsible for
+  - helped with
+  - worked on
+  - assisted in
+  - participated in
+  - in charge of
+  - tasked with
+  - duties included
+preferred_verbs:
+  - shipped
+  - launched
+  - drove
+  - owned
+  - scaled
+  - defined
+  - prioritized
+  - led
+  - architected
+  - delivered
+  - built
+  - reduced
+  - increased
+  - accelerated

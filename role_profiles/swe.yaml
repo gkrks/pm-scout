@@ -1,0 +1,23 @@
+role_family: swe
+display_name: "Software Engineer"
+status: stub  # MUST appear; loader refuses to use a stub for live scoring
+
+detection:
+  title_patterns:
+    - "software engineer"
+    - "software developer"
+    - "swe"
+    - "engineer i"
+    - "engineer ii"
+    - "staff engineer"
+    - "principal engineer"
+    - "senior engineer"
+  responsibilities_signals: []
+
+keyword_taxonomy: {}    # empty; will inherit nothing
+bullet_format:
+  inherit: pm
+rubric_weights:
+  inherit: pm
+banned_phrases: []
+preferred_verbs: []
