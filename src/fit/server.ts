@@ -32,7 +32,7 @@ console.log("[fit] env check:", {
 import express, { Request, Response, NextFunction } from "express";
 import fetch from "node-fetch";
 
-import { getSupabaseClient } from "../storage/supabase";
+import { getSupabaseClient, loadMasterResume } from "../storage/supabase";
 import { splitCompoundQualifications } from "../jdExtractor";
 import { generateCoverLetter, buildCoverLetterDocx } from "./coverLetterGenerator";
 import { handleDashboard } from "./dashboard";
@@ -181,9 +181,7 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
     }
 
     // Load emails from master resume
-    const resumeData = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
-    );
+    const resumeData = await loadMasterResume();
     const emails: string[] = resumeData.contact?.emails || ["krithiksaisreenishgopinath@gmail.com"];
 
     // Check application status
@@ -306,9 +304,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       .eq("id", jobId)
       .single();
 
-    const masterResume = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
-    );
+    const masterResume = await loadMasterResume();
     const bulletMap = new Map<string, string>();
     for (const exp of masterResume.experiences || []) {
       for (const b of exp.bullets || []) bulletMap.set(b.id, b.text);
@@ -550,9 +546,7 @@ app.post("/fit/:jobId/cover-letter", verifyToken, async (req: Request, res: Resp
       return;
     }
 
-    const masterResume = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, "../../config/master_resume.json"), "utf-8"),
-    );
+    const masterResume = await loadMasterResume();
 
     const companyName = (jobRow.company as any)?.name || jobRow.jd_company_name || "Unknown";
     const roleTitle = jobRow.jd_job_title || jobRow.title;

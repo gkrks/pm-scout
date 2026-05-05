@@ -18,14 +18,13 @@ import path from "path";
 
 import OpenAI from "openai";
 
-import { getSupabaseClient } from "../storage/supabase";
+import { getSupabaseClient, loadMasterResume } from "../storage/supabase";
 import { optimizeSkills } from "./skillsOptimizer";
 import { slug, resumeBasename } from "./slug";
 import type { UserSelection, ScoreResponse } from "./types";
 
 const REPO_ROOT = path.resolve(__dirname, "../..");
 const FILL_SCRIPT = path.join(REPO_ROOT, "fill_resume.js");
-const MASTER_RESUME_PATH = path.join(REPO_ROOT, "config/master_resume.json");
 const SUMMARY_MAX_CHARS = 340;
 
 interface GenerateResult {
@@ -94,7 +93,7 @@ export async function generateResume(
   skillEdits?: Record<string, string>,
 ): Promise<GenerateResult> {
   // Load master resume
-  const masterResume = JSON.parse(fs.readFileSync(MASTER_RESUME_PATH, "utf-8"));
+  const masterResume = await loadMasterResume();
 
   // Load job data from Supabase
   const supabase = getSupabaseClient();

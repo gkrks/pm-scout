@@ -10,7 +10,7 @@
 import fs from "fs";
 import path from "path";
 import { Request, Response } from "express";
-import { getSupabaseClient } from "../storage/supabase";
+import { getSupabaseClient, loadMasterResume } from "../storage/supabase";
 import {
   TECHNICAL_SKILLS,
   TOOLS,
@@ -366,16 +366,17 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
     }
 
     // Load master resume for bullet text
-    const masterResumePath = path.resolve(__dirname, "../../config/master_resume.json");
     const bulletMap = new Map<string, string>();
-    if (fs.existsSync(masterResumePath)) {
-      const masterResume = JSON.parse(fs.readFileSync(masterResumePath, "utf-8"));
+    try {
+      const masterResume = await loadMasterResume();
       for (const exp of masterResume.experiences || []) {
         for (const b of exp.bullets || []) bulletMap.set(b.id, b.text);
       }
       for (const proj of masterResume.projects || []) {
         for (const b of proj.bullets || []) bulletMap.set(b.id, b.text);
       }
+    } catch (e: any) {
+      console.warn("[dashboard] Failed to load master resume:", e.message);
     }
 
     const topReusedBullets = [...bulletFreq.entries()]
@@ -689,9 +690,8 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
 
     // YOE mismatch tracker — user's YOE from master_resume
     let userYoe = 0;
-    if (fs.existsSync(masterResumePath)) {
-      const mr = JSON.parse(fs.readFileSync(masterResumePath, "utf-8"));
-      // Sum experience months or use total_months if available
+    try {
+      const mr = await loadMasterResume();
       if (mr.total_months) {
         userYoe = Math.round(mr.total_months / 12 * 10) / 10;
       } else {
@@ -701,7 +701,7 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
         }
         userYoe = Math.round(totalMonths / 12 * 10) / 10;
       }
-    }
+    } catch { /* already loaded above, shouldn't fail */ }
 
     const yoeBuckets = [
       { label: "At/below your YOE", min: 0, max: userYoe + 0.5 },

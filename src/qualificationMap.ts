@@ -16,7 +16,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs";
 import path from "path";
 
-import { getSupabaseClient } from "./storage/supabase";
+import { getSupabaseClient, loadMasterResume } from "./storage/supabase";
 
 interface ResumeBullet {
   bullet_id: string;
@@ -79,9 +79,8 @@ function deduplicateQualifications(required: string[], preferred: string[]): str
 //  Step 3: Load master resume bullets
 // --------------------------------------------------------------------------- //
 
-function loadResumeBullets(): ResumeBullet[] {
-  const resumePath = path.resolve(__dirname, "../config/master_resume.json");
-  const data = JSON.parse(fs.readFileSync(resumePath, "utf-8"));
+async function loadResumeBullets(): Promise<ResumeBullet[]> {
+  const data = await loadMasterResume();
   const bullets: ResumeBullet[] = [];
 
   for (const exp of data.experiences || []) {
@@ -252,7 +251,7 @@ async function main(): Promise<void> {
   console.log(`  ${unique.length} unique qualifications`);
 
   console.log("Step 3: Loading master resume bullets...");
-  const bullets = loadResumeBullets();
+  const bullets = await loadResumeBullets();
   console.log(`  ${bullets.length} bullets loaded`);
 
   console.log("Step 4: Grouping via Claude Opus 4.6...");
