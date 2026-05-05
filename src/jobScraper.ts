@@ -1227,13 +1227,13 @@ async function scrapeCustomPlaywrightGeneric(
       const context = await browser.newContext({ userAgent: LI_UA, viewport: { width: 1280, height: 900 } });
       const page = await context.newPage();
 
-      await page.goto(careersUrl, { waitUntil: "domcontentloaded", timeout: 25_000 });
-      await page.waitForTimeout(4_000);
+      await page.goto(careersUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
+      await page.waitForTimeout(2_000);
 
       // Scroll to trigger lazy loading
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await page.waitForTimeout(1_000);
+        await page.waitForTimeout(500);
       }
 
       // Find all job-like links

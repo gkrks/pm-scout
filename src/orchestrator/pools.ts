@@ -49,7 +49,7 @@ export const PER_COMPANY_TIMEOUT_MS: Record<string, number> = {
   workday:             25_000,
   "google-playwright": 60_000,
   "meta-playwright":   60_000,
-  "custom-playwright": 30_000,   // generic fallback completes in ~8-10s
+  "custom-playwright": 45_000,   // generic fallback: 15s goto + 2s wait + 1s scroll + margin
 };
 
 export const API_CONCURRENCY       = 12;
