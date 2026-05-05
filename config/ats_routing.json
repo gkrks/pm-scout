@@ -4839,6 +4839,7 @@
     "medline": {
       "ats": "workday",
       "host": "medline.wd5.myworkdayjobs.com",
+      "tenant": "medline",
       "site": "Medline",
       "_discovery_method": "manual"
     },
@@ -4883,9 +4884,10 @@
       "_discovery_method": "manual"
     },
     "warby-parker": {
-      "ats": "greenhouse",
-      "slug": "warbyparker",
-      "_discovery_method": "manual"
+      "ats": "custom-playwright",
+      "_careers_url": "https://jobs.ashbyhq.com/warby-parker",
+      "_discovery_method": "manual",
+      "_note": "Ashby board exists but API slug not found"
     },
     "fullenrich": {
       "ats": "custom-playwright",
