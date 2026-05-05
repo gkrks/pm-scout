@@ -169,6 +169,8 @@ const SLUG_TO_ATS: Record<string, AtsValue> = {
   andurilindustries: "greenhouse", anduril: "greenhouse", gleanwork: "greenhouse",
   glean: "greenhouse", headway: "greenhouse", project44: "greenhouse",
   uberfreight: "greenhouse",
+  kikoff: "greenhouse", "warby-parker": "greenhouse", warbyparker: "greenhouse",
+  drw: "greenhouse",
   // Lever
   atlassian: "lever", plaid: "lever", outreach: "lever",
   netflix: "lever", palantir: "lever", neon: "lever",
@@ -184,6 +186,9 @@ const SLUG_TO_ATS: Record<string, AtsValue> = {
   perplexity: "ashby", dbtlabs: "ashby", anyscale: "ashby",
   characterai: "ashby", cedar: "ashby", openai: "ashby",
   snowflake: "ashby",
+  "adaptive-security": "ashby", adaptivesecurity: "ashby",
+  solace: "ashby", atticus: "ashby", jerry: "ashby",
+  junction: "ashby",
   // Special scrapers
   amazon: "amazon",
   google: "google-playwright",

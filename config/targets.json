@@ -4,7 +4,7 @@
     "version": "3.0.0",
     "schema_version": "3.0.0",
     "generated_at": "2026-05-01T22:44:43.446077+00:00",
-    "total_companies": 755,
+    "total_companies": 771,
     "geographic_scope": "United States",
     "purpose": "Reference config for an automated parser that scans careers pages, applies the filters defined here, and upserts results into Supabase. This file does NOT track runs, listings, or applications — that all lives in Supabase. See supabase_schema.sql for the database schema.",
     "stable_id_fields": [
@@ -18677,6 +18677,361 @@
       ],
       "notes": null,
       "index": 755,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "fe998104-d812-59a2-a43f-fef970c36aa0",
+      "slug": "tenth-revolution-group",
+      "name": "Tenth Revolution Group",
+      "category": "Staffing & Recruiting",
+      "careers_url": "https://careers.tenthrevolution.com/",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Staffing",
+        "Tech Recruiting"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 756,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "8a91e8b4-3832-5f54-8af5-e211b1a11fca",
+      "slug": "gambling-careers",
+      "name": "Gambling Careers",
+      "category": "Media & Entertainment",
+      "careers_url": "https://www.gamblingcareers.com/",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Gaming",
+        "Job Board"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 757,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "055ef0cb-fe13-573a-a926-7d0f462fa8be",
+      "slug": "medline",
+      "name": "Medline",
+      "category": "Healthcare & MedTech",
+      "careers_url": "https://medline.wd5.myworkdayjobs.com/Medline",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Healthcare",
+        "Medical Supplies"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 758,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "eea2d6fc-d427-53b8-bfc9-aa1e510ad701",
+      "slug": "adaptive-security",
+      "name": "Adaptive Security",
+      "category": "Cybersecurity",
+      "careers_url": "https://jobs.ashbyhq.com/adaptivesecurity",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "AI/ML",
+        "Cybersecurity"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 759,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "009f4501-f906-50b0-b0f5-176aa0dcc034",
+      "slug": "kikoff",
+      "name": "Kikoff",
+      "category": "Fintech & Payments",
+      "careers_url": "https://job-boards.greenhouse.io/kikoff",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Fintech",
+        "Consumer"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 760,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "85284326-06a7-5983-9671-3a69453c1929",
+      "slug": "solace",
+      "name": "Solace",
+      "category": "Infrastructure & DevTools",
+      "careers_url": "https://jobs.ashbyhq.com/solace",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Messaging",
+        "Middleware"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 761,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "01110b48-2efa-5461-a639-8eeb27936277",
+      "slug": "atticus",
+      "name": "Atticus",
+      "category": "Legal Tech",
+      "careers_url": "https://jobs.ashbyhq.com/atticus",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Legal Tech",
+        "Consumer"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 762,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "2ef0507b-db34-55f4-87bf-44fb6effc0b3",
+      "slug": "jerry",
+      "name": "Jerry",
+      "category": "Insurtech & Auto",
+      "careers_url": "https://jobs.ashbyhq.com/Jerry.ai",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Insurtech",
+        "Auto",
+        "Consumer"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 763,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "b755fe51-8ec9-52cb-ace3-0120e3e0d293",
+      "slug": "dataannotation",
+      "name": "DataAnnotation",
+      "category": "AI-Native Applications & Vertical AI",
+      "careers_url": "https://www.dataannotation.tech/",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "AI/ML",
+        "Data Labeling"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 764,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "ea7c37b4-d569-54aa-adeb-7cf8cbc1e081",
+      "slug": "paramount",
+      "name": "Paramount",
+      "category": "Media & Entertainment",
+      "careers_url": "https://careers.paramount.com/",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Media",
+        "Entertainment",
+        "Streaming"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 765,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "be9bb6ac-f7b5-546f-9f55-d4f6fb68ee46",
+      "slug": "junction",
+      "name": "Junction",
+      "category": "AI-Native Applications & Vertical AI",
+      "careers_url": "https://jobs.ashbyhq.com/junction",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "AI/ML"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 766,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "095005be-f988-5ae3-90c6-c2071e551f07",
+      "slug": "warby-parker",
+      "name": "Warby Parker",
+      "category": "E-Commerce & Consumer",
+      "careers_url": "https://boards.greenhouse.io/warbyparker",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "DTC",
+        "E-Commerce",
+        "Retail"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 767,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "3a302ed4-acad-5c21-be1a-edf3f016c3aa",
+      "slug": "fullenrich",
+      "name": "Full Enrich",
+      "category": "Sales & Marketing Tech",
+      "careers_url": "https://www.fullenrich.com/careers",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Sales Tech",
+        "Data Enrichment"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 768,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "0aeae0fe-69f8-5d19-bb92-ac2873afad3e",
+      "slug": "quinstreet",
+      "name": "Quinstreet",
+      "category": "Digital Marketing & AdTech",
+      "careers_url": "https://www.quinstreet.com/careers/",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "AdTech",
+        "Performance Marketing"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 769,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "d4782f0d-dab3-570c-93b5-bb3e63452b09",
+      "slug": "drw",
+      "name": "DRW",
+      "category": "Fintech & Payments",
+      "careers_url": "https://job-boards.greenhouse.io/drweng",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Trading",
+        "Fintech",
+        "Quantitative"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 770,
+      "content_hash": "a1b2c3d4e5f6g7h8"
+    },
+    {
+      "uuid": "b9e4d2d2-add0-504b-b0fb-ee8c9c788c58",
+      "slug": "crunchbase",
+      "name": "Crunchbase",
+      "category": "Data & Analytics Platforms",
+      "careers_url": "https://about.crunchbase.com/about-us/careers/",
+      "program_url": null,
+      "has_apm_program": false,
+      "apm_program_name": null,
+      "apm_program_status": null,
+      "domain_tags": [
+        "Data",
+        "Business Intelligence"
+      ],
+      "target_roles": [
+        "Product Manager",
+        "Associate Product Manager"
+      ],
+      "notes": null,
+      "index": 771,
       "content_hash": "a1b2c3d4e5f6g7h8"
     }
   ]

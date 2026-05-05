@@ -4825,6 +4825,87 @@
       "ats": "custom-playwright",
       "_discovery_method": "auto-fill-missing",
       "_discovered_at": "2026-05-04T18:13:26.041Z"
+    },
+    "tenth-revolution-group": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://careers.tenthrevolution.com/",
+      "_discovery_method": "manual"
+    },
+    "gambling-careers": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://www.gamblingcareers.com/",
+      "_discovery_method": "manual"
+    },
+    "medline": {
+      "ats": "workday",
+      "host": "medline.wd5.myworkdayjobs.com",
+      "site": "Medline",
+      "_discovery_method": "manual"
+    },
+    "adaptive-security": {
+      "ats": "ashby",
+      "slug": "adaptivesecurity",
+      "_discovery_method": "manual"
+    },
+    "kikoff": {
+      "ats": "greenhouse",
+      "slug": "kikoff",
+      "_discovery_method": "manual"
+    },
+    "solace": {
+      "ats": "ashby",
+      "slug": "solace",
+      "_discovery_method": "manual"
+    },
+    "atticus": {
+      "ats": "ashby",
+      "slug": "atticus",
+      "_discovery_method": "manual"
+    },
+    "jerry": {
+      "ats": "ashby",
+      "slug": "Jerry.ai",
+      "_discovery_method": "manual"
+    },
+    "dataannotation": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://www.dataannotation.tech/",
+      "_discovery_method": "manual"
+    },
+    "paramount": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://careers.paramount.com/",
+      "_discovery_method": "manual"
+    },
+    "junction": {
+      "ats": "ashby",
+      "slug": "junction",
+      "_discovery_method": "manual"
+    },
+    "warby-parker": {
+      "ats": "greenhouse",
+      "slug": "warbyparker",
+      "_discovery_method": "manual"
+    },
+    "fullenrich": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://www.fullenrich.com/careers",
+      "_discovery_method": "manual"
+    },
+    "quinstreet": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://www.quinstreet.com/careers/",
+      "_discovery_method": "manual"
+    },
+    "drw": {
+      "ats": "greenhouse",
+      "slug": "drweng",
+      "_discovery_method": "manual"
+    },
+    "crunchbase": {
+      "ats": "custom-playwright",
+      "_careers_url": "https://about.crunchbase.com/about-us/careers/",
+      "_discovery_method": "manual"
     }
   },
   "unmapped_default": "custom-playwright"
