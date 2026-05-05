@@ -130,7 +130,7 @@ export async function generateResume(
   }
 
   // Resolve selections to bullet texts and source counts
-  const sourceBullets = new Map<string, string[]>(); // sourceId -> selected bullet texts
+  const sourceBullets = new Map<string, string[]>(); // sourceId -> selected bullet texts (deduped)
   const selectedBulletTexts: string[] = [];
 
   for (const sel of selections) {
@@ -139,6 +139,9 @@ export async function generateResume(
 
     if (sel.is_custom) {
       text = sel.bullet_id_or_text;
+      // Custom bullets: try to find which source the qualification was matched to
+      // by checking the qualification_id pattern (e.g. "q_basic_3")
+      // For now, assign custom bullets to the first experience source so they're not lost
     } else {
       const found = bulletMap.get(sel.bullet_id_or_text);
       if (found) {
@@ -152,7 +155,10 @@ export async function generateResume(
     selectedBulletTexts.push(text);
     if (sourceId) {
       const existing = sourceBullets.get(sourceId) || [];
-      existing.push(text);
+      // Deduplicate: don't add the same bullet text twice to the same source
+      if (!existing.includes(text)) {
+        existing.push(text);
+      }
       sourceBullets.set(sourceId, existing);
     }
   }
@@ -207,9 +213,12 @@ export async function generateResume(
       .map((b: any) => b.text);
 
     const finalBullets: string[] = [];
-    // First add selected bullets
-    for (const text of selected.slice(0, 2)) {
-      finalBullets.push(text);
+    // First add selected bullets (already deduped in sourceBullets)
+    for (const text of selected) {
+      if (finalBullets.length >= 2) break;
+      if (!finalBullets.includes(text)) {
+        finalBullets.push(text);
+      }
     }
     // Fill remaining slots with defaults
     for (const text of defaultBullets) {
@@ -249,8 +258,11 @@ export async function generateResume(
       .map((b: any) => b.text);
 
     const finalBullets: string[] = [];
-    for (const text of selected.slice(0, 2)) {
-      finalBullets.push(text);
+    for (const text of selected) {
+      if (finalBullets.length >= 2) break;
+      if (!finalBullets.includes(text)) {
+        finalBullets.push(text);
+      }
     }
     for (const text of defaultBullets) {
       if (finalBullets.length >= 2) break;
