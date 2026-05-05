@@ -550,15 +550,14 @@ export const LI_UA =
   "AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/120.0.0.0 Safari/537.36";
 
-// ── Playwright serializer ─────────────────────────────────────────────────────
-// Only one Chromium instance at a time — each needs ~150-200 MB RAM which
-// is tight on Render free (512 MB total). Serialise all headless launches.
+// ── Playwright concurrency ────────────────────────────────────────────────────
+// Pool concurrency (PLAYWRIGHT_CONCURRENCY) controls how many browsers run
+// at once. No additional serialization needed — each worker gets its own
+// browser instance. GitHub Actions provides 7GB RAM, supporting 5-6 concurrent
+// Chromium instances with --single-process.
 
-let _pwQueue = Promise.resolve();
 export function withPlaywright<T>(fn: () => Promise<T>): Promise<T> {
-  const next = _pwQueue.then(fn);
-  _pwQueue = next.then(() => { /* empty */ }, () => { /* empty */ });
-  return next;
+  return fn();
 }
 
 // Common Chromium args for low-memory hosts (Render free, serverless)
