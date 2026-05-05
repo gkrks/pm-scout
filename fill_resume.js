@@ -148,7 +148,7 @@ const projs = projEntries.map(p => {
 });
 
 const edus = data.education.map(e => ({
-  degree: e.degree,
+  degree: e.major ? e.degree + ", " + e.major : e.degree,
   university: e.university,
   dates: fmtDate(e.start_date) + " \u2013 " + fmtDate(e.end_date),
 }));
