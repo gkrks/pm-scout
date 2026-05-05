@@ -264,7 +264,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
 
     // Kick off Python scorer + job row fetch + resume load in parallel
     const pyAbort = new AbortController();
-    const pyTimer = setTimeout(() => pyAbort.abort(), 15_000); // 15s hard kill
+    const pyTimer = setTimeout(() => pyAbort.abort(), 45_000); // 45s hard kill — cache misses need ~20s for embeddings + rerank
     const pyScoreP = fetch(`${BULLET_SELECTOR_URL}/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -273,7 +273,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         force_refresh: body.force_refresh,
       }),
       signal: pyAbort.signal as any,
-      timeout: 15_000, // 15s — covers response timeout too
+      timeout: 45_000, // 45s — cache misses: embeddings (~5s) + GPT-4.1 rerank (~15s) + overhead
     })
       .then(async (pyRes) => {
         clearTimeout(pyTimer);
