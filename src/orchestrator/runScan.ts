@@ -170,10 +170,38 @@ export async function orchestrateRun(
   );
   const playwrightCompanies = enabled.filter((c) => PLAYWRIGHT_ATS.has(c.ats));
 
+  // Deduplicate by careers URL — scrape each unique URL only once,
+  // then report the same result for all companies sharing that URL.
+  function dedup(companies: typeof enabled) {
+    const seen = new Map<string, typeof enabled[0]>();
+    const unique: typeof enabled = [];
+    const dupeMap = new Map<string, typeof enabled>(); // url -> extra companies
+
+    for (const c of companies) {
+      const url = c.careersUrl.toLowerCase().replace(/\/$/, "");
+      if (!seen.has(url)) {
+        seen.set(url, c);
+        unique.push(c);
+        dupeMap.set(url, []);
+      } else {
+        dupeMap.get(url)!.push(c);
+      }
+    }
+
+    const dupeCount = companies.length - unique.length;
+    if (dupeCount > 0) {
+      console.log(`[orchestrator] Deduped ${dupeCount} companies with shared careers URLs`);
+    }
+    return { unique, dupeMap };
+  }
+
+  const { unique: uniqueApi,   dupeMap: apiDupes }  = dedup(apiCompanies);
+  const { unique: uniquePw,    dupeMap: pwDupes }    = dedup(playwrightCompanies);
+
   console.log(
     `[orchestrator] Starting scan — ` +
-    `${apiCompanies.length} API | ` +
-    `${playwrightCompanies.length} Playwright | ` +
+    `${uniqueApi.length} API (${apiCompanies.length - uniqueApi.length} deduped) | ` +
+    `${uniquePw.length} Playwright (${playwrightCompanies.length - uniquePw.length} deduped) | ` +
     `${manualCompanies.length} manual (skipped)`,
   );
 
@@ -191,10 +219,30 @@ export async function orchestrateRun(
     });
   }
 
+  // Wrap onResult to also report for duplicate companies sharing the same URL
+  const allDupes = new Map([...apiDupes, ...pwDupes]);
+  const onResultWithDupes = (r: CompanyResult): void => {
+    onResult(r);
+    const url = r.careersUrl.toLowerCase().replace(/\/$/, "");
+    const extras = allDupes.get(url);
+    if (extras) {
+      for (const dup of extras) {
+        onResult({
+          ...r,
+          companyId:  dup.id ?? "",
+          slug:       dup.slug ?? dup.name,
+          name:       dup.name,
+          careersUrl: dup.careersUrl,
+          ats:        dup.ats,
+        });
+      }
+    }
+  };
+
   // Run API and Playwright pools concurrently
   await Promise.all([
-    runPool(apiCompanies,       API_CONCURRENCY,       budget, baselines, onResult),
-    runPool(playwrightCompanies, PLAYWRIGHT_CONCURRENCY, budget, baselines, onResult),
+    runPool(uniqueApi,  API_CONCURRENCY,       budget, baselines, onResultWithDupes),
+    runPool(uniquePw,   PLAYWRIGHT_CONCURRENCY, budget, baselines, onResultWithDupes),
   ]);
 
   const allJobs = companyResults.flatMap((r) => r.jobs);
