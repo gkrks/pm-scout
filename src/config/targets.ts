@@ -283,18 +283,20 @@ function adaptExternalConfig(
     }
 
     // ── ATS resolution (3-step priority) ───────────────────────────────────
-    // Step 1: routing file has an explicit non-manual entry → authoritative.
-    //   This is the primary fix for the 121-company bug: companies that are in
-    //   ats_routing.json but NOT in SLUG_TO_ATS were previously silently dropped
-    //   because resolveAts() returned null before we ever reached this check.
-    let ats: AtsValue | null = null;
-    if (rawRoutingEntry && rawRoutingEntry.ats !== "manual" &&
+    // Step 1: hardcoded SLUG_TO_ATS map + URL-pattern detection.
+    //   These are verified correct mappings (e.g. dropbox→greenhouse) and
+    //   must take priority over auto-discovered routing entries that may
+    //   have been bulk-assigned as "custom-playwright" by discoverATS.js.
+    let ats: AtsValue | null = resolveAts(c);
+
+    // Step 2: routing file has an explicit non-manual entry.
+    //   Only used when the hardcoded map doesn't have this company.
+    //   This is the fix for the 121-company bug: companies in ats_routing.json
+    //   but NOT in SLUG_TO_ATS were previously silently dropped.
+    if (!ats && rawRoutingEntry && rawRoutingEntry.ats !== "manual" &&
         ATS_VALUES.includes(rawRoutingEntry.ats as AtsValue)) {
       ats = rawRoutingEntry.ats as AtsValue;
     }
-
-    // Step 2: URL-pattern and hardcoded-slug detection (SLUG_TO_ATS map).
-    if (!ats) ats = resolveAts(c);
 
     // Step 3: fall back to routing file's unmapped_default so NO company is
     //   silently dropped. Companies without discovered routing are still
