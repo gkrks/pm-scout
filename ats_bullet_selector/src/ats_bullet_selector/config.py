@@ -24,7 +24,11 @@ OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 SYNONYMS_PATH = PROJECT_ROOT / "data" / "synonyms.yaml"
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 
-DEFAULT_MASTER_RESUME_PATH = REPO_ROOT / "config" / "master_resume.json"
+# On Railway, root dir is ats_bullet_selector/ so REPO_ROOT won't have config/.
+# Fall back to a local copy bundled in PROJECT_ROOT.
+_repo_resume = REPO_ROOT / "config" / "master_resume.json"
+_local_resume = PROJECT_ROOT / "master_resume.json"
+DEFAULT_MASTER_RESUME_PATH = _repo_resume if _repo_resume.exists() else _local_resume
 
 # --------------------------------------------------------------------------- #
 #  LLM (Groq)
