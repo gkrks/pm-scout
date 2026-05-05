@@ -1493,7 +1493,7 @@
     "education": [
         {
             "id": "edu_northeastern_0",
-            "degree": "M.S. Computer Engineering and Management",
+            "degree": "Master of Science in Engineering Management",
             "major": null,
             "university": "Northeastern University",
             "location": "Boston, MA",
@@ -1510,7 +1510,7 @@
         {
             "id": "edu_vnit_1",
             "degree": "Bachelor of Technology",
-            "major": null,
+            "major": "Computer Science and Engineering",
             "university": "Visvesvaraya National Institute of Technology",
             "location": "Nagpur, India",
             "start_date": "2017-06-01",
