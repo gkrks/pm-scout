@@ -241,18 +241,23 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         .maybeSingle();
 
       if (cached) {
-        console.log(`[fit] Cache hit for jobId=${jobId}`);
         const scoreResp = cached.score_response as any;
-        res.json({
-          ...scoreResp,
-          summary_candidates: cached.summary_candidates,
-          summary_recommended: cached.summary_recommended,
-          summary_jd_analysis: cached.summary_jd_analysis,
-          optimized_skills: cached.optimized_skills,
-          skills_gap_filled: cached.skills_gap_filled,
-          skills_gap_remaining: cached.skills_gap_remaining,
-        });
-        return;
+        const hasRealData = scoreResp?.ranked_candidates?.length > 0 ||
+                            scoreResp?.pre_resolved?.length > 0;
+        if (hasRealData) {
+          console.log(`[fit] Cache hit for jobId=${jobId}`);
+          res.json({
+            ...scoreResp,
+            summary_candidates: cached.summary_candidates,
+            summary_recommended: cached.summary_recommended,
+            summary_jd_analysis: cached.summary_jd_analysis,
+            optimized_skills: cached.optimized_skills,
+            skills_gap_filled: cached.skills_gap_filled,
+            skills_gap_remaining: cached.skills_gap_remaining,
+          });
+          return;
+        }
+        console.log(`[fit] Cache hit for jobId=${jobId} has empty data, recomputing...`);
       }
     }
 
@@ -356,9 +361,10 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       skills_gap_remaining: skillsResult.gapRemaining,
     };
 
-    // ---- Save to cache ----
+    // ---- Save to cache (only if we got real data) ----
     const { job_id, model_version, system_prompt_hash, ranked_candidates, final_selection, pre_resolved } = validated;
-    await supabase
+    const hasRealScoreData = ranked_candidates.length > 0 || pre_resolved.length > 0;
+    if (hasRealScoreData) await supabase
       .from("fit_score_cache")
       .upsert({
         listing_id: jobId,
