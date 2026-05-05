@@ -17,16 +17,70 @@ logger = structlog.get_logger()
 
 
 # --------------------------------------------------------------------------- #
-#  Master resume loader
+#  Master resume loader (Supabase, with local file fallback)
 # --------------------------------------------------------------------------- #
+
+_resume_cache: Optional[dict[str, Any]] = None
+
+
+def _load_resume_data(path: Optional[str | Path] = None) -> dict[str, Any]:
+    """Load resume data from Supabase master_resume table, falling back to local file."""
+    global _resume_cache
+    if _resume_cache is not None:
+        return _resume_cache
+
+    # Try Supabase first
+    if SUPABASE_URL and SUPABASE_KEY:
+        try:
+            resp = httpx.get(
+                f"{SUPABASE_URL}/rest/v1/master_resume",
+                params={"select": "experiences,projects,education,skills,contact", "id": "eq.default"},
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                },
+                timeout=10.0,
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            if rows:
+                row = rows[0]
+                data = {
+                    "experiences": row.get("experiences", []),
+                    "projects": row.get("projects", []),
+                    "education": row.get("education", []),
+                    "skills": row.get("skills", []),
+                    "contact": row.get("contact", {}),
+                }
+                _resume_cache = data
+                logger.info("master_resume_loaded", source="supabase", bullet_count=_count_bullets(data))
+                return data
+        except Exception as e:
+            logger.warning("supabase_resume_load_failed", error=str(e))
+
+    # Fallback to local file
+    resume_path = Path(path) if path else DEFAULT_MASTER_RESUME_PATH
+    with open(resume_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    _resume_cache = data
+    logger.info("master_resume_loaded", source="file", path=str(resume_path), bullet_count=_count_bullets(data))
+    return data
+
+
+def _count_bullets(data: dict[str, Any]) -> int:
+    count = 0
+    for exp in data.get("experiences", []):
+        count += len(exp.get("bullets", []))
+    for proj in data.get("projects", []):
+        count += len(proj.get("bullets", []))
+    return count
+
 
 def load_master_resume(
     path: Optional[str | Path] = None,
 ) -> list[Bullet]:
-    """Load master_resume.json into a flat list of Bullet objects."""
-    resume_path = Path(path) if path else DEFAULT_MASTER_RESUME_PATH
-    with open(resume_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    """Load master resume into a flat list of Bullet objects."""
+    data = _load_resume_data(path)
 
     bullets: list[Bullet] = []
     today = date.today()
@@ -70,17 +124,14 @@ def load_master_resume(
                 recency_months=0.0,  # projects treated as current
             ))
 
-    logger.info("master_resume_loaded", bullet_count=len(bullets), path=str(resume_path))
     return bullets
 
 
 def load_master_resume_raw(
     path: Optional[str | Path] = None,
 ) -> dict[str, Any]:
-    """Load master_resume.json as raw dict (for slot mapping in generation)."""
-    resume_path = Path(path) if path else DEFAULT_MASTER_RESUME_PATH
-    with open(resume_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Load master resume as raw dict (for slot mapping in generation)."""
+    return _load_resume_data(path)
 
 
 # --------------------------------------------------------------------------- #
