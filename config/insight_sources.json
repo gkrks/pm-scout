@@ -1,0 +1,61 @@
+[
+  {
+    "project_id": "searchengine_rust",
+    "one_line": "Full-text search engine built from scratch in Rust with BM25, tiered indexing, proximity scoring, VByte compression, and streaming k-way merge over 11K documents",
+    "sources": [
+      { "url": "https://github.com/sreenish27/Search_engine_rs", "type": "github_readme" },
+      { "url": "docs/Krithik_Website/scraped_docs/search-engine.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-1-building-a-search-engine.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-2-phrase-search-and-spell-correction.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-3-reading-from-disk.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-4-compression.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-5-tf-idf-ranking.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-6-tiered-indexes.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/day-7-proximity-scoring.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/merge-fix-streaming-k-way-merge.md", "type": "local_file" },
+      { "url": "https://medium.com/@krithikintl/building-a-semantic-search-engine-with-bm25-and-query-relaxation-a-deep-dive-0a24f5e2819d", "type": "medium" }
+    ]
+  },
+  {
+    "project_id": "filmsearch",
+    "one_line": "Semantic film discovery engine combining multi-zone BM25, intelligent query relaxation, and sentence-transformer embeddings over 54K films — v1 failed with LLM-only retrieval, v2 rebuilt from scratch",
+    "sources": [
+      { "url": "https://github.com/sreenish27/filmsearch", "type": "github_readme" },
+      { "url": "docs/Krithik_Website/scraped_docs/filmsearch.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/filmsearch-v1-failed-attempt.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/filmsearch-v2-multi-zone-bm25.md", "type": "local_file" },
+      { "url": "https://medium.com/@krithikintl/building-a-semantic-search-engine-with-bm25-and-query-relaxation-a-deep-dive-0a24f5e2819d", "type": "medium" }
+    ]
+  },
+  {
+    "project_id": "voyantra",
+    "one_line": "Collaborative trip planning platform using MERN stack with real-time Amadeus API integration for flights and hotels — the project that taught how APIs, backends, and databases actually work",
+    "sources": [
+      { "url": "https://github.com/sreenish27/voyantra", "type": "github_readme" }
+    ]
+  },
+  {
+    "project_id": "learning_skill",
+    "one_line": "Claude AI skill that enforces genuine mastery through retrieval-based learning — 3 modes, 8 rules, 5 grading categories, spaced-rep with flinch detection",
+    "sources": [
+      { "url": "https://github.com/sreenish27/learning-skill", "type": "github_readme" },
+      { "url": "docs/Krithik_Website/scraped_docs/how-i-use-ai.md", "type": "local_file" },
+      { "url": "docs/Krithik_Website/scraped_docs/how-i-use-ai-the-tutor.md", "type": "local_file" }
+    ]
+  },
+  {
+    "project_id": "chucklebox",
+    "one_line": "AI-powered app that detects laughter in audio recordings, transcribes the surrounding conversation, and uses an LLM to summarize what was funny — built in one day at SundAI Club hackathon at MIT",
+    "sources": [
+      { "url": "https://github.com/sundai-club/laughter_slander", "type": "github_readme" },
+      { "url": "https://www.sundai.club/projects/bf3fd58f-0f07-4d9b-a2a0-01a4582ce3ae", "type": "blog" }
+    ]
+  },
+  {
+    "project_id": "homepage",
+    "one_line": "Personal site — bio, work history (Matic Robots, Saayam, Wurq, ZS Associates), through-line connecting all projects, contrarian question",
+    "sources": [
+      { "url": "docs/Krithik_Website/scraped_docs/index.md", "type": "local_file" }
+    ]
+  }
+]
