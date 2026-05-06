@@ -91,6 +91,8 @@ export async function generateResume(
   summaryOverride?: string,
   customSkills?: string[],
   skillEdits?: Record<string, string>,
+  skillDeletions?: number[],
+  newSkillSections?: { name: string; list: string }[],
 ): Promise<GenerateResult> {
   // Load master resume
   const masterResume = await loadMasterResume();
@@ -176,14 +178,7 @@ export async function generateResume(
   });
   const selectedExpIds = rankedExps.slice(0, 4);
 
-  // Search Engine in Rust (proj_searchengine_rust_0) always gets a slot — it's the
-  // latest ongoing project and demonstrates systems-level builder instinct.
-  const PRIORITY_PROJECT = "proj_searchengine_rust_0";
-
   const rankedProjs = [...projSources].sort((a: string, b: string) => {
-    // Priority project always first
-    if (a === PRIORITY_PROJECT) return -1;
-    if (b === PRIORITY_PROJECT) return 1;
     const countA = (sourceBullets.get(a) || []).length;
     const countB = (sourceBullets.get(b) || []).length;
     if (countB !== countA) return countB - countA;
@@ -316,6 +311,21 @@ export async function generateResume(
   if (customSkills && customSkills.length > 0 && skillLines.length > 0) {
     const last = skillLines[skillLines.length - 1];
     last.list = last.list + ", " + customSkills.join(", ");
+  }
+  // Remove deleted skill sub-sections (by original index, highest first to preserve indices)
+  if (skillDeletions && skillDeletions.length > 0) {
+    const sorted = [...skillDeletions].sort((a, b) => b - a);
+    for (const idx of sorted) {
+      if (idx >= 0 && idx < skillLines.length) {
+        skillLines.splice(idx, 1);
+      }
+    }
+  }
+  // Append new skill sub-sections from UI
+  if (newSkillSections && newSkillSections.length > 0) {
+    for (const sec of newSkillSections) {
+      skillLines.push({ name: sec.name, list: sec.list, jdEvidence: [] });
+    }
   }
   (workingResume as any).__skills_override = skillLines;
 

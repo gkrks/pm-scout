@@ -39,6 +39,8 @@ import { handleDashboard } from "./dashboard";
 import { generateResume } from "./generateResume";
 import { handleTracker, handleTrackerUpdate } from "./tracker";
 import { renderFitPage } from "./render";
+import { submitJobUrl, SubmitUrlError } from "./submitUrl";
+import { renderSubmitUrlPage } from "./submitUrlRender";
 import { optimizeSkills } from "./skillsOptimizer";
 import { generateSummaryCandidates } from "./summaryGenerator";
 import {
@@ -154,6 +156,54 @@ app.get("/tracker", handleTracker);
 app.patch("/tracker/api/applications/:id", express.json(), handleTrackerUpdate);
 
 // --------------------------------------------------------------------------- //
+//  GET /fit/new — Submit URL form page
+//  POST /fit/submit-url — Process submitted URL
+//  (Must be above /fit/:jobId so Express doesn't match "new" as a jobId)
+// --------------------------------------------------------------------------- //
+
+const DASHBOARD_TOKEN = process.env.DASHBOARD_TOKEN || "";
+
+function verifyDashboardToken(req: Request, res: Response, next: NextFunction): void {
+  if (!DASHBOARD_TOKEN) { next(); return; }
+  const token = (req.query.token as string) || (req.headers["x-dashboard-token"] as string) || "";
+  if (token !== DASHBOARD_TOKEN) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  next();
+}
+
+app.get("/fit/new", verifyDashboardToken, (_req: Request, res: Response) => {
+  res.send(renderSubmitUrlPage(DASHBOARD_TOKEN));
+});
+
+app.post("/fit/submit-url", verifyDashboardToken, async (req: Request, res: Response) => {
+  const url = req.body?.url;
+  if (!url || typeof url !== "string") {
+    res.status(400).json({ error: "Missing or invalid 'url' field" });
+    return;
+  }
+
+  try {
+    const result = await submitJobUrl(url.trim());
+    const fitToken = generateToken(result.jobId);
+    res.json({
+      jobId: result.jobId,
+      token: fitToken,
+      existing: result.existing,
+      redirectUrl: `/fit/${result.jobId}?token=${fitToken}`,
+    });
+  } catch (err: any) {
+    if (err instanceof SubmitUrlError) {
+      res.status(err.statusCode).json({ error: err.message, detail: err.detail });
+    } else {
+      console.error("[fit] submit-url error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+});
+
+// --------------------------------------------------------------------------- //
 //  GET /fit/:jobId — Render Fit page
 // --------------------------------------------------------------------------- //
 
@@ -167,7 +217,7 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       .from("job_listings")
       .select(`
         id, title, location_raw, location_city, is_remote, is_hybrid,
-        role_url, ats_platform,
+        role_url, ats_platform, posted_date, first_seen_at,
         jd_job_title, jd_company_name, jd_required_qualifications,
         jd_preferred_qualifications, jd_role_context,
         company:companies!inner(name, slug)
@@ -200,6 +250,8 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       isRemote: job.is_remote,
       isHybrid: job.is_hybrid,
       ats: job.ats_platform || "",
+      postedDate: job.posted_date || null,
+      firstSeenAt: job.first_seen_at || null,
       roleUrl: job.role_url,
       requiredQuals: splitCompoundQualifications((job.jd_required_qualifications as string[]) || []),
       preferredQuals: splitCompoundQualifications((job.jd_preferred_qualifications as string[]) || []),
@@ -439,7 +491,7 @@ app.post("/fit/:jobId/generate", verifyToken, async (req: Request, res: Response
     const body = GenerateRequestBodyZ.parse(req.body);
     const jobId = req.params.jobId;
 
-    const result = await generateResume(jobId, body.selections, undefined, body.email, body.summaryHints, body.customSkills, body.skillEdits);
+    const result = await generateResume(jobId, body.selections, undefined, body.email, body.summaryHints, body.customSkills, body.skillEdits, body.skillDeletions, body.newSkillSections);
 
     generatedFiles.set(jobId, {
       pdfPath: result.pdfPath,
@@ -599,6 +651,141 @@ app.post("/fit/:jobId/cover-letter", verifyToken, async (req: Request, res: Resp
 });
 
 // --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/outreach — Unified outreach generation
+// --------------------------------------------------------------------------- //
+
+import { composeOutreach } from "./outreach/composer";
+import { OutreachModeZ } from "./outreach/types";
+
+app.post("/fit/:jobId/outreach", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const { mode, personIntel, email } = req.body as { mode?: string; personIntel?: any; email?: string };
+
+    const parsedMode = OutreachModeZ.safeParse(mode);
+    if (!parsedMode.success) {
+      res.status(400).json({ error: "Invalid mode. Must be: cover_letter, linkedin_referral_peer, linkedin_referral_open_to_connect, or linkedin_hiring_manager" });
+      return;
+    }
+
+    const result = await composeOutreach({
+      jobId,
+      mode: parsedMode.data,
+      personIntel: personIntel ? { text: personIntel.text, name: personIntel.name, title: personIntel.title } : undefined,
+      email,
+    });
+
+    if (result.skip) {
+      res.json({ skip: true, reason: result.reason });
+      return;
+    }
+
+    // Store DOCX path for download if cover letter
+    if (result.docxPath) {
+      generatedFiles.set(`outreach-${jobId}`, { pdfPath: "", docxPath: result.docxPath });
+    }
+
+    res.json({
+      skip: false,
+      text: result.result.text,
+      hook: result.result.hook,
+      mode: result.result.mode,
+      wordCount: result.result.wordCount,
+      downloadUrl: result.docxPath ? `/fit/${jobId}/download/outreach?token=${(req.query.token as string) || ""}` : undefined,
+    });
+  } catch (err: any) {
+    console.error("[fit] outreach error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/outreach/download — Build DOCX from edited text
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/outreach/download", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const { text } = req.body as { text?: string };
+
+    if (!text) {
+      res.status(400).json({ error: "Missing text field" });
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    const { data: job } = await supabase
+      .from("job_listings")
+      .select("title, jd_job_title, jd_company_name, company:companies!inner(name)")
+      .eq("id", jobId)
+      .single();
+
+    const companyName = (job?.company as any)?.name || job?.jd_company_name || "Unknown";
+    const roleName = job?.jd_job_title || job?.title || "PM";
+
+    const docxPath = await buildCoverLetterDocx(text, companyName, roleName);
+    generatedFiles.set(`outreach-${jobId}`, { pdfPath: "", docxPath });
+
+    const token = (req.query.token as string) || "";
+    res.json({ downloadUrl: `/fit/${jobId}/download/outreach?token=${token}` });
+  } catch (err: any) {
+    console.error("[fit] outreach download error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  GET /fit/:jobId/download/outreach — Stream outreach DOCX
+// --------------------------------------------------------------------------- //
+
+app.get("/fit/:jobId/download/outreach", verifyToken, (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  const files = generatedFiles.get(`outreach-${jobId}`);
+  if (!files || !files.docxPath || !fs.existsSync(files.docxPath)) {
+    res.status(404).json({ error: "No outreach DOCX generated." });
+    return;
+  }
+  const basename = path.basename(files.docxPath);
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  res.setHeader("Content-Disposition", `attachment; filename="${basename}"`);
+  fs.createReadStream(files.docxPath).pipe(res);
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/intel/refresh — Refresh company intel
+// --------------------------------------------------------------------------- //
+
+import { refreshCompanyIntel } from "./intel/orchestrator";
+
+app.post("/fit/:jobId/intel/refresh", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const supabase = getSupabaseClient();
+
+    // Look up company for this job
+    const { data: job } = await supabase
+      .from("job_listings")
+      .select("company:companies!inner(id, careers_url)")
+      .eq("id", jobId)
+      .single();
+
+    if (!job) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    const companyId = (job.company as any)?.id;
+    const domain = (job.company as any)?.careers_url;
+
+    const result = await refreshCompanyIntel(companyId, { force: true, domain });
+    res.json(result);
+  } catch (err: any) {
+    console.error("[fit] intel refresh error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
 //  GET /fit/:jobId/download/cover-letter — Stream cover letter DOCX
 // --------------------------------------------------------------------------- //
 
@@ -613,6 +800,22 @@ app.get("/fit/:jobId/download/cover-letter", verifyToken, (req: Request, res: Re
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   res.setHeader("Content-Disposition", `attachment; filename="${basename}"`);
   fs.createReadStream(files.docxPath).pipe(res);
+});
+
+// --------------------------------------------------------------------------- //
+//  GET /fit/:jobId/preview/pdf — Inline PDF for in-browser preview
+// --------------------------------------------------------------------------- //
+
+app.get("/fit/:jobId/preview/pdf", verifyToken, (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  const files = generatedFiles.get(jobId);
+  if (!files || !files.pdfPath || !fs.existsSync(files.pdfPath)) {
+    res.status(404).json({ error: "No generated resume found. Click Preview to generate first." });
+    return;
+  }
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", "inline");
+  fs.createReadStream(files.pdfPath).pipe(res);
 });
 
 // --------------------------------------------------------------------------- //

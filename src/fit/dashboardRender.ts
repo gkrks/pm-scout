@@ -255,6 +255,7 @@ export function renderDashboardPage(data: DashboardData): string {
     <h1><span>PM Scout</span> Analytics</h1>
     <div class="header-right">
       <a href="/tracker?token=${esc(data.token)}" class="header-nav-link">Tracker</a>
+      <a href="/fit/new?token=${esc(data.token)}" class="header-nav-link">Check Any Job</a>
       <button class="theme-toggle" id="theme-toggle" title="Toggle theme">Light Mode</button>
       <span class="generated-at">Updated ${esc(generatedFmt)}</span>
     </div>

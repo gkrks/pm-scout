@@ -219,6 +219,7 @@ export function renderTrackerPage(applications: TrackerApp[], token: string): st
     <h1><span>Applications</span> Tracker</h1>
     <div class="header-links">
       <a href="/dashboard?token=${esc(token)}">Dashboard</a>
+      <a href="/fit/new?token=${esc(token)}">Check Any Job</a>
     </div>
     <div class="header-right">
       <button class="theme-toggle" id="theme-toggle">Light Mode</button>

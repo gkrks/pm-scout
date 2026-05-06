@@ -19,6 +19,8 @@
   var selectedEmail = DATA.emails && DATA.emails[0] || "";
   var customSkills = [];  // tracks skills added via the UI button
   var skillEdits = {};    // index -> edited list string (per skill subsection)
+  var skillDeletions = []; // original indices of deleted skill sub-sections
+  var newSkillSections = []; // {name, list} objects for new skill sub-sections
   var scoreData = null;
 
   // Email selector behavior
@@ -241,24 +243,91 @@
       html += '<span style="font-size:0.72rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.3px;">Option ' + c.index + ' — ' + esc(c.angle) + '</span>';
       html += '<div>';
       if (isRec) html += '<span class="badge-recommended">Recommended</span> ';
-      html += '<span style="font-size:0.72rem;color:#9ca3af;">' + c.chars + ' chars</span>';
+      html += '<span class="summary-char-display" style="font-size:0.72rem;color:#9ca3af;">' + c.chars + ' chars</span>';
       html += '</div></div>';
       html += '<div class="summary-text">' + esc(c.text) + '</div>';
       if (c.reasoning) {
         html += '<div style="font-size:0.72rem;color:#9ca3af;margin-top:4px;font-style:italic;">' + esc(c.reasoning) + '</div>';
       }
+      html += '<button class="summary-edit-btn" data-index="' + c.index + '">Edit</button>';
+      html += '<div class="summary-edit-area" data-index="' + c.index + '" style="display:none;">';
+      html += '<textarea class="summary-edit-textarea">' + esc(c.text) + '</textarea>';
+      html += '<div class="summary-edit-actions">';
+      html += '<button class="btn btn-sm" style="background:#6366f1;color:#fff;" data-action="save" data-index="' + c.index + '">Save</button>';
+      html += '<button class="btn btn-sm" style="background:#e5e7eb;color:#374151;" data-action="cancel" data-index="' + c.index + '">Cancel</button>';
+      html += '<span class="summary-char-count"></span>';
+      html += '</div></div>';
       html += '</div>';
     });
 
     box.innerHTML = html;
 
+    // Bind selection clicks
     box.querySelectorAll(".summary-candidate").forEach(function (el) {
-      el.addEventListener("click", function () {
+      el.addEventListener("click", function (e) {
+        // Don't select when clicking edit controls
+        if (e.target.closest(".summary-edit-btn") || e.target.closest(".summary-edit-area")) return;
         box.querySelectorAll(".summary-candidate").forEach(function (s) { s.classList.remove("active"); });
         el.classList.add("active");
         selectedSummary = el.querySelector(".summary-text").textContent;
       });
     });
+
+    // Bind edit buttons
+    box.querySelectorAll(".summary-edit-btn").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var idx = btn.dataset.index;
+        var area = btn.parentElement.querySelector('.summary-edit-area[data-index="' + idx + '"]');
+        var ta = area.querySelector(".summary-edit-textarea");
+        // Reset textarea to current displayed text
+        ta.value = btn.parentElement.querySelector(".summary-text").textContent;
+        area.style.display = area.style.display === "none" ? "block" : "none";
+        if (area.style.display === "block") {
+          ta.focus();
+          updateCharCount(ta, area.querySelector(".summary-char-count"));
+        }
+      });
+    });
+
+    // Bind textarea char count updates
+    box.querySelectorAll(".summary-edit-textarea").forEach(function (ta) {
+      ta.addEventListener("input", function () {
+        var countEl = ta.closest(".summary-edit-area").querySelector(".summary-char-count");
+        updateCharCount(ta, countEl);
+      });
+    });
+
+    // Bind save/cancel
+    box.querySelectorAll(".summary-edit-actions button").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var idx = btn.dataset.index;
+        var candidate = btn.closest(".summary-candidate");
+        var area = candidate.querySelector('.summary-edit-area[data-index="' + idx + '"]');
+        var ta = area.querySelector(".summary-edit-textarea");
+
+        if (btn.dataset.action === "save") {
+          var newText = ta.value.trim();
+          if (newText) {
+            candidate.querySelector(".summary-text").textContent = newText;
+            candidate.querySelector(".summary-char-display").textContent = newText.length + " chars";
+            // Update selectedSummary if this candidate is active
+            if (candidate.classList.contains("active")) {
+              selectedSummary = newText;
+            }
+          }
+        }
+        area.style.display = "none";
+      });
+    });
+  }
+
+  function updateCharCount(ta, countEl) {
+    var len = ta.value.length;
+    var color = len > 340 ? "#dc2626" : "#9ca3af";
+    countEl.textContent = len + "/340 chars";
+    countEl.style.color = color;
   }
 
   // --------------------------------------------------------------------------
@@ -276,25 +345,11 @@
     }
 
     var html = '';
+    html += '<div id="skill-lines-container">';
     lines.forEach(function (line, idx) {
-      html += '<div class="skill-line" data-skill-idx="' + idx + '">';
-      html += '<div style="display:flex;align-items:baseline;justify-content:space-between;">';
-      html += '<div><span class="skill-line-name">' + esc(line.name) + ': </span>';
-      html += '<span class="skill-line-list">' + esc(line.list) + '</span></div>';
-      html += '<button class="skill-edit-btn" data-skill-idx="' + idx + '">Edit</button>';
-      html += '</div>';
-      // Edit area (hidden by default)
-      html += '<div class="skill-edit-area" id="skill-edit-' + idx + '" style="display:none;">';
-      html += '<input type="text" class="skill-edit-input" value="' + esc(line.list) + '">';
-      html += '<div class="skill-edit-actions">';
-      html += '<button class="btn btn-sm" style="background:#6366f1;color:#fff;" data-skill-idx="' + idx + '" data-action="save">Save</button>';
-      html += '<button class="btn btn-sm" style="background:#e5e7eb;color:#374151;" data-skill-idx="' + idx + '" data-action="cancel">Cancel</button>';
-      html += '</div></div>';
-      if (line.jdEvidence && line.jdEvidence.length > 0) {
-        html += '<div style="font-size:0.7rem;color:#6366f1;margin-top:2px;">JD asks for: ' + line.jdEvidence.map(esc).join(", ") + '</div>';
-      }
-      html += '</div>';
+      html += buildSkillLineHtml(idx, line.name, line.list, line.jdEvidence, false);
     });
+    html += '</div>';
 
     if (gapFilled.length > 0) {
       html += '<div style="margin-top:10px;font-size:0.75rem;color:#059669;">JD gaps filled: ' + gapFilled.map(esc).join(", ") + '</div>';
@@ -305,61 +360,169 @@
       html += '</div>';
     }
 
-    // Add custom skill button
-    html += '<div style="margin-top:10px;">';
+    // Add custom skill + add section buttons
+    html += '<div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;">';
     html += '<button class="btn-link" id="add-skill-btn">+ Add custom skill</button>';
+    html += '<button class="btn-link" id="add-skill-section-btn">+ Add skill section</button>';
+    html += '</div>';
+    // Custom skill area
     html += '<div id="custom-skill-area" style="display:none;margin-top:6px;">';
     html += '<input type="text" id="custom-skill-input" placeholder="Type a skill (e.g. Docker, Agile)" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.82rem;width:250px;">';
     html += ' <button class="btn btn-sm" style="background:#6366f1;color:#fff;" id="custom-skill-add">Add</button>';
+    html += '</div>';
+    // New section area
+    html += '<div id="new-skill-section-area" style="display:none;margin-top:6px;">';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">';
+    html += '<input type="text" id="new-section-name" placeholder="Section name (e.g. Cloud Platforms)" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.82rem;width:200px;">';
+    html += '<input type="text" id="new-section-list" placeholder="Skills (e.g. AWS, GCP, Azure)" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:4px;font-size:0.82rem;width:300px;">';
+    html += '<button class="btn btn-sm" style="background:#6366f1;color:#fff;" id="new-section-add">Add Section</button>';
     html += '</div></div>';
 
     box.innerHTML = html;
+    bindSkillEvents(box);
+  }
 
-    // Bind edit buttons per skill line
+  function buildSkillLineHtml(idx, name, list, jdEvidence, isNew) {
+    var dataAttr = isNew ? 'data-new-idx="' + idx + '"' : 'data-skill-idx="' + idx + '"';
+    var html = '<div class="skill-line" ' + dataAttr + '>';
+    html += '<div style="display:flex;align-items:baseline;justify-content:space-between;">';
+    html += '<div><span class="skill-line-name">' + esc(name) + ': </span>';
+    html += '<span class="skill-line-list">' + esc(list) + '</span></div>';
+    html += '<div style="display:flex;gap:4px;">';
+    html += '<button class="skill-edit-btn" ' + dataAttr + '>Edit</button>';
+    html += '<button class="skill-delete-btn" ' + dataAttr + ' title="Delete section">&times;</button>';
+    html += '</div></div>';
+    // Edit area
+    var editId = isNew ? 'skill-edit-new-' + idx : 'skill-edit-' + idx;
+    html += '<div class="skill-edit-area" id="' + editId + '" style="display:none;">';
+    html += '<input type="text" class="skill-edit-input" value="' + esc(list) + '">';
+    html += '<div class="skill-edit-actions">';
+    html += '<button class="btn btn-sm" style="background:#6366f1;color:#fff;" data-action="save" ' + dataAttr + '>Save</button>';
+    html += '<button class="btn btn-sm" style="background:#e5e7eb;color:#374151;" data-action="cancel" ' + dataAttr + '>Cancel</button>';
+    html += '</div></div>';
+    if (jdEvidence && jdEvidence.length > 0) {
+      html += '<div style="font-size:0.7rem;color:#6366f1;margin-top:2px;">JD asks for: ' + jdEvidence.map(esc).join(", ") + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function bindSkillEvents(box) {
+    // Edit buttons
     box.querySelectorAll(".skill-edit-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var idx = btn.dataset.skillIdx;
-        var area = document.getElementById("skill-edit-" + idx);
+        var idx = btn.dataset.skillIdx || btn.dataset.newIdx;
+        var isNew = !!btn.dataset.newIdx;
+        var editId = isNew ? "skill-edit-new-" + idx : "skill-edit-" + idx;
+        var area = document.getElementById(editId);
         area.style.display = area.style.display === "none" ? "block" : "none";
       });
     });
 
-    // Bind save/cancel in edit areas
+    // Save/cancel in edit areas
     box.querySelectorAll(".skill-edit-actions button").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var idx = btn.dataset.skillIdx;
-        var area = document.getElementById("skill-edit-" + idx);
-        var lineEl = box.querySelector('.skill-line[data-skill-idx="' + idx + '"]');
+        var idx = btn.dataset.skillIdx || btn.dataset.newIdx;
+        var isNew = !!btn.dataset.newIdx;
+        var editId = isNew ? "skill-edit-new-" + idx : "skill-edit-" + idx;
+        var area = document.getElementById(editId);
+        var lineEl = isNew
+          ? box.querySelector('.skill-line[data-new-idx="' + idx + '"]')
+          : box.querySelector('.skill-line[data-skill-idx="' + idx + '"]');
         if (btn.dataset.action === "save") {
           var input = area.querySelector(".skill-edit-input");
           var newList = input.value.trim();
           if (newList) {
             lineEl.querySelector(".skill-line-list").textContent = newList;
-            skillEdits[idx] = newList;
+            if (isNew) {
+              // Update the newSkillSections entry
+              var ni = parseInt(idx, 10);
+              if (newSkillSections[ni]) newSkillSections[ni].list = newList;
+            } else {
+              skillEdits[idx] = newList;
+            }
           }
         }
         area.style.display = "none";
       });
     });
 
-    // Bind add skill
-    document.getElementById("add-skill-btn").addEventListener("click", function () {
-      var area = document.getElementById("custom-skill-area");
-      area.style.display = area.style.display === "none" ? "block" : "none";
+    // Delete buttons
+    box.querySelectorAll(".skill-delete-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var isNew = !!btn.dataset.newIdx;
+        var idx = parseInt(btn.dataset.skillIdx || btn.dataset.newIdx, 10);
+        var lineEl = isNew
+          ? box.querySelector('.skill-line[data-new-idx="' + idx + '"]')
+          : box.querySelector('.skill-line[data-skill-idx="' + idx + '"]');
+        if (lineEl) lineEl.remove();
+        if (isNew) {
+          // Mark new section as deleted (set to null, filter on generate)
+          newSkillSections[idx] = null;
+        } else {
+          skillDeletions.push(idx);
+        }
+      });
     });
-    document.getElementById("custom-skill-add").addEventListener("click", function () {
-      var input = document.getElementById("custom-skill-input");
-      var skill = input.value.trim();
-      if (!skill) return;
-      customSkills.push(skill);
-      // Append to the last skill line visually
-      var lastLine = box.querySelectorAll(".skill-line");
-      if (lastLine.length > 0) {
-        var listEl = lastLine[lastLine.length - 1].querySelector(".skill-line-list");
-        listEl.textContent += ", " + skill;
-      }
-      input.value = "";
-    });
+
+    // Add custom skill
+    var addSkillBtn = document.getElementById("add-skill-btn");
+    if (addSkillBtn) {
+      addSkillBtn.addEventListener("click", function () {
+        var area = document.getElementById("custom-skill-area");
+        area.style.display = area.style.display === "none" ? "block" : "none";
+      });
+    }
+    var customSkillAdd = document.getElementById("custom-skill-add");
+    if (customSkillAdd) {
+      customSkillAdd.addEventListener("click", function () {
+        var input = document.getElementById("custom-skill-input");
+        var skill = input.value.trim();
+        if (!skill) return;
+        customSkills.push(skill);
+        var lastLine = box.querySelectorAll(".skill-line");
+        if (lastLine.length > 0) {
+          var listEl = lastLine[lastLine.length - 1].querySelector(".skill-line-list");
+          listEl.textContent += ", " + skill;
+        }
+        input.value = "";
+      });
+    }
+
+    // Add skill section
+    var addSectionBtn = document.getElementById("add-skill-section-btn");
+    if (addSectionBtn) {
+      addSectionBtn.addEventListener("click", function () {
+        var area = document.getElementById("new-skill-section-area");
+        area.style.display = area.style.display === "none" ? "block" : "none";
+      });
+    }
+    var newSectionAdd = document.getElementById("new-section-add");
+    if (newSectionAdd) {
+      newSectionAdd.addEventListener("click", function () {
+        var nameInput = document.getElementById("new-section-name");
+        var listInput = document.getElementById("new-section-list");
+        var name = nameInput.value.trim();
+        var list = listInput.value.trim();
+        if (!name || !list) return;
+
+        var newIdx = newSkillSections.length;
+        newSkillSections.push({ name: name, list: list });
+
+        // Append to DOM
+        var container = document.getElementById("skill-lines-container");
+        var div = document.createElement("div");
+        div.innerHTML = buildSkillLineHtml(newIdx, name, list, null, true);
+        var newLine = div.firstElementChild;
+        container.appendChild(newLine);
+
+        // Re-bind events for the new line
+        bindSkillEvents(box);
+
+        nameInput.value = "";
+        listInput.value = "";
+      });
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -402,9 +565,10 @@
     // Update footer
     var selected = Object.keys(selections).length;
     document.getElementById("footer-status").textContent = selected + "/" + totalQuals + " matched | Fit: " + overall;
-    document.getElementById("gen-pdf-btn").disabled = selected < totalQuals;
-    document.getElementById("gen-docx-btn").disabled = selected < totalQuals;
-    document.getElementById("gen-cover-btn").disabled = selected < totalQuals;
+    document.getElementById("preview-btn").disabled = false;
+    document.getElementById("gen-pdf-btn").disabled = false;
+    document.getElementById("gen-docx-btn").disabled = false;
+    document.getElementById("gen-cover-btn").disabled = false;
   }
 
   function buildScoreRow(label, value) {
@@ -418,9 +582,28 @@
   //  Generate buttons
   // --------------------------------------------------------------------------
   function enableButtons() {
+    document.getElementById("preview-btn").addEventListener("click", function () { previewResume(); });
     document.getElementById("gen-pdf-btn").addEventListener("click", function () { generateAndDownload("pdf"); });
     document.getElementById("gen-docx-btn").addEventListener("click", function () { generateAndDownload("docx"); });
     document.getElementById("gen-cover-btn").addEventListener("click", function () { generateCoverLetter(); });
+  }
+
+  function buildGeneratePayload() {
+    var sels = Object.keys(selections).map(function (qid) {
+      var s = selections[qid];
+      return { qualification_id: qid, bullet_id_or_text: s.isCustom || s.isEdited ? s.text : s.bulletId, is_custom: s.isCustom || s.isEdited };
+    });
+    // Filter out null entries from deleted new sections
+    var validNewSections = newSkillSections.filter(function (s) { return s !== null; });
+    return {
+      selections: sels,
+      summaryHints: selectedSummary || "",
+      email: selectedEmail,
+      customSkills: customSkills,
+      skillEdits: skillEdits,
+      skillDeletions: skillDeletions,
+      newSkillSections: validNewSections,
+    };
   }
 
   function generateAndDownload(format) {
@@ -428,12 +611,7 @@
     btn.disabled = true;
     btn.textContent = "Generating...";
 
-    var sels = Object.keys(selections).map(function (qid) {
-      var s = selections[qid];
-      return { qualification_id: qid, bullet_id_or_text: s.isCustom || s.isEdited ? s.text : s.bulletId, is_custom: s.isCustom || s.isEdited };
-    });
-
-    api("POST", "/generate", { selections: sels, summaryHints: selectedSummary || "", email: selectedEmail, customSkills: customSkills, skillEdits: skillEdits })
+    api("POST", "/generate", buildGeneratePayload())
       .then(function (data) {
         if (data.error) throw new Error(data.error);
         window.location.href = "/fit/" + jobId + "/download/" + format + "?token=" + encodeURIComponent(token);
@@ -446,8 +624,145 @@
         document.getElementById("footer-status").textContent = "Failed: " + err.message;
       });
   }
+
+  function previewResume() {
+    var btn = document.getElementById("preview-btn");
+    btn.disabled = true;
+    btn.textContent = "Generating...";
+
+    api("POST", "/generate", buildGeneratePayload())
+      .then(function (data) {
+        if (data.error) throw new Error(data.error);
+        var iframe = document.getElementById("preview-iframe");
+        iframe.src = "/fit/" + jobId + "/preview/pdf?token=" + encodeURIComponent(token) + "&t=" + Date.now();
+        document.getElementById("preview-modal").classList.add("open");
+        btn.textContent = "Preview";
+        btn.disabled = false;
+      })
+      .catch(function (err) {
+        btn.textContent = "Preview";
+        btn.disabled = false;
+        document.getElementById("footer-status").textContent = "Preview failed: " + err.message;
+      });
+  }
   // --------------------------------------------------------------------------
-  //  Cover letter generation
+  //  Outreach generation (unified system)
+  // --------------------------------------------------------------------------
+  var outreachModeSelect = document.getElementById("outreach-mode");
+  var personIntelSection = document.getElementById("person-intel-section");
+  if (outreachModeSelect) {
+    outreachModeSelect.addEventListener("change", function () {
+      var isLinkedIn = outreachModeSelect.value !== "cover_letter";
+      personIntelSection.style.display = isLinkedIn ? "block" : "none";
+    });
+  }
+
+  var outreachGenBtn = document.getElementById("outreach-generate-btn");
+  if (outreachGenBtn) {
+    outreachGenBtn.addEventListener("click", function () {
+      var mode = document.getElementById("outreach-mode").value;
+      var personIntelText = document.getElementById("person-intel-text");
+      var personIntelName = document.getElementById("person-intel-name");
+      var personIntelTitle = document.getElementById("person-intel-title");
+
+      var body = { mode: mode, email: selectedEmail };
+      if (mode !== "cover_letter" && personIntelText && personIntelText.value.trim()) {
+        body.personIntel = {
+          text: personIntelText.value.trim(),
+          name: personIntelName ? personIntelName.value.trim() : undefined,
+          title: personIntelTitle ? personIntelTitle.value.trim() : undefined,
+        };
+      }
+
+      outreachGenBtn.disabled = true;
+      outreachGenBtn.textContent = "Finding hook + writing...";
+      document.getElementById("outreach-skip").style.display = "none";
+      document.getElementById("outreach-result").style.display = "none";
+
+      api("POST", "/outreach", body)
+        .then(function (data) {
+          if (data.skip) {
+            var skipEl = document.getElementById("outreach-skip");
+            skipEl.innerHTML = "No specific hook found \u2014 " + esc(data.reason) + ". Consider applying without a cover letter, or refresh company intel.";
+            skipEl.style.display = "block";
+          } else {
+            document.getElementById("outreach-hook").innerHTML =
+              "<strong>Hook (score: " + data.hook.specificity_score + "/10):</strong> " + esc(data.hook.bridge_text);
+            document.getElementById("outreach-text").value = data.text;
+            document.getElementById("outreach-meta").textContent = data.wordCount + " words | mode: " + data.mode;
+
+            var dlBtn = document.getElementById("outreach-download");
+            if (data.mode === "cover_letter") {
+              dlBtn.style.display = "inline-block";
+            } else {
+              dlBtn.style.display = "none";
+            }
+
+            document.getElementById("outreach-result").style.display = "block";
+          }
+          outreachGenBtn.textContent = "Generate Outreach";
+          outreachGenBtn.disabled = false;
+        })
+        .catch(function (err) {
+          outreachGenBtn.textContent = "Generate Outreach";
+          outreachGenBtn.disabled = false;
+          alert("Outreach failed: " + err.message);
+        });
+    });
+  }
+
+  // Refresh company intel
+  window.refreshCompanyIntel = function () {
+    var btn = document.getElementById("refresh-intel-btn");
+    var status = document.getElementById("refresh-intel-status");
+    btn.disabled = true;
+    status.textContent = "Refreshing...";
+
+    api("POST", "/intel/refresh", {})
+      .then(function (data) {
+        if (data.skipped) {
+          status.textContent = "Skipped: " + data.skipReason;
+        } else {
+          status.textContent = "Done! " + (data.chunksWritten || 0) + " chunks added from " + (data.rssPostsAdded || 0) + " posts.";
+        }
+        btn.disabled = false;
+      })
+      .catch(function (err) {
+        status.textContent = "Failed: " + err.message;
+        btn.disabled = false;
+      });
+  };
+
+  // Download outreach as DOCX (sends edited text to server)
+  window.downloadOutreachDocx = function () {
+    var text = document.getElementById("outreach-text").value;
+    var btn = document.getElementById("outreach-download");
+    btn.disabled = true;
+    btn.textContent = "Building DOCX...";
+
+    api("POST", "/outreach/download", { text: text })
+      .then(function (data) {
+        // Server returns a download URL
+        if (data.downloadUrl) {
+          var a = document.createElement("a");
+          a.href = data.downloadUrl;
+          a.download = "";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+        btn.disabled = false;
+        btn.textContent = "Download DOCX";
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = "Download DOCX";
+        alert("Download failed: " + err.message);
+      });
+  };
+
+  // --------------------------------------------------------------------------
+  //  Cover letter generation (legacy)
   // --------------------------------------------------------------------------
   function generateCoverLetter() {
     var btn = document.getElementById("gen-cover-btn");
