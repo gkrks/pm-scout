@@ -59,6 +59,11 @@ function fitPlaintext(job: Job): string {
   return `\n  - Check Fit: ${url}`;
 }
 
+function submitJobUrl(): string {
+  if (!FIT_BASE_URL || !DASHBOARD_TOKEN) return "";
+  return `${FIT_BASE_URL}/fit/new?token=${DASHBOARD_TOKEN}`;
+}
+
 function dashboardUrl(): string {
   if (!FIT_BASE_URL || !DASHBOARD_TOKEN) return "";
   return `${FIT_BASE_URL}/dashboard?token=${DASHBOARD_TOKEN}`;
@@ -198,11 +203,17 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
   <h2 style="margin:0 0 6px 0;font-size:1.2rem;color:#1f2937;">
     ${newJobs.length} new PM/APM role${newJobs.length === 1 ? "" : "s"} found
   </h2>
-  <p style="color:#6b7280;margin:0 0 24px 0;font-size:13px;">${esc(runLine)}</p>
+  <p style="color:#6b7280;margin:0 0 16px 0;font-size:13px;">${esc(runLine)}</p>
+  ${submitJobUrl() ? `<div style="margin-bottom:24px;text-align:center;">
+    <a href="${submitJobUrl()}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.3);">Check Any Job</a>
+  </div>` : ""}
   ${section(standard,    "📋 New roles — newest first",                        "#22c55e")}
   ${section(priorityApm, "🎯 APM Program roles",                                "#7c3aed", true)}
   ${section(apmCompany,  "⭐ APM Company roles — these companies run APM programs", "#0891b2", true)}
-  <hr style="margin-top:32px;border:none;border-top:1px solid #e5e7eb;">
+  ${submitJobUrl() ? `<div style="margin-top:32px;text-align:center;">
+    <a href="${submitJobUrl()}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.3);">Check Any Job</a>
+  </div>` : ""}
+  <hr style="margin-top:24px;border:none;border-top:1px solid #e5e7eb;">
   <p style="color:#6b7280;font-size:12px;margin-top:8px;">
     Configured to scan companies hourly.
     Reply STOP to mute alerts for 24h.
@@ -236,6 +247,8 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
   const runLine  = `Run: ${runFmt.format(now)} · ${stats.companiesScanned} companies · ${stats.errors} errors · ${duration}`;
 
   const lines: string[] = [subj, runLine, ""];
+  const submitUrl = submitJobUrl();
+  if (submitUrl) lines.push(`>> CHECK ANY JOB: ${submitUrl}`, "");
 
   function jobBlock(j: Job): string {
     const meta        = map.get(j.company);
