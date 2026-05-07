@@ -37,6 +37,8 @@ export interface CompanyResult {
   jobs:       Job[];
   error?:     ErrorInfo;
   durationMs: number;
+  /** Full set of listed Ashby IDs for staleness tracking (Ashby scraper only) */
+  allListedAshbyIds?: string[];
 }
 
 // ── Error classification ──────────────────────────────────────────────────────
