@@ -1,0 +1,65 @@
+name: "Scan: Greenhouse"
+
+on:
+  schedule:
+    # Every 3 hours, offset by 1 hour from Ashby to spread load
+    # UTC hours: 1,4,7,10,13,16,19,22
+    - cron: "0 1,4,7,10,13,16,19,22 * * *"
+
+  workflow_dispatch:
+    inputs:
+      ignore_blackout:
+        description: "Run even if currently in the blackout window"
+        type: boolean
+        default: false
+
+concurrency:
+  group: scan-greenhouse
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write .env from secret
+        run: printf '%s\n' "$PM_JOBS" > .env
+        env:
+          PM_JOBS: ${{ secrets.PM_JOBS }}
+
+      - name: Sync companies to Supabase
+        run: npx ts-node scripts/syncCompanies.ts
+
+      - name: Run Greenhouse scanner
+        run: npx ts-node scripts/runScan.ts
+        env:
+          SCAN_POOL:           greenhouse
+          IGNORE_BLACKOUT:     ${{ github.event.inputs.ignore_blackout || 'false' }}
+          BLACKOUT_TIMEZONE:   America/Los_Angeles
+          BLACKOUT_START_HOUR: '21'
+          BLACKOUT_END_HOUR:   '5'
+          DISPLAY_TIMEZONE:    America/Los_Angeles
+          RUN_TRIGGER:         ${{ github.event_name }}
+          RUN_ID_GH:           ${{ github.run_id }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-greenhouse-logs-${{ github.run_id }}
+          path: data/pending-supabase.json
+          retention-days: 7
+          if-no-files-found: ignore

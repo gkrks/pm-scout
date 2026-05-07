@@ -38,6 +38,41 @@ import { filterExperience } from "./experience";
 import { filterSponsorship } from "./sponsorship";
 import { filterSalary } from "./salary";
 import { computeTier } from "../ranking/tier";
+import { isUSRawJob } from "../utils/geo";
+
+// ── Ashby-specific pre-filters (cheap, run first) ───────────────────────────
+
+/**
+ * Title must contain both "product" AND "manager" (case-insensitive).
+ * Excludes intern/coordinator/assistant/recruiter roles.
+ * Excludes Product Marketing Manager (PMM) — not a PM role.
+ */
+export function isPMTitle(title: string): boolean {
+  const t = (title || "").toLowerCase();
+  if (!t.includes("product") || !t.includes("manager")) return false;
+  if (/\b(intern|coordinator|assistant|recruiter|recruiting)\b/.test(t))
+    return false;
+  if (/\bproduct\s+marketing\s+manager\b|\bpmm\b/.test(t))
+    return false;
+  return true;
+}
+
+/**
+ * Returns true if the title signals an Associate/entry-level PM role.
+ * Used for tier 1 priority in digest emails.
+ */
+export function isAssociatePM(title: string): boolean {
+  const t = (title || "").toLowerCase();
+  return /\b(associate|apm|new grad|entry level|early career)\b/.test(t);
+}
+
+/**
+ * Check if a RawJob's location resolves to United States.
+ * Uses the structured raw_payload from Ashby when available.
+ */
+export function isUSLocation(rawJob: RawJob): boolean {
+  return isUSRawJob(rawJob.source_meta);
+}
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
 

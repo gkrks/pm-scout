@@ -1,33 +1,26 @@
-name: "[DEPRECATED] Hourly Job Scan — replaced by scan-ashby / scan-greenhouse / scan-other"
+name: "Scan: Other ATS"
 
 on:
-  # Schedule disabled — replaced by 3 ATS-specific workflows.
-  # Use workflow_dispatch to run all pools together if needed.
-  # schedule:
-  #   - cron: "0 0-4,12-23 * * *"
+  schedule:
+    # Every 3 hours, offset by 2 hours from Ashby
+    # UTC hours: 2,5,8,11,14,17,20,23
+    - cron: "0 2,5,8,11,14,17,20,23 * * *"
 
   workflow_dispatch:
     inputs:
       ignore_blackout:
-        description: "Run even if currently in the blackout window (9 PM–5 AM Pacific)"
+        description: "Run even if currently in the blackout window"
         type: boolean
         default: false
-      pool:
-        description: "Which scraper pool to run"
-        type: choice
-        options: [all, api, playwright]
-        default: all
 
-# If a run is in-flight when the next hour fires, queue — don't kill.
-# Killing mid-run leaves parser_runs.status = 'running' orphans in Supabase.
 concurrency:
-  group: hourly-scan
+  group: scan-other
   cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 25   # hard kill if a run somehow exceeds budget
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -65,26 +58,23 @@ jobs:
       - name: Sync companies to Supabase
         run: npx ts-node scripts/syncCompanies.ts
 
-      - name: Run scanner
+      - name: Run Other ATS scanner
         run: npx ts-node scripts/runScan.ts
         env:
-          # Scheduling controls (vary per run — not in .env)
+          SCAN_POOL:           other
           IGNORE_BLACKOUT:     ${{ github.event.inputs.ignore_blackout || 'false' }}
-          SCAN_POOL:           ${{ github.event.inputs.pool || 'all' }}
           BLACKOUT_TIMEZONE:   America/Los_Angeles
           BLACKOUT_START_HOUR: '21'
           BLACKOUT_END_HOUR:   '5'
           DISPLAY_TIMEZONE:    America/Los_Angeles
-          # Run identity
-          RUN_TRIGGER: ${{ github.event_name }}
-          RUN_ID_GH:   ${{ github.run_id }}
+          RUN_TRIGGER:         ${{ github.event_name }}
+          RUN_ID_GH:           ${{ github.run_id }}
 
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: scan-logs-${{ github.run_id }}
-          path: |
-            data/pending-supabase.json
+          name: scan-other-logs-${{ github.run_id }}
+          path: data/pending-supabase.json
           retention-days: 7
           if-no-files-found: ignore

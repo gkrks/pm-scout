@@ -2,9 +2,22 @@ node_modules/
 dist/
 pw-browsers/
 .env
+.env.local
 match-report.json
 *.pdf
 !config/*.pdf
 .claude/
 data/
 out/
+web/.next/
+web/.env.local
+
+# Discovery pipeline working dirs
+.ashby-discovery/
+.greenhouse-discovery/
+ashby-discovery.log
+greenhouse-discovery.log
+ashby-pm-usa.csv
+ashby-product-usa.csv
+greenhouse-pm-usa.csv
+greenhouse-product-usa.csv

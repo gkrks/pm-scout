@@ -20,7 +20,7 @@ import { normalizeRoleUrl } from "../lib/normalizeUrl";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface ListingToUpsert {
-  job: Pick<RawJob, "title" | "role_url" | "location_raw" | "posted_date" | "description">;
+  job: Pick<RawJob, "title" | "role_url" | "location_raw" | "posted_date" | "description"> & { source_meta?: Record<string, unknown> };
   /** company.id must be present — it's the FK into public.companies */
   company: Required<Pick<Company, "id">> & Company;
   enrichment: JobEnrichment;
@@ -186,6 +186,7 @@ function isValidApplyUrl(url: string): boolean {
 
 function buildRow(item: ListingToUpsert): Record<string, unknown> {
   const { job, company, enrichment, tier } = item;
+  const meta = job.source_meta ?? {};
 
   // Clamp posted_date to today if it's in the future.
   let postedDate = job.posted_date ?? null;
@@ -225,7 +226,76 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     ats_platform:   item.ats_platform ?? null,
     last_seen_at:   new Date().toISOString(),
     is_active:      true,
-    ...(item.extracted_jd ? {
+    // ── Ashby-specific fields (populated when source_meta has them) ──────
+    ...(meta.ashby_id ? {
+      ats_provider:         "ashby",
+      ashby_id:             meta.ashby_id,
+      department:           meta.department ?? null,
+      team:                 meta.team ?? null,
+      employment_type:      meta.employment_type ?? null,
+      workplace_type:       meta.workplace_type ?? null,
+      is_listed:            meta.is_listed ?? null,
+      location_region:      meta.location_region ?? null,
+      location_country:     meta.location_country ?? null,
+      secondary_locations:  meta.secondary_locations ?? null,
+      qualifications:       meta.qualifications ?? null,
+      comp_summary:         meta.comp_summary ?? null,
+      comp_salary_summary:  meta.comp_salary_summary ?? null,
+      comp_min:             meta.comp_min ?? null,
+      comp_max:             meta.comp_max ?? null,
+      comp_currency:        meta.comp_currency ?? null,
+      comp_raw:             meta.comp_raw ?? null,
+      raw_payload:          meta.raw_payload ?? null,
+    } : {}),
+    // ── Ashby scraper-extracted structured JD ──────────────────────────────
+    // When the Ashby scraper provides responsibilities/qualifications parsed
+    // directly from descriptionHtml, use them as the canonical jd_* values.
+    // This is cleaner than the generic JD extractor re-parsing the same HTML.
+    ...(meta.ashby_id && (meta.responsibilities || meta.qualifications) ? (() => {
+      const quals = meta.qualifications as { required?: string[]; preferred?: string[] } | null;
+      return {
+      jd_responsibilities:         meta.responsibilities ?? [],
+      jd_required_qualifications:  quals?.required ?? [],
+      jd_preferred_qualifications: quals?.preferred ?? [],
+      ...(meta.role_summary ? {
+        jd_role_context: { summary: meta.role_summary, seniority_level: null, reports_to: null },
+      } : {}),
+      jd_extraction_meta: {
+        confidence: "high",
+        source_ats: "ashby",
+        source_url: job.role_url,
+        extracted_at: new Date().toISOString(),
+        extraction_method: "ashby_scraper_structured",
+      },
+      extracted_at: new Date().toISOString(),
+    };})() : {}),
+    // ── Generic JD extractor output (non-Ashby or when Ashby has no structured data)
+    ...(item.extracted_jd && !meta.ashby_id ? {
+      jd_job_title:                item.extracted_jd.job_title,
+      jd_company_name:             item.extracted_jd.company_name,
+      jd_location:                 item.extracted_jd.location,
+      jd_employment:               item.extracted_jd.employment,
+      jd_experience:               item.extracted_jd.experience,
+      jd_education:                item.extracted_jd.education,
+      jd_required_qualifications:  item.extracted_jd.required_qualifications,
+      jd_preferred_qualifications: item.extracted_jd.preferred_qualifications,
+      jd_responsibilities:         item.extracted_jd.responsibilities,
+      jd_skills:                   item.extracted_jd.skills,
+      jd_certifications:           item.extracted_jd.certifications,
+      jd_compensation:             item.extracted_jd.compensation,
+      jd_authorization:            item.extracted_jd.authorization,
+      jd_role_context:             item.extracted_jd.role_context,
+      jd_company_context:          item.extracted_jd.company_context,
+      jd_logistics:                item.extracted_jd.logistics,
+      jd_benefits:                 item.extracted_jd.benefits,
+      jd_application:              item.extracted_jd.application,
+      jd_legal:                    item.extracted_jd.legal,
+      jd_ats_keywords:             item.extracted_jd.ats_keywords,
+      jd_extraction_meta:          item.extracted_jd.extraction_meta,
+      extracted_at:                item.extracted_jd.extraction_meta.extracted_at,
+    } : {}),
+    // ── Fallback: JD extractor for Ashby listings that had no structured sections
+    ...(item.extracted_jd && meta.ashby_id && !meta.responsibilities && !meta.qualifications ? {
       jd_job_title:                item.extracted_jd.job_title,
       jd_company_name:             item.extracted_jd.company_name,
       jd_location:                 item.extracted_jd.location,

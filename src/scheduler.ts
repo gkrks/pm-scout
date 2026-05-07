@@ -479,8 +479,18 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
         console.warn("[scheduler] Could not fetch extracted URLs — will extract all jobs");
       }
 
+      // Build company→ats lookup for extraction metadata
+      const atsLookup = new Map<string, string>();
+      for (const c of config.companies) {
+        atsLookup.set(c.name, c.ats);
+      }
+
+      // Skip JD extraction for Ashby jobs — the scraper already extracts
+      // responsibilities/qualifications from descriptionHtml at scrape time.
       const unextractedJobs = diffed.filter(
-        (j) => !alreadyExtractedUrls.has(normalizeRoleUrl(j.applyUrl)),
+        (j) =>
+          !alreadyExtractedUrls.has(normalizeRoleUrl(j.applyUrl)) &&
+          atsLookup.get(j.company) !== "ashby",
       );
 
       if (unextractedJobs.length > 0) {
@@ -488,12 +498,6 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
         const extractQueue = [...unextractedJobs];
         let extractOk = 0;
         let extractFail = 0;
-
-        // Build company→ats lookup for extraction metadata
-        const atsLookup = new Map<string, string>();
-        for (const c of config.companies) {
-          atsLookup.set(c.name, c.ats);
-        }
 
         const extractWorker = async (): Promise<void> => {
           while (true) {

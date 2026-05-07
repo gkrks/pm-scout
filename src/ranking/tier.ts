@@ -6,26 +6,20 @@
  * Rejection is handled exclusively by the filter pipeline (title, location,
  * experience, freshness, sponsorship, salary).
  *
- * ── Tier 1 — apply today ──────────────────────────────────────────────────────
- * Base signals (ALL required):
- *   • posted_within_7_days
- *   • yoe_max ≤ 2 OR junior language detected
- *   • location_city is non-null (physical city match — pure remote doesn't qualify)
- *
- * Tier-1 boost (EITHER base OR boost → tier 1):
- *   • Title contains "Associate Product Manager" or "APM"
- *     AND company has has_apm_program = true AND apm_program_status = 'active'
+ * ── Tier 1 — apply today (highest priority) ───────────────────────────────────
+ * Any of these → tier 1:
+ *   • Title contains "Associate" / "APM" / "New Grad" / "Entry Level"
+ *   • APM program signal (priority_apm or apm_company + junior)
+ *   • posted_within_7_days AND yoe_max ≤ 2 AND in a target city
  *
  * ── Tier 2 — apply this week ──────────────────────────────────────────────────
  *   • posted_within_30_days
- *   • YOE clearly ≤ 3 (see yoeOkForTier2)
- *   • location_city is non-null OR is_remote (US) OR is_hybrid
+ *   • Title contains "product manager"
+ *   • In a target city OR remote-US OR hybrid
  *   • AND not Tier 1
  *
  * ── Tier 3 — review when convenient ──────────────────────────────────────────
- *   • Everything else that passed the filters. Examples: posted_date unknown,
- *     location is remote-US-only (no city anchor), experience is junior-flagged
- *     but unclear (e.g. "2-5 years" — low floor but high ceiling), etc.
+ *   • Everything else that passed the filters.
  *
  * ── Domain boost ──────────────────────────────────────────────────────────────
  * Does NOT change the tier number — used by the digest to sort domain-boosted
@@ -103,7 +97,13 @@ export function computeTier(
     company,
   });
 
-  // ── Priority APM: always tier 1 — the user's highest-priority target ─────
+  // ── Associate/APM/New Grad: always tier 1 ─────────────────────────────────
+  const ASSOCIATE_RE = /\b(associate|apm|new grad|entry level|early career)\b/i;
+  if (ASSOCIATE_RE.test(title)) {
+    return { tier: 1, domainBoosted, apmSignal };
+  }
+
+  // ── Priority APM signal: tier 1 ─────────────────────────────────────────
   if (apmSignal === "priority_apm") {
     return { tier: 1, domainBoosted, apmSignal };
   }
@@ -113,20 +113,12 @@ export function computeTier(
     return { tier: 1, domainBoosted, apmSignal };
   }
 
-  // ── Tier 1 base (non-APM path) ───────────────────────────────────────────
+  // ── Tier 1 base: fresh + junior + in a city ─────────────────────────────
   const tier1Base =
     e.posted_within_7_days && yoeOkForTier1(e) && locationInCity;
 
   if (tier1Base) {
     return { tier: 1, domainBoosted, apmSignal };
-  }
-
-  // ── APM company: at least tier 2, even if other signals are weak ─────────
-  if (apmSignal === "apm_company") {
-    if (e.posted_within_30_days && e.yoe_max !== null && e.yoe_max <= 3) {
-      return { tier: 2, domainBoosted, apmSignal };
-    }
-    return { tier: 3, domainBoosted, apmSignal };
   }
 
   // ── Tier 2 ───────────────────────────────────────────────────────────────

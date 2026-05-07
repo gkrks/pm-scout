@@ -22,6 +22,7 @@ import {
   PLAYWRIGHT_CONCURRENCY,
 } from "./pools";
 import { getSupabaseClient } from "../storage/supabase";
+import { runAshbyStaleness } from "../storage/ashbyStaleness";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -126,15 +127,32 @@ export async function orchestrateRun(
   // Load 30-day baselines for suspicious detection (best-effort)
   const baselines = await loadCompanyBaselines();
 
-  const enabled = config.companies.filter((c) => c.enabled);
+  const allEnabled = config.companies.filter((c) => c.enabled);
+
+  // ── ATS pool partitioning ─────────────────────────────────────────────────
+  // SCAN_POOL env var controls which ATS companies to scan in this run.
+  //   "ashby"      → only Ashby companies
+  //   "greenhouse" → only Greenhouse companies
+  //   "other"      → everything except Ashby and Greenhouse
+  //   "all"        → all companies (default)
+  const scanPool = (process.env.SCAN_POOL || "all").toLowerCase();
+  const enabled = scanPool === "all"
+    ? allEnabled
+    : scanPool === "ashby"
+    ? allEnabled.filter((c) => c.ats === "ashby")
+    : scanPool === "greenhouse"
+    ? allEnabled.filter((c) => c.ats === "greenhouse")
+    : scanPool === "other"
+    ? allEnabled.filter((c) => c.ats !== "ashby" && c.ats !== "greenhouse")
+    : allEnabled;
 
   // Guard: catch the 121-company regression immediately at run start.
   if (enabled.length === 0) {
     throw new Error(
-      `[orchestrator] Loaded zero enabled companies — check TARGETS_CONFIG_PATH and targets.json`,
+      `[orchestrator] Loaded zero enabled companies for pool="${scanPool}" — check TARGETS_CONFIG_PATH and targets.json`,
     );
   }
-  console.log(`[orchestrator] companies_configured=${enabled.length}`);
+  console.log(`[orchestrator] pool=${scanPool} companies_configured=${enabled.length} (of ${allEnabled.length} total)`);
 
   // Callback invoked by each pool worker after every company finishes
   const onResult = (r: CompanyResult): void => {
@@ -262,6 +280,30 @@ export async function orchestrateRun(
     `${stats.suspicious} suspicious, ${stats.skipped} skipped, ` +
     `${allJobs.length} total jobs`,
   );
+
+  // ── Ashby staleness sweep ───────────────────────────────────────────────────
+  const ashbyResults = companyResults.filter(
+    (r) => r.ats === "ashby" && (r.status === "ok" || r.status === "suspicious"),
+  );
+  if (ashbyResults.length > 0) {
+    try {
+      // Convert CompanyResult[] to ScrapeResult-like objects for the staleness sweep
+      const ashbyScrapeResults = ashbyResults.map((r) => ({
+        jobs: [],  // not needed by staleness sweep
+        fetchedDescriptions: true,
+        allListedAshbyIds: r.allListedAshbyIds,
+      }));
+      const { deactivated, skipped: stalenessSkipped } =
+        await runAshbyStaleness(ashbyScrapeResults);
+      if (!stalenessSkipped) {
+        console.log(`[orchestrator] Ashby staleness sweep: ${deactivated} jobs deactivated`);
+      }
+    } catch (e) {
+      console.warn(
+        `[orchestrator] Ashby staleness sweep failed: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
 
   // ── Diagnostic summary: 0-job companies by ATS type ────────────────────────
   const zeroJobCompanies = companyResults.filter(

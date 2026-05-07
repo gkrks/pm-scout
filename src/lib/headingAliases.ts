@@ -104,6 +104,11 @@ const HEADING_ALIASES: Array<{ bucket: HeadingBucket; aliases: string[] }> = [
       "you will",
       "your day to day",
       "primary responsibilities",
+      "example projects",
+      "projects include",
+      "what you'll own",
+      "what you will own",
+      "areas of focus",
     ],
   },
   {
