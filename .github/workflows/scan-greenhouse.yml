@@ -47,10 +47,7 @@ jobs:
         run: npx ts-node scripts/runScan.ts
         env:
           SCAN_POOL:           greenhouse
-          IGNORE_BLACKOUT:     ${{ github.event.inputs.ignore_blackout || 'false' }}
-          BLACKOUT_TIMEZONE:   America/Los_Angeles
-          BLACKOUT_START_HOUR: '21'
-          BLACKOUT_END_HOUR:   '5'
+          IGNORE_BLACKOUT:     'true'
           DISPLAY_TIMEZONE:    America/Los_Angeles
           RUN_TRIGGER:         ${{ github.event_name }}
           RUN_ID_GH:           ${{ github.run_id }}
