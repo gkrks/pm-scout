@@ -78,6 +78,21 @@ export function filterLocation(
   config: Pick<FilterConfig, "location">,
 ): FilterResult {
   const { location: loc } = config;
+
+  // If no allowed cities are configured, accept all locations (city filter disabled)
+  if (loc.allowed_cities.length === 0) {
+    const isRemote = REMOTE_US_RE.test(locationRaw) || REMOTE_ONLY_RE.test(locationRaw.trim()) || /remote/i.test(locationRaw);
+    const isHybrid = HYBRID_PREFIX_RE.test(locationRaw);
+    return {
+      kept: true,
+      enrichment: {
+        location_city: null,
+        is_remote: isRemote,
+        is_hybrid: isHybrid,
+      },
+    };
+  }
+
   const lookup = buildCityLookup(loc.allowed_cities, loc.city_aliases);
   const city = matchCity(locationRaw, lookup);
 
