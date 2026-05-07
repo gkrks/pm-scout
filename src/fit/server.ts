@@ -1,12 +1,9 @@
 /**
  * Express web server for the "Check Fit" resume tailoring flow.
- * All routes return JSON — the Next.js frontend handles HTML rendering.
  *
  * Routes:
- *   GET  /api/health                — Health check
- *   GET  /dashboard                 — Analytics dashboard (JSON)
- *   GET  /tracker                   — Application tracker (JSON)
- *   GET  /fit/:jobId                — Listing data (JSON, HMAC-gated)
+ *   GET  /dashboard                 — Analytics dashboard
+ *   GET  /fit/:jobId                — Render Fit page (server-rendered)
  *   POST /fit/:jobId/score          — Proxy to Python /score
  *   POST /fit/:jobId/select         — Proxy to Python /select
  *   POST /fit/:jobId/generate       — Compose payload, regen summary, fill_resume
@@ -38,10 +35,12 @@ import fetch from "node-fetch";
 import { getSupabaseClient, loadMasterResume } from "../storage/supabase";
 import { splitCompoundQualifications } from "../jdExtractor";
 import { generateCoverLetter, buildCoverLetterDocx } from "./coverLetterGenerator";
-import { handleDashboardJson } from "./dashboard";
+import { handleDashboard } from "./dashboard";
 import { generateResume } from "./generateResume";
-import { handleTrackerJson, handleTrackerUpdate } from "./tracker";
+import { handleTracker, handleTrackerUpdate } from "./tracker";
+import { renderFitPage } from "./render";
 import { submitJobUrl, SubmitUrlError } from "./submitUrl";
+import { renderSubmitUrlPage } from "./submitUrlRender";
 import { optimizeSkills } from "./skillsOptimizer";
 import { generateSummaryCandidates } from "./summaryGenerator";
 import {
@@ -140,7 +139,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------------------------- //
-//  Jobs list (JSON)
+//  Jobs list (JSON API for Next.js frontend)
 // --------------------------------------------------------------------------- //
 
 app.get("/api/jobs", async (req: Request, res: Response) => {
@@ -190,7 +189,7 @@ app.get("/api/jobs", async (req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------------------------- //
-//  Application detail (JSON)
+//  Application detail (JSON API for Next.js frontend)
 // --------------------------------------------------------------------------- //
 
 app.get("/api/applications/:id", async (req: Request, res: Response) => {
@@ -201,7 +200,7 @@ app.get("/api/applications/:id", async (req: Request, res: Response) => {
 
   try {
     const supabase = getSupabaseClient();
-    const { data: app, error } = await supabase
+    const { data: appData, error } = await supabase
       .from("applications")
       .select(`
         id, listing_id, status, applied_date, applied_by,
@@ -217,26 +216,25 @@ app.get("/api/applications/:id", async (req: Request, res: Response) => {
       .eq("id", req.params.id)
       .single();
 
-    if (error || !app) {
+    if (error || !appData) {
       res.status(404).json({ error: "Application not found" });
       return;
     }
 
-    // Check if there's a fit score
     const { data: fitCache } = await supabase
       .from("fit_score_cache")
       .select("score_response")
-      .eq("listing_id", app.listing_id)
+      .eq("listing_id", appData.listing_id)
       .maybeSingle();
 
     const fitScore = (fitCache?.score_response as any)?.final_selection?.total_score ?? null;
 
     res.json({
-      ...app,
+      ...appData,
       listing: {
-        ...(app.listing as any),
-        companyName: ((app.listing as any)?.company as any)?.name || "Unknown",
-        companySlug: ((app.listing as any)?.company as any)?.slug || "",
+        ...(appData.listing as any),
+        companyName: ((appData.listing as any)?.company as any)?.name || "Unknown",
+        companySlug: ((appData.listing as any)?.company as any)?.slug || "",
       },
       fitScore,
     });
@@ -246,26 +244,46 @@ app.get("/api/applications/:id", async (req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------------------------- //
-//  Dashboard route (JSON)
+//  Serve static client.js
 // --------------------------------------------------------------------------- //
 
-app.get("/dashboard", handleDashboardJson);
+app.get("/fit/client.js", (_req: Request, res: Response) => {
+  const jsPath = path.join(__dirname, "client.js");
+  // In dev, try src/ path; in prod, try dist/ path
+  const srcPath = path.resolve(__dirname, "../../src/fit/client.js");
+  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
+  res.setHeader("Content-Type", "application/javascript");
+  fs.createReadStream(filePath).pipe(res);
+});
 
 // --------------------------------------------------------------------------- //
-//  Tracker routes (JSON)
+//  Serve dashboard client.js + dashboard route
 // --------------------------------------------------------------------------- //
 
-app.get("/tracker", handleTrackerJson);
+app.get("/dashboard/client.js", (_req: Request, res: Response) => {
+  const jsPath = path.join(__dirname, "dashboardClient.js");
+  const srcPath = path.resolve(__dirname, "../../src/fit/dashboardClient.js");
+  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
+  res.setHeader("Content-Type", "application/javascript");
+  fs.createReadStream(filePath).pipe(res);
+});
+
+app.get("/dashboard", handleDashboard);
+
+// --------------------------------------------------------------------------- //
+//  Tracker routes
+// --------------------------------------------------------------------------- //
+
+app.get("/tracker/client.js", (_req: Request, res: Response) => {
+  const jsPath = path.join(__dirname, "trackerClient.js");
+  const srcPath = path.resolve(__dirname, "../../src/fit/trackerClient.js");
+  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
+  res.setHeader("Content-Type", "application/javascript");
+  fs.createReadStream(filePath).pipe(res);
+});
+
+app.get("/tracker", handleTracker);
 app.patch("/tracker/api/applications/:id", express.json(), handleTrackerUpdate);
-
-// --------------------------------------------------------------------------- //
-//  Kanban board data (JSON)
-// --------------------------------------------------------------------------- //
-
-import { handleKanbanCards, handleCreateApplication } from "./tracker";
-
-app.get("/tracker/kanban", handleKanbanCards);
-app.post("/tracker/api/applications", express.json(), handleCreateApplication);
 
 // --------------------------------------------------------------------------- //
 //  GET /fit/new — Submit URL form page
@@ -286,7 +304,7 @@ function verifyDashboardToken(req: Request, res: Response, next: NextFunction): 
 }
 
 app.get("/fit/new", verifyDashboardToken, (_req: Request, res: Response) => {
-  res.json({ ok: true, message: "Submit URL endpoint ready" });
+  res.send(renderSubmitUrlPage(DASHBOARD_TOKEN));
 });
 
 app.post("/fit/submit-url", verifyDashboardToken, async (req: Request, res: Response) => {
@@ -322,6 +340,7 @@ app.post("/fit/submit-url", verifyDashboardToken, async (req: Request, res: Resp
 app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
   try {
     const jobId = req.params.jobId;
+    const token = (req.query.token as string) || "";
     const supabase = getSupabaseClient();
 
     const { data: job, error } = await supabase
@@ -330,14 +349,14 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
         id, title, location_raw, location_city, is_remote, is_hybrid,
         role_url, ats_platform, posted_date, first_seen_at,
         jd_job_title, jd_company_name, jd_required_qualifications,
-        jd_preferred_qualifications, jd_responsibilities, jd_role_context,
+        jd_preferred_qualifications, jd_role_context,
         company:companies!inner(name, slug)
       `)
       .eq("id", jobId)
       .single();
 
     if (error || !job) {
-      res.status(404).json({ error: "Job not found" });
+      res.status(404).send("Job not found");
       return;
     }
 
@@ -352,10 +371,10 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       .eq("listing_id", jobId)
       .maybeSingle();
 
-    res.json({
+    const html = renderFitPage({
       jobId,
+      token,
       companyName: (job.company as any)?.name || job.jd_company_name || "Unknown",
-      companySlug: (job.company as any)?.slug || "",
       title: job.jd_job_title || job.title,
       location: job.location_city || job.location_raw || "",
       isRemote: job.is_remote,
@@ -366,8 +385,6 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       roleUrl: job.role_url,
       requiredQuals: splitCompoundQualifications((job.jd_required_qualifications as string[]) || []),
       preferredQuals: splitCompoundQualifications((job.jd_preferred_qualifications as string[]) || []),
-      responsibilities: (job.jd_responsibilities as string[]) || [],
-      roleContext: (job.jd_role_context as any)?.summary || "",
       emails,
       applicationStatus: appStatus ? {
         applied: appStatus.status === "applied",
@@ -376,9 +393,12 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
         status: appStatus.status,
       } : null,
     });
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
   } catch (err: any) {
     console.error("[fit] render error:", err.message);
-    res.status(500).json({ error: "Internal error" });
+    res.status(500).send("Internal error");
   }
 });
 
@@ -698,7 +718,6 @@ app.post("/fit/:jobId/match-requirement", verifyToken, async (req: Request, res:
     }
     const { qualification_text, locked_bullet_ids, source_type_filter } = parsed.data;
 
-    // Load JD keywords from listing
     const supabase = getSupabaseClient();
     const { data: jobRow } = await supabase
       .from("job_listings")
@@ -743,7 +762,6 @@ app.post("/fit/:jobId/rewrite-bullet", verifyToken, async (req: Request, res: Re
     }
     const { bullet_id, bullet_text, target_qualification, keywords_to_embed } = parsed.data;
 
-    // Load JD keywords from listing
     const supabase = getSupabaseClient();
     const { data: jobRow } = await supabase
       .from("job_listings")
@@ -751,7 +769,6 @@ app.post("/fit/:jobId/rewrite-bullet", verifyToken, async (req: Request, res: Re
       .eq("id", jobId)
       .single();
 
-    // Build keywords: user-specified + JD-extracted
     const jdKeywords: string[] = [];
     if (jobRow?.jd_ats_keywords) {
       const atsKw = typeof jobRow.jd_ats_keywords === "string"
