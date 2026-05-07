@@ -136,7 +136,7 @@ export async function orchestrateRun(
   //   "other"      → everything except Ashby and Greenhouse
   //   "all"        → all companies (default)
   const scanPool = (process.env.SCAN_POOL || "all").toLowerCase();
-  const enabled = scanPool === "all"
+  let enabled = scanPool === "all"
     ? allEnabled
     : scanPool === "ashby"
     ? allEnabled.filter((c) => c.ats === "ashby")
@@ -145,6 +145,19 @@ export async function orchestrateRun(
     : scanPool === "other"
     ? allEnabled.filter((c) => c.ats !== "ashby" && c.ats !== "greenhouse")
     : allEnabled;
+
+  // Skip custom-playwright companies without selectors — they launch Chromium
+  // for a generic heuristic that almost never finds results, wasting ~10-15s each.
+  const beforeSkip = enabled.length;
+  enabled = enabled.filter(
+    (c) => c.ats !== "custom-playwright" || c.selectors !== undefined,
+  );
+  const selectorlessSkipped = beforeSkip - enabled.length;
+  if (selectorlessSkipped > 0) {
+    console.log(
+      `[orchestrator] Skipped ${selectorlessSkipped} custom-playwright companies without selectors`,
+    );
+  }
 
   // Guard: catch the 121-company regression immediately at run start.
   if (enabled.length === 0) {
