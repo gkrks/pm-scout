@@ -175,3 +175,54 @@ export type UserSelection = z.infer<typeof UserSelectionZ>;
 export type KeywordTerm = z.infer<typeof KeywordTermZ>;
 export type JDKeywords = z.infer<typeof JDKeywordsZ>;
 export type RoleFamily = z.infer<typeof RoleFamilyEnum>;
+
+// --------------------------------------------------------------------------- //
+//  Bullet Rewriter (Wizard endpoint)
+// --------------------------------------------------------------------------- //
+
+export const RewriteBulletRequestBodyZ = z.object({
+  bullet_id: z.string(),
+  bullet_text: z.string(),
+  target_qualification: z.string(),
+  keywords_to_embed: z.array(z.string()).max(5).default([]),
+});
+
+export const RewriteBulletResponseZ = z.object({
+  suggestions: z.array(z.object({
+    text: z.string(),
+    char_count: z.number(),
+    keywords_embedded: z.array(z.string()),
+    was_rewritten: z.boolean(),
+  })),
+});
+
+export type RewriteBulletRequest = z.infer<typeof RewriteBulletRequestBodyZ>;
+export type RewriteBulletResponse = z.infer<typeof RewriteBulletResponseZ>;
+
+// --------------------------------------------------------------------------- //
+//  Match Requirement (Wizard Step 3)
+// --------------------------------------------------------------------------- //
+
+export const MatchRequirementRequestBodyZ = z.object({
+  qualification_text: z.string(),
+  locked_bullet_ids: z.array(z.string()).default([]),
+  source_type_filter: z.enum(["experience", "project"]).optional(),
+});
+
+export const MatchedCandidateZ = z.object({
+  bullet_id: z.string(),
+  source: z.string(),
+  source_id: z.string(),
+  original_text: z.string(),
+  similarity_score: z.number(),
+  matched_keywords: z.array(z.string()),
+  unmatched_keywords: z.array(z.string()),
+});
+
+export const MatchRequirementResponseZ = z.object({
+  qualification: z.string(),
+  candidates: z.array(MatchedCandidateZ),
+});
+
+export type MatchRequirementRequest = z.infer<typeof MatchRequirementRequestBodyZ>;
+export type MatchRequirementResponse = z.infer<typeof MatchRequirementResponseZ>;

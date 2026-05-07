@@ -174,31 +174,67 @@ export async function submitJobUrl(url: string): Promise<SubmitUrlResult> {
     };
   }
 
-  // 3. Fetch HTML
+  // 3. Fetch HTML (with special handling for JS-rendered ATS pages)
   let rawHtml: string;
-  try {
-    const resp = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      },
-      timeout: 20_000,
-    });
-    if (!resp.ok) {
+
+  // Ashby: SPA that renders client-side. Use their public board API instead.
+  const ashbyMatch = url.match(/jobs\.ashbyhq\.com\/([^/]+)\/([a-f0-9-]+)/i);
+  if (ashbyMatch) {
+    const [, boardSlug, jobId] = ashbyMatch;
+    try {
+      const apiResp = await fetch(
+        `https://api.ashbyhq.com/posting-api/job-board/${boardSlug}`,
+        { timeout: 15_000 },
+      );
+      if (!apiResp.ok) throw new Error(`Ashby API returned ${apiResp.status}`);
+      const apiData = await apiResp.json() as any;
+      const jobs = apiData.jobs ?? apiData.jobPostings ?? [];
+      const match = jobs.find((j: any) => j.id === jobId);
+      if (match) {
+        const title = match.title || "";
+        const desc = match.descriptionHtml || match.descriptionPlain || "";
+        const loc = match.locationName || match.location || "";
+        rawHtml = `<html><head><title>${title} - ${boardSlug}</title></head><body>` +
+          `<h1>${title}</h1>` +
+          `<p>Company: ${boardSlug}</p>` +
+          `<p>Location: ${loc}</p>` +
+          desc +
+          `</body></html>`;
+      } else {
+        throw new Error(`Job ${jobId} not found on ${boardSlug} board (${jobs.length} jobs)`);
+      }
+    } catch (err: any) {
       throw new SubmitUrlError(
-        `Failed to fetch URL: HTTP ${resp.status}`,
+        `Failed to fetch Ashby job: ${err.message}`,
         502,
-        resp.statusText,
       );
     }
-    rawHtml = await resp.text();
-  } catch (err: any) {
-    if (err instanceof SubmitUrlError) throw err;
-    throw new SubmitUrlError(
-      `Failed to fetch URL: ${err.message}`,
-      502,
-    );
+  } else {
+    // Generic fetch
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        timeout: 20_000,
+      });
+      if (!resp.ok) {
+        throw new SubmitUrlError(
+          `Failed to fetch URL: HTTP ${resp.status}`,
+          502,
+          resp.statusText,
+        );
+      }
+      rawHtml = await resp.text();
+    } catch (err: any) {
+      if (err instanceof SubmitUrlError) throw err;
+      throw new SubmitUrlError(
+        `Failed to fetch URL: ${err.message}`,
+        502,
+      );
+    }
   }
 
   if (!rawHtml || rawHtml.length < 200) {

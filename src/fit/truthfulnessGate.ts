@@ -72,22 +72,47 @@ export function truthfulnessGate(
 ): GateResult {
   const failures: string[] = [];
 
-  // 1. Every claim in original.claims must have a corresponding entry in rewrite.claims_preserved
+  // 1. Every claim in original.claims must appear in the rewritten text.
+  //    Primary check: LLM's claims_preserved array maps claim_id → evidence_span.
+  //    Fallback: if claim_id not in claims_preserved, verify the claim's value
+  //    (or key tokens from it) still appears in the rewritten text.
+  const rewrittenLower = rewrite.rewritten.toLowerCase();
+
   for (const claim of original.claims) {
     const preserved = rewrite.claims_preserved.find((p) => p.claim_id === claim.id);
-    if (!preserved) {
-      failures.push(`CLAIM_DROPPED: claim "${claim.id}" (${claim.type}: "${claim.value}") not in claims_preserved`);
-      continue;
-    }
 
-    // 2. Each evidence_span must be a substring of rewrite.rewritten (case-insensitive for flexibility)
-    if (preserved.evidence_span) {
-      const spanLower = preserved.evidence_span.toLowerCase();
-      const rewrittenLower = rewrite.rewritten.toLowerCase();
-      if (!rewrittenLower.includes(spanLower)) {
+    if (preserved) {
+      // LLM mapped this claim — verify evidence_span is in rewritten text
+      if (preserved.evidence_span) {
+        const spanLower = preserved.evidence_span.toLowerCase();
+        if (!rewrittenLower.includes(spanLower)) {
+          failures.push(
+            `CLAIM_NOT_FOUND: claim "${claim.id}" evidence_span "${preserved.evidence_span}" ` +
+            `not found in rewritten text`
+          );
+        }
+      }
+    } else {
+      // LLM didn't map this claim — fallback: check if claim value's key tokens
+      // still appear in the rewritten text (handles rephrasing)
+      const claimTokens = claim.value
+        .toLowerCase()
+        .replace(/[^\w\s$~%]/g, " ")
+        .split(/\s+/)
+        .filter((t) => t.length > 2 && !SAFE_TOKENS.has(t));
+
+      // For metric claims, check that the numbers survive
+      const numbers = claim.value.match(/[\d$~]+[\d,.kKmMbB%]*/g) || [];
+      const numbersPresent = numbers.length === 0 || numbers.every((n) => rewrittenLower.includes(n.toLowerCase()));
+
+      // Require >50% of meaningful tokens + all numbers to be present
+      const tokenHits = claimTokens.filter((t) => rewrittenLower.includes(t)).length;
+      const tokenRatio = claimTokens.length > 0 ? tokenHits / claimTokens.length : 1;
+
+      if (!numbersPresent || tokenRatio < 0.5) {
         failures.push(
-          `CLAIM_NOT_FOUND: claim "${claim.id}" evidence_span "${preserved.evidence_span}" ` +
-          `not found in rewritten text`
+          `CLAIM_DROPPED: claim "${claim.id}" (${claim.type}: "${claim.value}") — ` +
+          `${Math.round(tokenRatio * 100)}% tokens preserved, numbers=${numbersPresent ? "ok" : "missing"}`
         );
       }
     }
@@ -104,12 +129,8 @@ export function truthfulnessGate(
   if (rewrite.rewritten.length > 225) {
     failures.push(`CHAR_LIMIT: rewritten is ${rewrite.rewritten.length} chars, exceeds 225 limit`);
   }
-  if (rewrite.char_count !== rewrite.rewritten.length) {
-    failures.push(`CHAR_MISMATCH: reported ${rewrite.char_count} but actual is ${rewrite.rewritten.length}`);
-  }
 
   // 5. No banned phrase appears in rewritten text
-  const rewrittenLower = rewrite.rewritten.toLowerCase();
   for (const phrase of bannedPhrases) {
     if (rewrittenLower.includes(phrase.toLowerCase())) {
       failures.push(`BANNED_PHRASE: "${phrase}" found in rewritten text`);

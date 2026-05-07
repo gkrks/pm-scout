@@ -9,6 +9,12 @@ export type ScrapeResult = {
   jobs: RawJob[];
   /** true when description HTML/text is already populated in every job */
   fetchedDescriptions: boolean;
+  /**
+   * Full set of Ashby IDs for every listed job on the board — used for
+   * staleness tracking. Includes jobs outside the freshness window.
+   * Only populated by the Ashby scraper; other scrapers leave this undefined.
+   */
+  allListedAshbyIds?: string[];
 };
 
 export type RawJob = {

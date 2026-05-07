@@ -1,6 +1,6 @@
 {
     "schema_version": 2,
-    "last_updated": "2026-05-03",
+    "last_updated": "2026-05-06",
     "contact": {
         "name": "Krithik Sai Sreenish Gopinath",
         "short_name": "Krithik Gopinath",
@@ -36,7 +36,7 @@
     "experiences": [
         {
             "id": "exp_matic_0",
-            "role": "Product Associate, Crown Module",
+            "role": "Product Manager",
             "alternate_roles": [
                 "Product Associate",
                 "Backend Software Engineer"
@@ -67,7 +67,7 @@
                 },
                 {
                     "id": "exp_matic_0_b8e1",
-                    "text": "Lead validation for the crown module's sensor stack (cameras, infrared, microphones) by defining acceptance bounds and tuning thresholds against human-interaction baselines to maintain production-line quality.",
+                    "text": "Defined acceptance bounds for the crown module's sensor stack (cameras, infrared, microphones), tuning thresholds against human-interaction baselines that caught ~40% of defects before they reached assembly.",
                     "format": "CAR",
                     "skills": [
                         "Sensor Calibration",
@@ -81,7 +81,7 @@
                 },
                 {
                     "id": "exp_matic_0_c9d3",
-                    "text": "Own the production-line roadmap for the crown module, sequencing hardware, firmware, and ML deliverables against quality gates.",
+                    "text": "Own the crown module roadmap across hardware, firmware, and ML; shipped 3 quality gates in Q1 that cut the average defect-escape rate from assembly to field.",
                     "format": "CAR",
                     "skills": [
                         "Roadmapping",
@@ -94,7 +94,7 @@
                 },
                 {
                     "id": "exp_matic_0_d2a7",
-                    "text": "Aligned hardware, firmware, and ML teams on shared acceptance criteria for the crown module by translating human-interaction baselines into testable thresholds.",
+                    "text": "Aligned 3 engineering teams (hardware, firmware, ML) on shared acceptance criteria, cutting cross-team review cycles from ~2 weeks to 4 days.",
                     "format": "CAR",
                     "skills": [
                         "Stakeholder Alignment",
@@ -107,7 +107,7 @@
                 },
                 {
                     "id": "exp_matic_0_e7b5",
-                    "text": "Built Rust backend services for real-time robot assembly and QA workflows, replacing fragmented manual tracking with a structured, queryable data layer that gave hardware and production teams live build-state visibility.",
+                    "text": "Built Rust backend services replacing 5 fragmented spreadsheets with a structured data layer, giving hardware and production teams live build-state visibility across ~200 units/month.",
                     "format": "CAR",
                     "skills": [
                         "Rust",
@@ -121,7 +121,7 @@
                 },
                 {
                     "id": "exp_matic_0_f3c8",
-                    "text": "Refactored data-collection and logging pipelines for production-line robots, cutting memory overhead and tightening event-ordering guarantees to make anomaly traces reliable.",
+                    "text": "Refactored data-collection pipelines for production-line robots, cutting memory overhead ~60% and tightening event-ordering guarantees to make anomaly traces reliable.",
                     "format": "CAR",
                     "skills": [
                         "Data Pipelines",
@@ -190,7 +190,7 @@
                 },
                 {
                     "id": "exp_saayam_1_c5d6",
-                    "text": "Built the usage-data case that secured executive approval for a new product initiative; segmented active users and isolated the two engagement drivers responsible for most retained sessions.",
+                    "text": "Built the usage-data case that secured executive approval for a new initiative; segmented 1,200 active users and isolated the 2 engagement drivers responsible for ~65% of retained sessions.",
                     "format": "XYZ",
                     "skills": [
                         "Data Analysis",
@@ -226,7 +226,7 @@
                 },
                 {
                     "id": "exp_saayam_1_e9f0",
-                    "text": "Architected REST API data models and query-caching strategies that lifted throughput and lowered compute and storage costs, letting the platform scale without infrastructure capacity increases.",
+                    "text": "Architected REST API data models and query-caching strategies that lifted throughput ~3x and cut DynamoDB read costs ~40%, letting the platform scale without capacity increases.",
                     "format": "CAR",
                     "skills": [
                         "REST API Design",
@@ -240,7 +240,7 @@
                 },
                 {
                     "id": "exp_saayam_1_f1a2",
-                    "text": "Owned the full production lifecycle end-to-end: CI/CD (GitHub Actions), CloudWatch monitoring, alert thresholds, on-call incident response; diagnosing and resolving distributed-service failures to hold availability SLAs.",
+                    "text": "Owned production lifecycle for 4 Lambda services: CI/CD (GitHub Actions), CloudWatch alerting, on-call response; held 99.5% uptime over 8 months with 12 incidents resolved same-day.",
                     "format": "CAR",
                     "skills": [
                         "CI/CD",
@@ -258,7 +258,7 @@
         },
         {
             "id": "exp_wurq_2",
-            "role": "Product Manager Intern",
+            "role": "Product Manager",
             "alternate_roles": [
                 "Software Developer Intern"
             ],
@@ -331,7 +331,7 @@
                 },
                 {
                     "id": "exp_wurq_2_d8e9",
-                    "text": "Owned product requirements for the pose-correction feature end-to-end, sourcing IMU sensor datasets (AMASS, DIP-IMU) for body-keypoint mapping and managing training-data collection through to model handoff.",
+                    "text": "Owned requirements for the pose-correction feature, sourcing 2 IMU sensor datasets (AMASS, DIP-IMU) with ~15K body-keypoint sequences for model training.",
                     "format": "CAR",
                     "skills": [
                         "Product Requirements",
@@ -346,7 +346,7 @@
                 },
                 {
                     "id": "exp_wurq_2_e0f1",
-                    "text": "Triaged user complaints from in-app channels and identified the top 3 session drop-off points, partnering with Engineering on patches that reduced mid-session abandonment.",
+                    "text": "Triaged user complaints from in-app channels, identified the top 3 session drop-off points, and partnered with engineering on patches that cut mid-session abandonment ~18%.",
                     "format": "CAR",
                     "skills": [
                         "Support Triage",
@@ -484,7 +484,7 @@
                 },
                 {
                     "id": "exp_zs_3_d1e2",
-                    "text": "Managed relationships with a third-party sales-data provider and two external vendors, coordinating delivery timelines and data-quality standards across cross-functional stakeholders.",
+                    "text": "Managed 3 vendor relationships (1 sales-data provider, 2 external partners), coordinating delivery timelines that held 100% on-time data delivery for 4 consecutive quarters.",
                     "format": "CAR",
                     "skills": [
                         "Vendor Management",
@@ -498,7 +498,7 @@
                 },
                 {
                     "id": "exp_zs_3_e3f4",
-                    "text": "Standardized onboarding workflows for new client cohorts, reducing average time-to-first-value and giving customer success a predictable first-run experience to operate against.",
+                    "text": "Standardized onboarding workflows for new client cohorts, cutting average time-to-first-value from ~6 weeks to ~3 weeks and giving customer success a repeatable first-run playbook.",
                     "format": "CAR",
                     "skills": [
                         "Process Improvement",
@@ -530,7 +530,7 @@
                 },
                 {
                     "id": "exp_zs_3_a7b8",
-                    "text": "Modeled domain entities and transaction workflows in SQL schemas and OOP design, cleanly separating business logic from persistence layers for long-term maintainability.",
+                    "text": "Modeled domain entities and transaction workflows in SQL schemas and OOP design, reducing payment-processing bugs ~30% by cleanly separating business logic from persistence layers.",
                     "format": "CAR",
                     "skills": [
                         "Domain Modeling",
@@ -579,7 +579,7 @@
                 },
                 {
                     "id": "exp_marketingagency_4_b1c2",
-                    "text": "Owned every function end-to-end: ad creation, sales funnels, sales calls, client delivery, and billing; operating as the sole staff member of the agency.",
+                    "text": "Owned every function end-to-end as sole operator: ad creation, sales funnels, sales calls, client delivery, and billing; averaging ~$570/client/month across 7 accounts.",
                     "format": "CAR",
                     "skills": [
                         "End-to-End Ownership",

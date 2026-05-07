@@ -70,16 +70,17 @@ function sleep(ms: number): Promise<void> {
 async function scrapeWithRetry(
   company:   CompanyConfig,
   baselines: Map<string, number>,
-): Promise<{ jobs: Job[]; status: "ok" | "suspicious" }> {
+): Promise<{ jobs: Job[]; status: "ok" | "suspicious"; allListedAshbyIds?: string[] }> {
   const timeoutMs = getTimeoutMs(company.ats);
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const jobs = await withTimeout(
+      const result = await withTimeout(
         scrapeCompanyByConfig(company),
         timeoutMs,
         company.name,
       );
+      const jobs = result.jobs;
       // Cap at 200 results to guard against misconfigured queries
       const capped = jobs.length > 200 ? jobs.slice(0, 200) : jobs;
       if (jobs.length > 200) {
@@ -89,7 +90,7 @@ async function scrapeWithRetry(
       }
       const baseline = baselines.get(company.id ?? "") ?? 0;
       const status   = capped.length === 0 && baseline >= 3 ? "suspicious" : "ok";
-      return { jobs: capped, status };
+      return { jobs: capped, status, allListedAshbyIds: result.allListedAshbyIds };
     } catch (err) {
       const errInfo = classifyError(err);
       if (!shouldRetry(errInfo, attempt)) throw err;
@@ -164,7 +165,7 @@ export async function runPool(
 
       const t0 = Date.now();
       try {
-        const { jobs, status } = await scrapeWithRetry(company, baselines);
+        const { jobs, status, allListedAshbyIds } = await scrapeWithRetry(company, baselines);
         const durationMs = Date.now() - t0;
         onResult({
           companyId:  company.id ?? "",
@@ -175,6 +176,7 @@ export async function runPool(
           status,
           jobs,
           durationMs,
+          allListedAshbyIds,
         });
         if (jobs.length > 0) {
           console.log(

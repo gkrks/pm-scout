@@ -206,6 +206,20 @@ function headerLine(boldText, regularText, dateText, fontSize = BODY_SIZE, spaci
   });
 }
 
+function projectHeaderLine(boldName, italicDesc, linkText, fontSize = BODY_SIZE, spacingBefore = ENTRY_BEFORE) {
+  return new Paragraph({
+    tabStops: [{ type: TabStopType.RIGHT, position: TAB_RIGHT }],
+    spacing: { before: spacingBefore, after: 0, line: LINE_SPACING, lineRule: "auto" },
+    children: [
+      new TextRun({ text: boldName, bold: true, font: "Calibri", size: fontSize }),
+      new TextRun({ text: " | ", font: "Calibri", size: fontSize }),
+      new TextRun({ text: italicDesc, italics: true, font: "Calibri", size: fontSize }),
+      new TextRun({ font: "Calibri", size: fontSize, children: [new Tab()] }),
+      new TextRun({ text: linkText, font: "Calibri", size: fontSize }),
+    ],
+  });
+}
+
 const BULLET_SPACING = 20; // spacing between bullets within same entry
 const FIRST_BULLET_BEFORE = 30; // extra space between header line and first bullet
 
@@ -282,9 +296,9 @@ function buildDocx() {
   // Projects
   paragraphs.push(sectionHeading("Projects"));
   projs.forEach((proj, idx) => {
-    paragraphs.push(headerLine(
+    paragraphs.push(projectHeaderLine(
       proj.name,
-      ` | ${proj.desc}`,
+      proj.desc,
       proj.link,
       BODY_SIZE,
       idx === 0 ? 0 : ENTRY_BEFORE,
@@ -409,8 +423,16 @@ function buildPdf() {
     advanceY(60 / 20); // SECTION_AFTER (~3pt)
   }
 
+  function checkPageBreak(needed) {
+    if (y + needed > PDF_PAGE_H - PDF_MARGIN) {
+      doc.addPage();
+      y = PDF_MARGIN;
+    }
+  }
+
   function drawHeaderLine(bold, regular, dateText, size = 9.5, extraBefore = 0) {
     if (extraBefore > 0) advanceY(extraBefore);
+    checkPageBreak(lineH * 3); // keep header with at least one bullet
     doc.font(FONT_BOLD).fontSize(size);
     const boldW = doc.widthOfString(bold);
     doc.text(bold, leftX, y, { lineBreak: false });
@@ -424,13 +446,37 @@ function buildPdf() {
     advanceY(lineH);
   }
 
+  function drawProjectHeaderLine(boldName, italicDesc, linkText, size = 9.5, extraBefore = 0) {
+    if (extraBefore > 0) advanceY(extraBefore);
+    checkPageBreak(lineH * 3);
+    doc.font(FONT_BOLD).fontSize(size);
+    const boldW = doc.widthOfString(boldName);
+    doc.text(boldName, leftX, y, { lineBreak: false });
+
+    const FONT_ITALIC = "Helvetica-Oblique";
+    const pipeText = " | ";
+    doc.font(FONT).fontSize(size);
+    const pipeW = doc.widthOfString(pipeText);
+    doc.text(pipeText, leftX + boldW, y, { lineBreak: false });
+
+    doc.font(FONT_ITALIC).fontSize(size);
+    doc.text(italicDesc, leftX + boldW + pipeW, y, { lineBreak: false });
+
+    doc.font(FONT).fontSize(size);
+    const linkW = doc.widthOfString(linkText);
+    doc.text(linkText, rightX - linkW, y, { lineBreak: false });
+
+    advanceY(lineH);
+  }
+
   function drawBullet(text, size = 9.5, isLast = false, isFirst = false) {
     if (isFirst) advanceY(3); // breathing room after header line
     doc.font(FONT).fontSize(size);
+    const textHeight = doc.heightOfString(text, { width: bulletW });
+    checkPageBreak(textHeight + 4);
     // Bullet character
     doc.text("\u2022", leftX, y, { lineBreak: false });
     // Bullet text with wrapping
-    const textHeight = doc.heightOfString(text, { width: bulletW });
     doc.text(text, leftX + bulletIndent, y, { width: bulletW });
     y += textHeight;
     advanceY(isLast ? 3 : 2); // inter-bullet spacing, slightly more after last
@@ -440,6 +486,7 @@ function buildPdf() {
     const catStr = catName + ": ";
     const fullText = catStr + listText;
     const textHeight = doc.font(FONT).fontSize(9.5).heightOfString(fullText, { width: usableW });
+    checkPageBreak(textHeight + 2);
     doc.font(FONT_BOLD).fontSize(9.5).text(catStr, leftX, y, { continued: true, width: usableW });
     doc.font(FONT).fontSize(9.5).text(listText, { width: usableW });
     y += textHeight;
@@ -470,15 +517,15 @@ function buildPdf() {
   // --- Experience ---
   drawSectionHeading("Experience");
   exps.forEach((exp, idx) => {
-    drawHeaderLine(exp.role, ` | ${exp.company}, ${exp.location}`, exp.dates, 10, idx === 0 ? 0 : 4);
-    exp.bullets.forEach((b, bi) => drawBullet(b, 10, bi === exp.bullets.length - 1, bi === 0));
+    drawHeaderLine(exp.role, ` | ${exp.company}, ${exp.location}`, exp.dates, 9.5, idx === 0 ? 0 : 4);
+    exp.bullets.forEach((b, bi) => drawBullet(b, 9.5, bi === exp.bullets.length - 1, bi === 0));
   });
 
   // --- Projects ---
   drawSectionHeading("Projects");
   projs.forEach((proj, idx) => {
-    drawHeaderLine(proj.name, ` | ${proj.desc}`, proj.link, 10, idx === 0 ? 0 : 4);
-    proj.bullets.forEach((b, bi) => drawBullet(b, 10, bi === proj.bullets.length - 1, bi === 0));
+    drawProjectHeaderLine(proj.name, proj.desc, proj.link, 9.5, idx === 0 ? 0 : 4);
+    proj.bullets.forEach((b, bi) => drawBullet(b, 9.5, bi === proj.bullets.length - 1, bi === 0));
   });
 
   // --- Education ---

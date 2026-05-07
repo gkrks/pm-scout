@@ -1022,29 +1022,63 @@ export async function scrapeCompany(
   );
 }
 
+/** Extended result from scrapeCompanyByConfig — carries Ashby staleness data */
+export interface ScrapeCompanyResult {
+  jobs: Job[];
+  /** Full listed Ashby IDs for staleness sweep (Ashby only) */
+  allListedAshbyIds?: string[];
+}
+
 /**
  * Dispatch a scrape for a single company using its CompanyConfig.
  * Used by the orchestrator's two-pool executor (src/orchestrator/pools.ts).
  * Throws on any error — the caller is responsible for retry and timeout wrapping.
  */
-export async function scrapeCompanyByConfig(company: CompanyConfig): Promise<Job[]> {
+export async function scrapeCompanyByConfig(company: CompanyConfig): Promise<ScrapeCompanyResult> {
   const roles = company.roles ?? [];
   if (company.ats === "greenhouse") {
     const routing = resolveRouting(company.slug ?? "", loadRoutingConfig());
     const ghSlug = routing?.slug ?? company.slug!;
-    return scrapeGreenhouse(company.name, ghSlug, company.careersUrl, roles);
+    return { jobs: await scrapeGreenhouse(company.name, ghSlug, company.careersUrl, roles) };
   }
-  if (company.ats === "lever")             return scrapeLever(company.name, company.slug!, company.careersUrl, roles);
-  if (company.ats === "ashby")             return scrapeAshby(company.name, company.slug!, company.careersUrl, roles);
-  if (company.ats === "workday")           return scrapeWorkdayCompany(company);
-  if (company.ats === "smartrecruiters")   return scrapeSmartRecruitersCompany(company);
-  if (company.ats === "workable")          return scrapeApiCompany(company, workableScraper, "workable");
-  if (company.ats === "bamboohr")          return scrapeApiCompany(company, bambooHRScraper, "bamboohr");
-  if (company.ats === "amazon")            return scrapeAmazon(company.careersUrl, company.earlyCareerUrl);
-  if (company.ats === "google-playwright") return scrapeGoogle(company.careersUrl, company.earlyCareerUrl);
-  if (company.ats === "meta-playwright")   return scrapeMeta(company.careersUrl, company.earlyCareerUrl);
-  if (company.ats === "custom-playwright") return scrapeCustomPlaywright(company);
+  if (company.ats === "lever")             return { jobs: await scrapeLever(company.name, company.slug!, company.careersUrl, roles) };
+  if (company.ats === "ashby")             return scrapeAshbyWithStaleness(company, roles);
+  if (company.ats === "workday")           return { jobs: await scrapeWorkdayCompany(company) };
+  if (company.ats === "smartrecruiters")   return { jobs: await scrapeSmartRecruitersCompany(company) };
+  if (company.ats === "workable")          return { jobs: await scrapeApiCompany(company, workableScraper, "workable") };
+  if (company.ats === "bamboohr")          return { jobs: await scrapeApiCompany(company, bambooHRScraper, "bamboohr") };
+  if (company.ats === "amazon")            return { jobs: await scrapeAmazon(company.careersUrl, company.earlyCareerUrl) };
+  if (company.ats === "google-playwright") return { jobs: await scrapeGoogle(company.careersUrl, company.earlyCareerUrl) };
+  if (company.ats === "meta-playwright")   return { jobs: await scrapeMeta(company.careersUrl, company.earlyCareerUrl) };
+  if (company.ats === "custom-playwright") return { jobs: await scrapeCustomPlaywright(company) };
   throw new Error(`Unsupported ATS platform: "${company.ats}"`);
+}
+
+/**
+ * Ashby-specific adapter that uses the proper scraper module (src/scrapers/ashby.ts)
+ * which returns both filtered jobs and the full allListedAshbyIds for staleness.
+ */
+async function scrapeAshbyWithStaleness(company: CompanyConfig, roles: string[]): Promise<ScrapeCompanyResult> {
+  // Use the inline scrapeAshby for PM-filtered Job[] (preserves existing behavior)
+  const jobs = await scrapeAshby(company.name, company.slug!, company.careersUrl, roles);
+
+  // Extract allListedAshbyIds from the same data the inline scraper already fetched.
+  // Since we can't avoid a second fetch without a larger refactor, we use a lightweight
+  // approach: parse IDs from the job URLs we already have, plus fetch the full board
+  // one more time for the complete listed set (including non-PM and stale jobs).
+  const { extractAshbyId } = await import("./scrapers/ashby");
+  const slug = company.slug!;
+  const boardUrl = `https://api.ashbyhq.com/posting-api/job-board/${slug}`;
+  const resp = await fetchWithTimeout(boardUrl);
+  if (!resp.ok) return { jobs };
+  const data = (await resp.json()) as AshbyResponse;
+  const allRaw: AshbyJob[] = data.jobs ?? data.jobPostings ?? [];
+  const allListedAshbyIds = allRaw
+    .filter((j: any) => j.isListed !== false)
+    .map((j: any) => extractAshbyId(j.jobUrl ?? j.applyUrl))
+    .filter((id: string | null): id is string => !!id);
+
+  return { jobs, allListedAshbyIds };
 }
 
 async function scrapeWorkdayCompany(company: CompanyConfig): Promise<Job[]> {

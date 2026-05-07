@@ -4,14 +4,18 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm ci --omit=dev && (PLAYWRIGHT_BROWSERS_PATH=./pw-browsers ./node_modules/.bin/playwright install chromium --with-deps || apt-get install -y chromium-browser chromium || true)
-    startCommand: node dist/index.js serve
+    buildCommand: npm ci && cd web && npm ci && npm run build && cd ..
+    startCommand: node dist/fit/server.js & cd web && PORT=$PORT node .next/standalone/server.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: FIT_PORT
+        value: "3847"
+      - key: NEXT_PUBLIC_API_URL
+        value: http://localhost:3847
       - key: GROQ_API_KEY
-        sync: false   # set this manually in the Render dashboard
+        sync: false
       - key: PLAYWRIGHT_BROWSERS_PATH
         value: ./pw-browsers
       - key: APOLLO_API_KEY
-        sync: false   # set this manually in the Render dashboard
+        sync: false

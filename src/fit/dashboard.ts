@@ -7,8 +7,6 @@
  * aggregates server-side, and renders a Chart.js-powered dashboard.
  */
 
-import fs from "fs";
-import path from "path";
 import { Request, Response } from "express";
 import { getSupabaseClient, loadMasterResume } from "../storage/supabase";
 import {
@@ -19,7 +17,6 @@ import {
   DOMAIN_EXPERTISE,
   CERTIFICATIONS,
 } from "../lib/skillsList";
-import { renderDashboardPage } from "./dashboardRender";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -160,7 +157,7 @@ function toLADate(dateStr: string): Date | null {
 
 // ── Route handler ────────────────────────────────────────────────────────────
 
-export async function handleDashboard(req: Request, res: Response): Promise<void> {
+export async function handleDashboardJson(req: Request, res: Response): Promise<void> {
   // Auth
   const dashToken = process.env.DASHBOARD_TOKEN || "";
   if (!dashToken) {
@@ -1028,11 +1025,9 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
       token,
     };
 
-    const html = renderDashboardPage(data);
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
+    res.json(data);
   } catch (err: any) {
     console.error("[dashboard] Error:", err.message);
-    res.status(500).send("Dashboard error: " + err.message);
+    res.status(500).json({ error: "Dashboard error: " + err.message });
   }
 }

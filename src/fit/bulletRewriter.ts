@@ -124,7 +124,7 @@ export async function rewriteBullets(input: BatchRewriteInput): Promise<RewriteO
 //  Single bullet rewrite with retry and gate
 // --------------------------------------------------------------------------- //
 
-async function rewriteBulletSafe(req: RewriteRequest): Promise<RewriteOutput> {
+export async function rewriteBulletSafe(req: RewriteRequest): Promise<RewriteOutput> {
   // Extract claims if not provided
   const claims = req.bulletClaims || await extractClaims(req.bulletId, req.bulletText);
 
@@ -135,9 +135,12 @@ async function rewriteBulletSafe(req: RewriteRequest): Promise<RewriteOutput> {
 
     const rewriteResult = await callRewriterLLM(req, claims, previousFailures);
     if (!rewriteResult) {
-      // LLM call failed entirely
+      console.warn(`[rewriter] LLM call returned null for ${req.bulletId} attempt ${attempt + 1}`);
       continue;
     }
+
+    console.log(`[rewriter] LLM returned for ${req.bulletId} attempt ${attempt + 1}:`,
+      JSON.stringify({ rewritten: rewriteResult.rewritten, claims_preserved: rewriteResult.claims_preserved, keywords_embedded: rewriteResult.keywords_embedded }));
 
     // Run truthfulness gate
     const gateResult = truthfulnessGate(
@@ -255,8 +258,10 @@ async function _callClaude(apiKey: string, userMessage: string): Promise<Rewrite
 
     const data = (await resp.json()) as any;
     const content = data.content?.[0]?.text || "";
+    console.log("[rewriter] Claude raw response:", content.slice(0, 500));
     return _parseRewriteResponse(content);
-  } catch {
+  } catch (err: any) {
+    console.error("[rewriter] Claude call error:", err.message);
     return null;
   }
 }
@@ -299,14 +304,22 @@ function _parseRewriteResponse(raw: string): RewriteResult | null {
     const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
 
+    // Handle alternate field names LLMs sometimes use
+    const rewrittenText = parsed.rewritten || parsed.rewritten_bullet || parsed.rewrite || parsed.text || "";
+    const claimsPreserved = parsed.claims_preserved || parsed.claims_included || [];
+    // Normalize claims_preserved: may be array of strings ("c1") or objects ({claim_id, evidence_span})
+    const normalizedClaims = claimsPreserved.map((c: any) =>
+      typeof c === "string" ? { claim_id: c, evidence_span: "" } : c
+    );
+
     return {
-      rewritten: parsed.rewritten || "",
-      char_count: parsed.char_count || (parsed.rewritten || "").length,
-      claims_preserved: parsed.claims_preserved || [],
-      claims_added: parsed.claims_added || [],
+      rewritten: rewrittenText,
+      char_count: parsed.char_count || parsed.character_count || rewrittenText.length,
+      claims_preserved: normalizedClaims,
+      claims_added: parsed.claims_added || parsed.new_claims_added || [],
       keywords_embedded: parsed.keywords_embedded || [],
       omitted_keywords: parsed.omitted_keywords || [],
-      format_used: parsed.format_used || "car",
+      format_used: (parsed.format_used || "car").toLowerCase(),
       acronyms_expanded: parsed.acronyms_expanded || [],
       acronyms_kept: parsed.acronyms_kept || [],
       banned_phrase_check: parsed.banned_phrase_check !== false,

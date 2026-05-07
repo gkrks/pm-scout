@@ -174,6 +174,8 @@ export const ExtractedJDSchema = z.object({
     ambiguous_fields: z.array(z.string()),
     missing_sections: z.array(z.string()),
     extraction_notes: z.string().nullable(),
+    /** How qualifications were extracted: 'sections' (Ashby structured), 'regex', or 'none' */
+    qualifications_extracted_via: z.enum(["sections", "regex", "none"]).optional(),
   }),
 });
 

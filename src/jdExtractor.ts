@@ -39,6 +39,12 @@ export interface ExtractJDInput {
   companyName: string;
   sourceAts: string | null;
   sourceUrl: string | null;
+  /** Pre-extracted structured qualifications (e.g. from Ashby descriptionSections) */
+  structuredQualifications?: {
+    required: string[];
+    preferred: string[];
+    extracted_via: string;
+  };
 }
 
 interface Section {
@@ -825,8 +831,12 @@ export async function extractJD(input: ExtractJDInput): Promise<ExtractedJD> {
       domains_required: matchSkills(fullText, DOMAIN_EXPERTISE).slice(0, 5),
     },
     education: extractEducation(fullText),
-    required_qualifications: splitCompoundQualifications(getSectionContent(sections, "required_qualifications")),
-    preferred_qualifications: splitCompoundQualifications(getSectionContent(sections, "preferred_qualifications")),
+    required_qualifications: input.structuredQualifications
+      ? input.structuredQualifications.required
+      : splitCompoundQualifications(getSectionContent(sections, "required_qualifications")),
+    preferred_qualifications: input.structuredQualifications
+      ? input.structuredQualifications.preferred
+      : splitCompoundQualifications(getSectionContent(sections, "preferred_qualifications")),
     responsibilities: getSectionContent(sections, "responsibilities"),
     skills: {
       technical: matchSkills(fullText, TECHNICAL_SKILLS),
@@ -876,6 +886,8 @@ export async function extractJD(input: ExtractJDInput): Promise<ExtractedJD> {
       extraction_notes: unknownHeadings.length > 0
         ? `Unrecognized headings: ${unknownHeadings.join(", ")}`
         : null,
+      qualifications_extracted_via: (input.structuredQualifications?.extracted_via as "sections" | "regex" | "none")
+        ?? (hasReqs ? "regex" : "none"),
     },
   };
 

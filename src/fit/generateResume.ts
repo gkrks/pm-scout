@@ -105,7 +105,7 @@ export async function generateResume(
       id, title, role_url,
       jd_job_title, jd_company_name,
       jd_required_qualifications, jd_preferred_qualifications,
-      jd_role_context, jd_skills, jd_ats_keywords, jd_extracted_skills, ats_platform,
+      jd_role_context, jd_responsibilities, jd_skills, jd_ats_keywords, jd_extracted_skills, ats_platform,
       company:companies!inner(name, slug)
     `)
     .eq("id", jobId)
@@ -288,7 +288,7 @@ export async function generateResume(
   }
 
   // Optimize skills: pick 3 best categories, fill gaps from JD
-  const skillsResult = optimizeSkills(
+  const skillsResult = await optimizeSkills(
     masterResume.skills || [],
     selectedBulletTexts,
     job.jd_skills,
@@ -296,6 +296,8 @@ export async function generateResume(
     job.jd_required_qualifications as string[] || [],
     job.jd_preferred_qualifications as string[] || [],
     job.jd_extracted_skills as string[] || undefined,
+    job.jd_job_title || job.title || "",
+    job.jd_responsibilities as string[] || [],
   );
   // Apply per-line skill edits from UI
   const skillLines = [...skillsResult.lines];

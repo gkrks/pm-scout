@@ -1,9 +1,12 @@
 /**
  * Express web server for the "Check Fit" resume tailoring flow.
+ * All routes return JSON — the Next.js frontend handles HTML rendering.
  *
  * Routes:
- *   GET  /dashboard                 — Analytics dashboard
- *   GET  /fit/:jobId                — Render Fit page (server-rendered)
+ *   GET  /api/health                — Health check
+ *   GET  /dashboard                 — Analytics dashboard (JSON)
+ *   GET  /tracker                   — Application tracker (JSON)
+ *   GET  /fit/:jobId                — Listing data (JSON, HMAC-gated)
  *   POST /fit/:jobId/score          — Proxy to Python /score
  *   POST /fit/:jobId/select         — Proxy to Python /select
  *   POST /fit/:jobId/generate       — Compose payload, regen summary, fill_resume
@@ -35,12 +38,10 @@ import fetch from "node-fetch";
 import { getSupabaseClient, loadMasterResume } from "../storage/supabase";
 import { splitCompoundQualifications } from "../jdExtractor";
 import { generateCoverLetter, buildCoverLetterDocx } from "./coverLetterGenerator";
-import { handleDashboard } from "./dashboard";
+import { handleDashboardJson } from "./dashboard";
 import { generateResume } from "./generateResume";
-import { handleTracker, handleTrackerUpdate } from "./tracker";
-import { renderFitPage } from "./render";
+import { handleTrackerJson, handleTrackerUpdate } from "./tracker";
 import { submitJobUrl, SubmitUrlError } from "./submitUrl";
-import { renderSubmitUrlPage } from "./submitUrlRender";
 import { optimizeSkills } from "./skillsOptimizer";
 import { generateSummaryCandidates } from "./summaryGenerator";
 import {
@@ -49,12 +50,29 @@ import {
   SelectRequestBodyZ,
   SelectResponseZ,
   GenerateRequestBodyZ,
+  RewriteBulletRequestBodyZ,
+  MatchRequirementRequestBodyZ,
 } from "./types";
+import { rewriteBulletSafe } from "./bulletRewriter";
+import { matchRequirement } from "./matchRequirement";
 
 // In-memory store of generated file paths per jobId (single-user, ephemeral)
 const generatedFiles = new Map<string, { pdfPath: string; docxPath: string }>();
 
 const app = express();
+
+// CORS: allow Next.js dev server on :3000 to call Express on :3847
+app.use((_req, res, next) => {
+  const origin = _req.headers.origin;
+  if (origin && (origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1"))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-fit-token, x-tracker-token, x-dashboard-token");
+  }
+  if (_req.method === "OPTIONS") { res.status(204).end(); return; }
+  next();
+});
+
 app.use(express.json());
 
 const PORT = parseInt(process.env.PORT || process.env.FIT_PORT || "3847", 10);
@@ -114,46 +132,140 @@ app.use("/fit/:jobId", (req: Request, res: Response, next: NextFunction) => {
 });
 
 // --------------------------------------------------------------------------- //
-//  Serve static client.js
+//  Health check
 // --------------------------------------------------------------------------- //
 
-app.get("/fit/client.js", (_req: Request, res: Response) => {
-  const jsPath = path.join(__dirname, "client.js");
-  // In dev, try src/ path; in prod, try dist/ path
-  const srcPath = path.resolve(__dirname, "../../src/fit/client.js");
-  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
-  res.setHeader("Content-Type", "application/javascript");
-  fs.createReadStream(filePath).pipe(res);
+app.get("/api/health", (_req: Request, res: Response) => {
+  res.json({ ok: true, version: process.env.npm_package_version || "1.0.0" });
 });
 
 // --------------------------------------------------------------------------- //
-//  Serve dashboard client.js + dashboard route
+//  Jobs list (JSON)
 // --------------------------------------------------------------------------- //
 
-app.get("/dashboard/client.js", (_req: Request, res: Response) => {
-  const jsPath = path.join(__dirname, "dashboardClient.js");
-  const srcPath = path.resolve(__dirname, "../../src/fit/dashboardClient.js");
-  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
-  res.setHeader("Content-Type", "application/javascript");
-  fs.createReadStream(filePath).pipe(res);
+app.get("/api/jobs", async (req: Request, res: Response) => {
+  const dashToken = process.env.DASHBOARD_TOKEN || "";
+  if (!dashToken) { res.status(500).json({ error: "DASHBOARD_TOKEN not configured" }); return; }
+  const token = (req.query.token as string) || "";
+  if (token !== dashToken) { res.status(401).json({ error: "Invalid token" }); return; }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data: listings, error } = await supabase
+      .from("job_listings")
+      .select(`
+        id, title, role_url, location_city, location_raw,
+        is_remote, is_hybrid, ats_platform, posted_date, first_seen_at,
+        is_active, tier, yoe_min, yoe_max, salary_min, salary_max,
+        company:companies!inner(name, slug, has_apm_program)
+      `)
+      .order("first_seen_at", { ascending: false })
+      .limit(2000);
+
+    if (error) { res.status(500).json({ error: error.message }); return; }
+
+    const jobs = (listings || []).map((l: any) => ({
+      id: l.id,
+      title: l.title,
+      companyName: (l.company as any)?.name || "Unknown",
+      companySlug: (l.company as any)?.slug || "",
+      locationCity: l.location_city,
+      isRemote: l.is_remote,
+      isHybrid: l.is_hybrid,
+      atsPlatform: l.ats_platform,
+      postedDate: l.posted_date,
+      firstSeenAt: l.first_seen_at,
+      isActive: l.is_active,
+      tier: l.tier,
+      yoeMin: l.yoe_min,
+      yoeMax: l.yoe_max,
+      roleUrl: l.role_url,
+      hasApmProgram: (l.company as any)?.has_apm_program ?? false,
+    }));
+
+    res.json({ jobs });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/dashboard", handleDashboard);
-
 // --------------------------------------------------------------------------- //
-//  Tracker routes
+//  Application detail (JSON)
 // --------------------------------------------------------------------------- //
 
-app.get("/tracker/client.js", (_req: Request, res: Response) => {
-  const jsPath = path.join(__dirname, "trackerClient.js");
-  const srcPath = path.resolve(__dirname, "../../src/fit/trackerClient.js");
-  const filePath = fs.existsSync(jsPath) ? jsPath : srcPath;
-  res.setHeader("Content-Type", "application/javascript");
-  fs.createReadStream(filePath).pipe(res);
+app.get("/api/applications/:id", async (req: Request, res: Response) => {
+  const dashToken = process.env.DASHBOARD_TOKEN || "";
+  if (!dashToken) { res.status(500).json({ error: "DASHBOARD_TOKEN not configured" }); return; }
+  const token = (req.query.token as string) || (req.headers["x-tracker-token"] as string) || "";
+  if (token !== dashToken) { res.status(401).json({ error: "Invalid token" }); return; }
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data: app, error } = await supabase
+      .from("applications")
+      .select(`
+        id, listing_id, status, applied_date, applied_by,
+        referral_contact, notes, email_used, is_referral, referrer_name,
+        created_at, updated_at,
+        listing:job_listings!inner(
+          id, title, role_url, location_city, location_raw,
+          is_remote, is_hybrid, ats_platform, posted_date, first_seen_at,
+          tier, jd_job_title, jd_company_name,
+          company:companies!inner(name, slug)
+        )
+      `)
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !app) {
+      res.status(404).json({ error: "Application not found" });
+      return;
+    }
+
+    // Check if there's a fit score
+    const { data: fitCache } = await supabase
+      .from("fit_score_cache")
+      .select("score_response")
+      .eq("listing_id", app.listing_id)
+      .maybeSingle();
+
+    const fitScore = (fitCache?.score_response as any)?.final_selection?.total_score ?? null;
+
+    res.json({
+      ...app,
+      listing: {
+        ...(app.listing as any),
+        companyName: ((app.listing as any)?.company as any)?.name || "Unknown",
+        companySlug: ((app.listing as any)?.company as any)?.slug || "",
+      },
+      fitScore,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/tracker", handleTracker);
+// --------------------------------------------------------------------------- //
+//  Dashboard route (JSON)
+// --------------------------------------------------------------------------- //
+
+app.get("/dashboard", handleDashboardJson);
+
+// --------------------------------------------------------------------------- //
+//  Tracker routes (JSON)
+// --------------------------------------------------------------------------- //
+
+app.get("/tracker", handleTrackerJson);
 app.patch("/tracker/api/applications/:id", express.json(), handleTrackerUpdate);
+
+// --------------------------------------------------------------------------- //
+//  Kanban board data (JSON)
+// --------------------------------------------------------------------------- //
+
+import { handleKanbanCards, handleCreateApplication } from "./tracker";
+
+app.get("/tracker/kanban", handleKanbanCards);
+app.post("/tracker/api/applications", express.json(), handleCreateApplication);
 
 // --------------------------------------------------------------------------- //
 //  GET /fit/new — Submit URL form page
@@ -174,7 +286,7 @@ function verifyDashboardToken(req: Request, res: Response, next: NextFunction): 
 }
 
 app.get("/fit/new", verifyDashboardToken, (_req: Request, res: Response) => {
-  res.send(renderSubmitUrlPage(DASHBOARD_TOKEN));
+  res.json({ ok: true, message: "Submit URL endpoint ready" });
 });
 
 app.post("/fit/submit-url", verifyDashboardToken, async (req: Request, res: Response) => {
@@ -210,7 +322,6 @@ app.post("/fit/submit-url", verifyDashboardToken, async (req: Request, res: Resp
 app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
   try {
     const jobId = req.params.jobId;
-    const token = (req.query.token as string) || "";
     const supabase = getSupabaseClient();
 
     const { data: job, error } = await supabase
@@ -219,14 +330,14 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
         id, title, location_raw, location_city, is_remote, is_hybrid,
         role_url, ats_platform, posted_date, first_seen_at,
         jd_job_title, jd_company_name, jd_required_qualifications,
-        jd_preferred_qualifications, jd_role_context,
+        jd_preferred_qualifications, jd_responsibilities, jd_role_context,
         company:companies!inner(name, slug)
       `)
       .eq("id", jobId)
       .single();
 
     if (error || !job) {
-      res.status(404).send("Job not found");
+      res.status(404).json({ error: "Job not found" });
       return;
     }
 
@@ -241,10 +352,10 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       .eq("listing_id", jobId)
       .maybeSingle();
 
-    const html = renderFitPage({
+    res.json({
       jobId,
-      token,
       companyName: (job.company as any)?.name || job.jd_company_name || "Unknown",
+      companySlug: (job.company as any)?.slug || "",
       title: job.jd_job_title || job.title,
       location: job.location_city || job.location_raw || "",
       isRemote: job.is_remote,
@@ -255,6 +366,8 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
       roleUrl: job.role_url,
       requiredQuals: splitCompoundQualifications((job.jd_required_qualifications as string[]) || []),
       preferredQuals: splitCompoundQualifications((job.jd_preferred_qualifications as string[]) || []),
+      responsibilities: (job.jd_responsibilities as string[]) || [],
+      roleContext: (job.jd_role_context as any)?.summary || "",
       emails,
       applicationStatus: appStatus ? {
         applied: appStatus.status === "applied",
@@ -263,12 +376,9 @@ app.get("/fit/:jobId", verifyToken, async (req: Request, res: Response) => {
         status: appStatus.status,
       } : null,
     });
-
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
   } catch (err: any) {
     console.error("[fit] render error:", err.message);
-    res.status(500).send("Internal error");
+    res.status(500).json({ error: "Internal error" });
   }
 });
 
@@ -316,7 +426,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
 
     // Kick off Python scorer + job row fetch + resume load in parallel
     const pyAbort = new AbortController();
-    const pyTimer = setTimeout(() => pyAbort.abort(), 45_000); // 45s hard kill — cache misses need ~20s for embeddings + rerank
+    const pyTimer = setTimeout(() => pyAbort.abort(), 90_000); // 90s hard kill — cold scores can take 60s+ for embeddings + rerank
     const pyScoreP = fetch(`${BULLET_SELECTOR_URL}/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -325,7 +435,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         force_refresh: body.force_refresh,
       }),
       signal: pyAbort.signal as any,
-      timeout: 45_000, // 45s — cache misses: embeddings (~5s) + GPT-4.1 rerank (~15s) + overhead
+      timeout: 90_000, // 90s — cold scores: embeddings + LLM rerank can take 60s+
     })
       .then(async (pyRes) => {
         clearTimeout(pyTimer);
@@ -350,7 +460,7 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       .select(`
         title, jd_job_title, jd_company_name, jd_skills, jd_ats_keywords,
         jd_required_qualifications, jd_preferred_qualifications,
-        jd_role_context, jd_extracted_skills,
+        jd_responsibilities, jd_role_context, jd_extracted_skills,
         company:companies!inner(name)
       `)
       .eq("id", jobId)
@@ -391,10 +501,10 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
       roleContext ? `About: ${roleContext}` : "",
     ].filter(Boolean).join("\n");
 
-    // Generate summary + optimize skills in parallel (skills doesn't need bullet texts)
+    // Generate summary + optimize skills in parallel
     const [summaryResult, skillsResult] = await Promise.all([
       generateSummaryCandidates(jdText, selectedBulletTexts),
-      Promise.resolve(optimizeSkills(
+      optimizeSkills(
         masterResume.skills || [],
         selectedBulletTexts,
         jobRow?.jd_skills,
@@ -402,7 +512,9 @@ app.post("/fit/:jobId/score", verifyToken, async (req: Request, res: Response) =
         jobRow?.jd_required_qualifications as string[] || [],
         jobRow?.jd_preferred_qualifications as string[] || [],
         jobRow?.jd_extracted_skills as string[] || undefined,
-      )),
+        jdTitle,
+        jobRow?.jd_responsibilities as string[] || [],
+      ),
     ]);
 
     // Build enriched response
@@ -568,6 +680,115 @@ app.post("/fit/:jobId/apply", verifyToken, async (req: Request, res: Response) =
     });
   } catch (err: any) {
     console.error("[fit] apply error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/match-requirement — Match master resume bullets to a requirement
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/match-requirement", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const parsed = MatchRequirementRequestBodyZ.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+      return;
+    }
+    const { qualification_text, locked_bullet_ids, source_type_filter } = parsed.data;
+
+    // Load JD keywords from listing
+    const supabase = getSupabaseClient();
+    const { data: jobRow } = await supabase
+      .from("job_listings")
+      .select("jd_ats_keywords, jd_extracted_skills")
+      .eq("id", jobId)
+      .single();
+
+    const jdKeywords: string[] = [];
+    if (jobRow?.jd_ats_keywords) {
+      const atsKw = typeof jobRow.jd_ats_keywords === "string"
+        ? JSON.parse(jobRow.jd_ats_keywords)
+        : jobRow.jd_ats_keywords;
+      if (Array.isArray(atsKw)) jdKeywords.push(...atsKw.slice(0, 10));
+    }
+    if (jobRow?.jd_extracted_skills) {
+      const skills = typeof jobRow.jd_extracted_skills === "string"
+        ? JSON.parse(jobRow.jd_extracted_skills)
+        : jobRow.jd_extracted_skills;
+      if (Array.isArray(skills)) jdKeywords.push(...skills.slice(0, 10));
+    }
+    const uniqueKeywords = [...new Set(jdKeywords)].slice(0, 8);
+
+    const result = await matchRequirement(qualification_text, uniqueKeywords, locked_bullet_ids, source_type_filter);
+    res.json(result);
+  } catch (err: any) {
+    console.error("[match-requirement] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------- //
+//  POST /fit/:jobId/rewrite-bullet — Rewrite a single bullet with JD keywords
+// --------------------------------------------------------------------------- //
+
+app.post("/fit/:jobId/rewrite-bullet", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId;
+    const parsed = RewriteBulletRequestBodyZ.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+      return;
+    }
+    const { bullet_id, bullet_text, target_qualification, keywords_to_embed } = parsed.data;
+
+    // Load JD keywords from listing
+    const supabase = getSupabaseClient();
+    const { data: jobRow } = await supabase
+      .from("job_listings")
+      .select("jd_ats_keywords, jd_extracted_skills")
+      .eq("id", jobId)
+      .single();
+
+    // Build keywords: user-specified + JD-extracted
+    const jdKeywords: string[] = [];
+    if (jobRow?.jd_ats_keywords) {
+      const atsKw = typeof jobRow.jd_ats_keywords === "string"
+        ? JSON.parse(jobRow.jd_ats_keywords)
+        : jobRow.jd_ats_keywords;
+      if (Array.isArray(atsKw)) jdKeywords.push(...atsKw.slice(0, 10));
+    }
+    const allKeywords = [...new Set([...keywords_to_embed, ...jdKeywords])].slice(0, 5);
+
+    const result = await rewriteBulletSafe({
+      bulletId: bullet_id,
+      bulletText: bullet_text,
+      targetQualification: target_qualification,
+      keywordsToEmbed: allKeywords,
+      bannedPhrases: [
+        "responsible for", "helped with", "worked on", "assisted in",
+        "participated in", "in charge of", "tasked with", "duties included",
+      ],
+      preferredVerbs: [
+        "shipped", "launched", "drove", "owned", "scaled", "defined",
+        "prioritized", "led", "architected", "delivered", "built", "reduced",
+        "increased", "accelerated",
+      ],
+      acronymsToSpellOut: {},
+      acronymsToKeep: [],
+    });
+
+    res.json({
+      suggestions: [{
+        text: result.text,
+        char_count: result.text.length,
+        keywords_embedded: result.keywordsEmbedded,
+        was_rewritten: result.wasRewritten,
+      }],
+    });
+  } catch (err: any) {
+    console.error("[rewrite-bullet] Error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

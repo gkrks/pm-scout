@@ -2,7 +2,10 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci", "cd web && npm ci"]
+
+[phases.build]
+cmds = ["npx tsc", "cd web && npm run build"]
 
 [start]
-cmd = "npm start"
+cmd = "node dist/fit/server.js & cd web && node .next/standalone/server.js"

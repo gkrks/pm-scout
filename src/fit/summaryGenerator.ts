@@ -1,8 +1,13 @@
 /**
  * Summary generator: produces 3 ranked summary candidates
- * using the resume_summary.md prompt via OpenAI gpt-4o.
+ * using OpenAI gpt-4o.
  *
- * Called during /score to provide candidates in the UI before generate.
+ * Rule 4 constraints:
+ * - Max 2 sentences, 35 words
+ * - Must name a specific recent project or domain
+ * - Must NOT contain any JD phrases
+ * - Must NOT contain banned vocabulary
+ * - Must NOT lead with "years of experience" unless followed by specific competency
  */
 
 import fs from "fs";
@@ -10,7 +15,7 @@ import path from "path";
 import OpenAI from "openai";
 
 const PROMPT_PATH = path.resolve(__dirname, "../../.claude/commands/resume_summary.md");
-const SUMMARY_MAX_CHARS = 300;
+const SUMMARY_MAX_WORDS = 25;
 
 export interface SummaryCandidate {
   index: number;
@@ -23,57 +28,45 @@ export interface SummaryCandidate {
 
 export interface SummaryResult {
   candidates: SummaryCandidate[];
-  recommended: number; // 1-indexed
+  recommended: number;
   jdAnalysis: string;
 }
 
-/**
- * Generate 3 summary candidates for a job.
- */
 export async function generateSummaryCandidates(
   jdText: string,
   bulletTexts: string[],
 ): Promise<SummaryResult> {
   const openaiKey = process.env.OPENAI_KEY;
-  if (!openaiKey) {
-    return fallbackResult();
-  }
+  if (!openaiKey) return fallbackResult();
 
-  // Load the prompt template
-  let promptTemplate: string;
+  // Load custom prompt if available, otherwise use inline
+  let systemPrompt: string;
   try {
-    promptTemplate = fs.readFileSync(PROMPT_PATH, "utf-8");
+    const raw = fs.readFileSync(PROMPT_PATH, "utf-8");
+    systemPrompt = raw.replace(/## INPUTS[\s\S]*$/, "").trim();
   } catch {
-    // Inline a simplified version if the file doesn't exist
-    promptTemplate = getInlinePrompt();
+    systemPrompt = getInlinePrompt();
   }
 
-  // Build the inputs section
-  const bulletsStr = bulletTexts
-    .map((t, i) => `${i + 1}. ${t}`)
-    .join("\n");
+  // Override with Rule 4 constraints
+  systemPrompt += RULE_4_OVERRIDE;
 
-  const userMessage = `JD:\n\`\`\`\n${jdText}\n\`\`\`\n\nBULLETS:\n\`\`\`\n${bulletsStr}\n\`\`\``;
-
-  // Strip the INPUTS section from the prompt (we provide it as user message)
-  let systemPrompt = promptTemplate
-    .replace(/## INPUTS[\s\S]*$/, "")
-    .trim();
-
-  // Extract the JD's years requirement and inject as a clear override
+  // Extract JD years requirement
   const yearsMatch = jdText.match(/(?:less than|under|<)\s*(\d+)\s*years?/i)
     || jdText.match(/(\d+)\+?\s*years?\s*(?:of\s+)?(?:professional|total|relevant)?\s*experience/i);
   if (yearsMatch) {
-    const jdYears = yearsMatch[1];
-    systemPrompt += `\n\n## CRITICAL OVERRIDE\nThe JD specifies "${jdYears}" years. You MUST use "${jdYears}+ yrs" or "${jdYears}+ years" in the summary. Do NOT use "4+ yrs" or any other number. This overrides rule 8.`;
+    systemPrompt += `\nThe JD specifies "${yearsMatch[1]}" years. Use "${yearsMatch[1]}+ years" if mentioning years.`;
   }
+
+  const bulletsStr = bulletTexts.map((t, i) => `${i + 1}. ${t}`).join("\n");
+  const userMessage = `JD:\n\`\`\`\n${jdText}\n\`\`\`\n\nBULLETS:\n\`\`\`\n${bulletsStr}\n\`\`\``;
 
   const client = new OpenAI({ apiKey: openaiKey, timeout: 30_000 });
 
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.3, // slight creativity for different angles
+      temperature: 0.3,
       max_tokens: 2000,
       messages: [
         { role: "system", content: systemPrompt },
@@ -89,17 +82,38 @@ export async function generateSummaryCandidates(
   }
 }
 
-/**
- * Parse the structured response from the LLM.
- */
+const RULE_4_OVERRIDE = `
+
+## CRITICAL: SUMMARY RULES (override all previous summary instructions)
+
+The summary is ONE LINE that connects the dots between the candidate's past experience and this target role. It is a bridge, not a list of attributes.
+
+HARD CONSTRAINTS:
+1. ONE sentence only. Maximum 25 words.
+2. The sentence must have two halves: what you've actually done → why that maps to this role.
+3. Name a SPECIFIC thing (company, system, domain, technology) from real experience — not a generic claim.
+4. ZERO phrases from the JD. The bridge must be in the candidate's own words.
+5. BANNED — never insert: leveraging, spearheaded, orchestrated, championed, facilitated, streamlined, enhanced, transformed, cross-functional, fast-paced, dynamic, results-driven, data-driven, scalable, robust, innovative, strategic, "translating X into Y", "driving initiatives", "enabling stakeholders", "passionate about", "proven track record", "foster collaboration", "adept at"
+6. No first-person pronouns (I, me, my, myself).
+7. No em dashes. No creative compound titles (Builder-PM, Engineer-PM). Use the real role title.
+8. ASCII punctuation only.
+
+Template that WORKS:
+"Product manager who built sensor validation systems at Matic Robots, now applying that hardware-software rigor to sizing infrastructure."
+"Product manager with 4 years shipping serverless analytics and ML pipelines, looking to own performance tooling end to end."
+
+Template that FAILS:
+"Builder-PM with 4+ years in enterprise software, adept at leveraging AI for product enhancement and analyzing market trends."
+"Results-driven product leader passionate about translating complex architecture into actionable roadmaps."
+
+The test: does this sentence make a recruiter think "oh, that background is relevant to this role"? If it reads like a generic PM description, it fails.`;
+
 function parseResponse(raw: string): SummaryResult {
   const candidates: SummaryCandidate[] = [];
 
-  // Extract JD analysis
   const jdMatch = raw.match(/JD ANALYSIS\s*\n([\s\S]*?)(?=\nCANDIDATE 1)/i);
   const jdAnalysis = jdMatch ? jdMatch[1].trim() : "";
 
-  // Extract each candidate
   for (let i = 1; i <= 3; i++) {
     const pattern = new RegExp(
       `CANDIDATE ${i}\\s*[—-]\\s*([^\\n]+)\\nText:\\s*"([^"]+)"\\s*\\nChars:\\s*(\\d+)\\s*\\nSelf-check:\\s*([^\\n]+)\\nReasoning:\\s*([^\\n]+(?:\\n[^\\n]+)?)`,
@@ -118,20 +132,17 @@ function parseResponse(raw: string): SummaryResult {
     }
   }
 
-  // Extract recommended
   const recMatch = raw.match(/RECOMMENDED:\s*CANDIDATE\s*(\d)/i);
   const recommended = recMatch ? parseInt(recMatch[1], 10) : 1;
 
-  // If parsing failed, try a looser extraction
   if (candidates.length === 0) {
-    // Try to find any quoted text as summaries
-    const quotes = raw.match(/"([^"]{50,300})"/g);
+    const quotes = raw.match(/"([^"]{30,250})"/g);
     if (quotes) {
       quotes.slice(0, 3).forEach((q, i) => {
         const text = q.replace(/^"|"$/g, "").trim();
         candidates.push({
           index: i + 1,
-          angle: i === 0 ? "engineering" : i === 1 ? "product" : "bridge",
+          angle: i === 0 ? "specific" : i === 1 ? "technical" : "domain",
           text,
           chars: text.length,
           selfCheck: "Parsed from loose match",
@@ -141,23 +152,20 @@ function parseResponse(raw: string): SummaryResult {
     }
   }
 
-  if (candidates.length === 0) {
-    return fallbackResult();
-  }
-
+  if (candidates.length === 0) return fallbackResult();
   return { candidates, recommended, jdAnalysis };
 }
 
 function fallbackResult(): SummaryResult {
-  const text = "Engineer-PM with 4+ yrs across consumer robotics, fitness tech, and enterprise SaaS; ships end-to-end systems in Rust and Python, bridging product management with hands-on engineering.";
+  const text = "Product manager who built sensor validation at Matic Robots, now applying that hardware-software rigor to platform sizing.";
   return {
     candidates: [{
       index: 1,
       angle: "fallback",
       text,
       chars: text.length,
-      selfCheck: "Fallback (no API key or call failed)",
-      reasoning: "Static fallback summary.",
+      selfCheck: "Fallback",
+      reasoning: "Static fallback.",
     }],
     recommended: 1,
     jdAnalysis: "",
@@ -165,25 +173,16 @@ function fallbackResult(): SummaryResult {
 }
 
 function getInlinePrompt(): string {
-  return `You are generating the professional summary for Krithik Gopinath's resume, tailored to a specific job description.
+  return `You generate professional summaries for Krithik Gopinath's resume, tailored to a specific job description.
 
-Produce 3 ranked summary candidates. Each must:
-1. Be <= 300 characters
-2. No em dashes. Use ; or , instead.
-3. No buzzwords (passionate, results-driven, dynamic, motivated, etc.)
-4. No first-person pronouns (I, me, my)
-5. No content duplicating the BULLETS
-6. Mirror 2-3 JD keywords naturally
-7. Start with identity noun (Engineer-PM, Builder-PM, etc.)
-8. Include "4+ yrs" or "4+ years"
-9. Plain ASCII only
+Produce 3 ranked candidates. Each MUST follow the CRITICAL SUMMARY RULES below.
 
-Output in this format:
+Output format:
 CANDIDATE 1 - <angle>
 Text: "<summary>"
 Chars: <N>
-Self-check: [1] PASS [2] PASS ... [9] PASS
-Reasoning: <why>
+Self-check: [1] PASS/FAIL ... [10] PASS/FAIL
+Reasoning: <why this works>
 
 (repeat for 2 and 3)
 
