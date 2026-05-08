@@ -13,7 +13,7 @@
  * Keywords are lowercased but NOT normalised further — the trailing-space trick depends on it.
  */
 
-import type { FilterConfig, FilterResult } from "./types";
+import type { FilterConfig, FilterResult, RoleCategory } from "./types";
 
 /** Lower-case, collapse whitespace, strip all punctuation except hyphens. */
 function normaliseTitle(title: string): string {
@@ -56,17 +56,46 @@ function excludeMatches(normalisedTitle: string, keyword: string): boolean {
 }
 
 /**
+ * Check if a title matches a role category by required_words (all must appear).
+ */
+function matchesRequiredWords(normalised: string, words: string[]): boolean {
+  return words.every((w) => normalised.includes(w.toLowerCase()));
+}
+
+/**
  * 3.1 Title filter
  *
- * Pure function — no side effects.
+ * Tries each role category in order: TPM/SWE first (more specific), then PM.
+ * Returns the first matching category. Pure function — no side effects.
  */
 export function filterTitle(
   rawTitle: string,
-  config: Pick<FilterConfig, "title_include_keywords" | "title_exclude_keywords">,
+  config: Pick<FilterConfig, "title_include_keywords" | "title_exclude_keywords" | "role_categories">,
 ): FilterResult {
   const normalised = normaliseTitle(rawTitle);
 
-  // ── Include check ─────────────────────────────────────────────────────────
+  // ── Try TPM / SWE categories first (more specific required_words matching) ─
+  const categories = config.role_categories ?? [];
+  for (const cat of categories) {
+    if (!cat.required_words || cat.required_words.length === 0) continue;
+
+    if (matchesRequiredWords(normalised, cat.required_words)) {
+      // Check category-specific excludes
+      const catExcludes = cat.title_exclude_keywords ?? [];
+      let excluded = false;
+      for (const kw of catExcludes) {
+        if (excludeMatches(normalised, kw)) {
+          excluded = true;
+          break;
+        }
+      }
+      if (!excluded) {
+        return { kept: true, enrichment: { role_category: cat.id } };
+      }
+    }
+  }
+
+  // ── PM: original include/exclude logic ────────────────────────────────────
   const included = config.title_include_keywords.some((kw) =>
     normalised.includes(kw.toLowerCase()),
   );
@@ -74,7 +103,7 @@ export function filterTitle(
   if (!included) {
     return {
       kept: false,
-      reason: `"${rawTitle}" does not match any include keyword`,
+      reason: `"${rawTitle}" does not match any include keyword or role category`,
       enrichment: {},
     };
   }
@@ -90,5 +119,5 @@ export function filterTitle(
     }
   }
 
-  return { kept: true, enrichment: {} };
+  return { kept: true, enrichment: { role_category: "PM" as RoleCategory } };
 }

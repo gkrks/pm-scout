@@ -30,6 +30,8 @@ export interface ListingToUpsert {
   extracted_jd?: ExtractedJD;
   /** ATS platform that sourced this listing */
   ats_platform?: string;
+  /** Role category: PM, TPM, or SWE */
+  role_category?: "PM" | "TPM" | "SWE";
 }
 
 export type SeenState = "new" | "existing" | "reactivated";
@@ -222,6 +224,7 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     raw_jd_excerpt: job.description?.slice(0, 5000) ?? null,
     apm_signal:     item.apm_signal ?? "none",
     ats_platform:   item.ats_platform ?? null,
+    role_category:  item.role_category ?? "PM",
     last_seen_at:   new Date().toISOString(),
     is_active:      true,
     // ── Ashby-specific fields (populated when source_meta has them) ──────

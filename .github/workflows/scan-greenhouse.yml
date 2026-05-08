@@ -46,11 +46,12 @@ jobs:
       - name: Run Greenhouse scanner
         run: npx ts-node scripts/runScan.ts
         env:
-          SCAN_POOL:           greenhouse
-          IGNORE_BLACKOUT:     'true'
-          DISPLAY_TIMEZONE:    America/Los_Angeles
-          RUN_TRIGGER:         ${{ github.event_name }}
-          RUN_ID_GH:           ${{ github.run_id }}
+          SCAN_POOL:               greenhouse
+          IGNORE_BLACKOUT:         'true'
+          DISPLAY_TIMEZONE:        America/Los_Angeles
+          NOTIFY_ROLE_CATEGORIES:  PM,TPM
+          RUN_TRIGGER:             ${{ github.event_name }}
+          RUN_ID_GH:               ${{ github.run_id }}
 
       - name: Upload logs on failure
         if: failure()

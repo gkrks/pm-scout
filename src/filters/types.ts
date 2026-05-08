@@ -43,9 +43,20 @@ export interface CompensationConfig {
   min_base_salary_usd: number | null;
 }
 
+export type RoleCategory = "PM" | "TPM" | "SWE";
+
+export interface RoleCategoryConfig {
+  id: RoleCategory;
+  label: string;
+  /** All words must appear in title (case-insensitive). Used for TPM/SWE matching. */
+  required_words?: string[];
+  title_exclude_keywords?: string[];
+}
+
 export interface FilterConfig {
   title_include_keywords: string[];
   title_exclude_keywords: string[];
+  role_categories: RoleCategoryConfig[];
   location: LocationConfig;
   experience: ExperienceConfig;
   freshness: FreshnessConfig;
@@ -96,6 +107,9 @@ export interface JobEnrichment {
   salary_min: number | null;
   salary_max: number | null;
   salary_currency: string | null;
+
+  // ── Role category (set by titleFilter) ──────────────────────────────────
+  role_category?: RoleCategory;
 }
 
 // ── Full pipeline result ──────────────────────────────────────────────────────

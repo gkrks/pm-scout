@@ -11,7 +11,7 @@
 import { z } from "zod";
 import * as fs from "fs";
 import * as path from "path";
-import type { FilterConfig } from "../filters/types";
+import type { FilterConfig, RoleCategoryConfig } from "../filters/types";
 
 // ── Raw Zod schemas (permissive — we normalise below) ────────────────────────
 
@@ -51,10 +51,20 @@ const RawCompensationSchema = z
   })
   .passthrough();
 
+const RawRoleCategorySchema = z
+  .object({
+    id: z.enum(["PM", "TPM", "SWE"]),
+    label: z.string(),
+    required_words: z.array(z.string()).optional(),
+    title_exclude_keywords: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
 const RawFiltersSchema = z
   .object({
     title_include_keywords: z.array(z.string()).default([]),
     title_exclude_keywords: z.array(z.string()).default([]),
+    role_categories: z.array(RawRoleCategorySchema).default([]),
     location: RawLocationSchema,
     experience: RawExperienceSchema.default({}),
     freshness: RawFreshnessSchema.default({}),
@@ -70,6 +80,12 @@ function normalise(raw: z.infer<typeof RawFiltersSchema>): FilterConfig {
   return {
     title_include_keywords: raw.title_include_keywords,
     title_exclude_keywords: raw.title_exclude_keywords,
+    role_categories: raw.role_categories.map((rc): RoleCategoryConfig => ({
+      id: rc.id,
+      label: rc.label,
+      required_words: rc.required_words,
+      title_exclude_keywords: rc.title_exclude_keywords,
+    })),
     location: {
       allowed_cities: raw.location.allowed_cities,
       city_aliases: raw.location.city_aliases,

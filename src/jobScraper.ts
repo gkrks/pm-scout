@@ -15,7 +15,11 @@ const FETCH_TIMEOUT_MS = 15_000;
 
 // ── Title filters ─────────────────────────────────────────────────────────────
 
-const TITLE_INCLUDE = [
+// ── Role category definitions ────────────────────────────────────────────────
+
+type RoleCategory = "PM" | "TPM" | "SWE";
+
+const PM_INCLUDE = [
   /associate\s+product\s+manager/i,
   // APM only when it stands alone or is clearly the role title (not e.g. "APM Retrieval")
   /^apm$/i,
@@ -24,7 +28,7 @@ const TITLE_INCLUDE = [
   /\bproduct\s+manager\b/i,
 ];
 
-const TITLE_EXCLUDE = [
+const PM_EXCLUDE = [
   /\bsenior\b/i, /\bsr\.?\b/i, /\blead\b/i, /\bprincipal\b/i,
   /\bdirector\b/i, /\bhead\b/i, /\bvp\b/i, /\bvice\s+president\b/i,
   /\bstaff\b/i, /\bgroup\s+pm\b/i, /\bgroup\s+product\b/i,
@@ -32,23 +36,77 @@ const TITLE_EXCLUDE = [
   /\bengineering\s+manager\b/i,
 ];
 
+/**
+ * TPM: title must contain all three words "technical", "program", "manager".
+ * Excludes senior/staff/lead/principal/director/VP titles.
+ */
+function isTPMTitle(title: string): boolean {
+  const t = title.toLowerCase();
+  if (!t.includes("technical") || !t.includes("program") || !t.includes("manager")) return false;
+  return !SENIORITY_EXCLUDE.some((re) => re.test(title));
+}
+
+/**
+ * SWE: title must contain both words "software" and "engineer".
+ * Excludes senior/staff/lead/principal/director/VP/manager titles.
+ */
+function isSWETitle(title: string): boolean {
+  const t = title.toLowerCase();
+  if (!t.includes("software") || !t.includes("engineer")) return false;
+  return !SENIORITY_EXCLUDE.some((re) => re.test(title));
+}
+
+/** Shared seniority excludes for TPM and SWE roles (0–3 YOE only). */
+const SENIORITY_EXCLUDE = [
+  /\bsenior\b/i, /\bsr\.?\b/i, /\blead\b/i, /\bprincipal\b/i,
+  /\bdirector\b/i, /\bhead\b/i, /\bvp\b/i, /\bvice\s+president\b/i,
+  /\bstaff\b/i, /\bdistinguished\b/i,
+];
+
+/**
+ * Classify a job title into a role category.
+ * Checks TPM first (more specific — contains "manager" which overlaps PM),
+ * then PM, then SWE. Returns null if no category matches.
+ */
+function classifyRole(title: string, roles: string[]): RoleCategory | null {
+  // TPM check first — "Technical Program Manager" contains "manager" so must precede PM
+  if (isTPMTitle(title)) return "TPM";
+
+  // PM check (original logic)
+  const pmExcluded = PM_EXCLUDE.some((re) => re.test(title));
+  if (!pmExcluded) {
+    if (roles.length === 0) {
+      if (PM_INCLUDE.some((re) => re.test(title))) return "PM";
+    } else {
+      const matchesRole = roles.some((r) => title.toLowerCase().includes(r.toLowerCase()));
+      if (matchesRole || PM_INCLUDE.some((re) => re.test(title))) return "PM";
+    }
+  }
+
+  // SWE check
+  if (isSWETitle(title)) return "SWE";
+
+  return null;
+}
+
 function isPmRole(title: string): boolean {
-  if (!TITLE_INCLUDE.some((re) => re.test(title))) return false;
-  return !TITLE_EXCLUDE.some((re) => re.test(title));
+  return classifyRole(title, []) !== null;
 }
 
 /**
  * Title filter that incorporates a per-company role allow-list from targets.json.
- * A job is kept when its title contains at least one role string from the config
- * array OR matches the standard PM inclusion regex — AND is not excluded.
- * An empty roles array falls back to the standard PM filter.
+ * A job is kept when its title matches any role category (PM, TPM, or SWE).
+ * An empty roles array falls back to the standard PM filter + TPM/SWE checks.
  */
 function isPmRoleForConfig(title: string, roles: string[]): boolean {
-  const excluded = TITLE_EXCLUDE.some((re) => re.test(title));
-  if (excluded) return false;
-  if (roles.length === 0) return TITLE_INCLUDE.some((re) => re.test(title));
-  const matchesRole = roles.some((r) => title.toLowerCase().includes(r.toLowerCase()));
-  return matchesRole || TITLE_INCLUDE.some((re) => re.test(title));
+  return classifyRole(title, roles) !== null;
+}
+
+/**
+ * Classify a title and return the role category. Exported for use in scheduler.
+ */
+export function classifyRoleCategory(title: string, roles: string[] = []): RoleCategory | null {
+  return classifyRole(title, roles);
 }
 
 function sleep(ms: number): Promise<void> {

@@ -1,10 +1,9 @@
-name: "Scan: Workday"
+name: "SWE Scan: Ashby"
 
 on:
   schedule:
-    # Every 3 hours, offset by 30min from other pools to spread load
-    # UTC hours: 0:30, 3:30, 6:30, 9:30, 12:30, 15:30, 18:30, 21:30
-    - cron: "30 0,3,6,9,12,15,18,21 * * *"
+    # Every hour at :00
+    - cron: "0 * * * *"
 
   workflow_dispatch:
     inputs:
@@ -14,13 +13,13 @@ on:
         default: false
 
 concurrency:
-  group: scan-workday
+  group: scan-swe-ashby
   cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -43,13 +42,13 @@ jobs:
       - name: Sync companies to Supabase
         run: npx ts-node scripts/syncCompanies.ts
 
-      - name: Run Workday scanner
+      - name: Run Ashby scanner (SWE only)
         run: npx ts-node scripts/runScan.ts
         env:
-          SCAN_POOL:               workday
+          SCAN_POOL:               ashby
           IGNORE_BLACKOUT:         'true'
           DISPLAY_TIMEZONE:        America/Los_Angeles
-          NOTIFY_ROLE_CATEGORIES:  PM,TPM
+          NOTIFY_ROLE_CATEGORIES:  SWE
           RUN_TRIGGER:             ${{ github.event_name }}
           RUN_ID_GH:               ${{ github.run_id }}
 
@@ -57,7 +56,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: scan-workday-logs-${{ github.run_id }}
+          name: scan-swe-ashby-logs-${{ github.run_id }}
           path: data/pending-supabase.json
           retention-days: 7
           if-no-files-found: ignore

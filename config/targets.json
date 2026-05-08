@@ -47,6 +47,54 @@
       "Technical Product Manager",
       "Data Product Manager"
     ],
+    "role_categories": [
+      {
+        "id": "PM",
+        "label": "PM/APM",
+        "notes": "Default Product Manager roles — uses title_include_keywords and title_exclude_keywords above"
+      },
+      {
+        "id": "TPM",
+        "label": "Technical Program Manager",
+        "required_words": ["technical", "program", "manager"],
+        "title_exclude_keywords": [
+          "Senior Technical Program Manager",
+          "Sr. Technical Program Manager",
+          "Sr Technical Program Manager",
+          "Staff Technical Program Manager",
+          "Principal Technical Program Manager",
+          "Lead Technical Program Manager",
+          "Director",
+          "Head of",
+          "VP ",
+          "Vice President"
+        ],
+        "experience": { "min_years": 0, "max_years": 3 },
+        "notes": "Entry-level / new grad TPM roles (0–3 YOE). Title must contain all three words: technical, program, manager."
+      },
+      {
+        "id": "SWE",
+        "label": "Software Engineer",
+        "required_words": ["software", "engineer"],
+        "title_exclude_keywords": [
+          "Senior Software Engineer",
+          "Sr. Software Engineer",
+          "Sr Software Engineer",
+          "Staff Software Engineer",
+          "Principal Software Engineer",
+          "Lead Software Engineer",
+          "Distinguished Software Engineer",
+          "Director",
+          "Head of",
+          "VP ",
+          "Vice President",
+          "Engineering Manager",
+          "Software Engineering Manager"
+        ],
+        "experience": { "min_years": 0, "max_years": 3 },
+        "notes": "Entry-level / new grad SWE roles (0–3 YOE). Title must contain both words: software, engineer."
+      }
+    ],
     "location": {
       "allowed_cities": [],
       "city_aliases": {},

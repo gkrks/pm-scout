@@ -36,6 +36,7 @@ export interface Job {
   category?: string;                           // Company category from JSON (e.g. "AI Labs")
   domainTags?: string[];                       // e.g. ["ai", "fintech"]
   sponsorshipOffered?: boolean | null;         // true=yes, false=no, null=unclear
+  roleCategory?: "PM" | "TPM" | "SWE";        // Which role category this job matched
 
   // Scan diffing (set by jobStore after each scan)
   firstSeenAt?: string;  // ISO timestamp of first scan this job appeared in

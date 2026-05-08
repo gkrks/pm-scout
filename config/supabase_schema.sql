@@ -105,6 +105,8 @@ create table if not exists public.job_listings (
     sponsorship_offered boolean,                         -- null if unclear
     domain_tags     text[] not null default '{}',
     raw_jd_excerpt  text,                                -- ~500 chars for debugging
+    role_category   text default 'PM'                    -- PM | TPM | SWE
+                    check (role_category in ('PM','TPM','SWE')),
     first_seen_at   timestamptz not null default now(),
     last_seen_at    timestamptz not null default now(),
     is_active       boolean not null default true,       -- false when listing disappears
@@ -123,6 +125,7 @@ create index if not exists idx_listings_first_seen on public.job_listings(first_
 create index if not exists idx_listings_last_seen  on public.job_listings(last_seen_at desc);
 create index if not exists idx_listings_posted     on public.job_listings(posted_date desc);
 create index if not exists idx_listings_city       on public.job_listings(location_city);
+create index if not exists idx_listings_role_category on public.job_listings(role_category);
 
 comment on table  public.job_listings is 'One row per (company, role_url). Upsert target for parser.';
 comment on column public.job_listings.first_seen_at is 'Set on first insert; never updated';
@@ -165,6 +168,33 @@ create table if not exists public.applications (
 );
 
 create index if not exists idx_applications_status on public.applications(status);
+
+-- ============================================================
+--  resume_queue  (jobs the user wants a tailored resume for)
+-- ============================================================
+create table if not exists public.resume_queue (
+    id              uuid primary key default gen_random_uuid(),
+    listing_id      uuid not null unique references public.job_listings(id) on delete cascade,
+    role_url        text not null,
+    title           text not null,
+    company_name    text not null,
+    location_raw    text,
+    role_category   text default 'PM' check (role_category in ('PM','TPM','SWE')),
+    yoe_min         numeric(3,1),
+    yoe_max         numeric(3,1),
+    posted_date     date,
+    apm_signal      text,
+    ats_platform    text,
+    was_resume_created boolean not null default false,
+    requested_at    timestamptz not null default now(),
+    created_at      timestamptz not null default now(),
+    updated_at      timestamptz not null default now()
+);
+
+create index if not exists idx_resume_queue_listing   on public.resume_queue(listing_id);
+create index if not exists idx_resume_queue_category  on public.resume_queue(role_category);
+create index if not exists idx_resume_queue_pending   on public.resume_queue(was_resume_created) where was_resume_created = false;
+create index if not exists idx_resume_queue_requested on public.resume_queue(requested_at desc);
 
 -- ============================================================
 --  Trigger: auto-update updated_at

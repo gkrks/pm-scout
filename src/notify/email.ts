@@ -59,6 +59,25 @@ function fitPlaintext(job: Job): string {
   return `\n  - Check Fit: ${url}`;
 }
 
+// ── Generate Resume link helpers ─────────────────────────────────────────────
+
+function resumeQueueUrl(job: Job): string {
+  if (!FIT_BASE_URL || !job.supabaseId) return "";
+  return `${FIT_BASE_URL}/resume/queue/${job.supabaseId}`;
+}
+
+function resumeQueueButton(job: Job): string {
+  const url = resumeQueueUrl(job);
+  if (!url) return "";
+  return ` <a href="${url}" style="border:1px solid #0d9488;color:#0d9488;padding:7px 16px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;display:inline-block;margin-left:8px;" target="_blank">Generate Resume</a>`;
+}
+
+function resumeQueuePlaintext(job: Job): string {
+  const url = resumeQueueUrl(job);
+  if (!url) return "";
+  return `\n  - Generate Resume: ${url}`;
+}
+
 function submitJobUrl(): string {
   if (!FIT_BASE_URL || !DASHBOARD_TOKEN) return "";
   return `${FIT_BASE_URL}/fit/new?token=${DASHBOARD_TOKEN}`;
@@ -76,7 +95,14 @@ function trackerUrl(): string {
 
 // ── Subject ───────────────────────────────────────────────────────────────────
 
-function formatSubject(newJobs: Job[], runStartedAt: Date): string {
+/** Category label configuration for email subjects and headers. */
+const CATEGORY_LABELS: Record<string, { tag: string; heading: string }> = {
+  default: { tag: "New PM/APM Roles",                    heading: "PM/APM" },
+  "TPM":   { tag: "New Technical Program Manager Roles", heading: "Technical Program Manager" },
+  "SWE":   { tag: "New Software Engineer Roles",         heading: "Software Engineer" },
+};
+
+function formatSubject(newJobs: Job[], runStartedAt: Date, category?: string): string {
   const tz      = process.env.DISPLAY_TIMEZONE || "America/Los_Angeles";
   const dateFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: tz, month: "long", day: "numeric", year: "numeric",
@@ -87,7 +113,8 @@ function formatSubject(newJobs: Job[], runStartedAt: Date): string {
   const count        = newJobs.length;
   const priorityApm  = newJobs.filter((j) => j.apmSignal === "priority_apm").length;
   const noun         = count === 1 ? "new job found" : "new jobs found";
-  let subject        = `[New PM/APM Roles] ${count} ${noun}`;
+  const label        = CATEGORY_LABELS[category ?? "default"] ?? CATEGORY_LABELS["default"];
+  let subject        = `[${label.tag}] ${count} ${noun}`;
   if (priorityApm > 0) {
     subject += ` · 🎯 ${priorityApm} APM Program${priorityApm === 1 ? "" : "s"}`;
   }
@@ -96,7 +123,7 @@ function formatSubject(newJobs: Job[], runStartedAt: Date): string {
 
 // ── HTML builder ──────────────────────────────────────────────────────────────
 
-export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: CompanyMetaMap): string {
+export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: CompanyMetaMap, category?: string): string {
   const map    = metaMap ?? new Map();
   const now    = stats.completedAt;
   const tz     = process.env.DISPLAY_TIMEZONE || "America/Los_Angeles";
@@ -164,7 +191,7 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
   <div style="color:#6b7280;font-size:13px;margin-bottom:10px;">${esc(subtitle)}</div>
   <table style="font-size:13px;color:#374151;border-collapse:collapse;">${rows.join("")}</table>
   <div style="margin-top:12px;">
-    <a href="${j.applyUrl}" style="background:${btnColor};color:white;padding:8px 20px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;display:inline-block;">Apply →</a>${fitButton(j)}
+    <a href="${j.applyUrl}" style="background:${btnColor};color:white;padding:8px 20px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:600;display:inline-block;">Apply →</a>${fitButton(j)}${resumeQueueButton(j)}
   </div>
 </div>`;
     }
@@ -178,7 +205,7 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
   <div style="color:#6b7280;font-size:13px;margin-bottom:10px;">${esc(subtitle)}</div>
   <table style="font-size:13px;color:#374151;border-collapse:collapse;">${rows.join("")}</table>
   <div style="margin-top:12px;">
-    <a href="${j.applyUrl}" style="background:${accentColor};color:white;padding:7px 16px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:500;display:inline-block;">Apply →</a>${fitButton(j)}
+    <a href="${j.applyUrl}" style="background:${accentColor};color:white;padding:7px 16px;border-radius:5px;text-decoration:none;font-size:13px;font-weight:500;display:inline-block;">Apply →</a>${fitButton(j)}${resumeQueueButton(j)}
   </div>
 </div>`;
   }
@@ -201,7 +228,7 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
 </head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#333;background:#fff;">
   <h2 style="margin:0 0 6px 0;font-size:1.2rem;color:#1f2937;">
-    ${newJobs.length} new PM/APM role${newJobs.length === 1 ? "" : "s"} found
+    ${newJobs.length} new ${(CATEGORY_LABELS[category ?? "default"] ?? CATEGORY_LABELS["default"]).heading} role${newJobs.length === 1 ? "" : "s"} found
   </h2>
   <p style="color:#6b7280;margin:0 0 16px 0;font-size:13px;">${esc(runLine)}</p>
   ${submitJobUrl() ? `<div style="margin-bottom:24px;text-align:center;">
@@ -228,11 +255,11 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
 
 // ── Plaintext builder ─────────────────────────────────────────────────────────
 
-export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: CompanyMetaMap): string {
+export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: CompanyMetaMap, category?: string): string {
   const map    = metaMap ?? new Map();
   const now    = stats.completedAt;
   const tz     = process.env.DISPLAY_TIMEZONE || "America/Los_Angeles";
-  const subj   = formatSubject(newJobs, stats.startedAt);
+  const subj   = formatSubject(newJobs, stats.startedAt, category);
   const runFmt = new Intl.DateTimeFormat("en-US", {
     timeZone: tz, month: "long", day: "numeric", year: "numeric",
     hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
@@ -269,6 +296,8 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     parts.push(`- Apply:       ${j.applyUrl}`);
     const fitLine = fitPlaintext(j);
     if (fitLine) parts.push(fitLine.trimStart());
+    const resumeLine = resumeQueuePlaintext(j);
+    if (resumeLine) parts.push(resumeLine.trimStart());
     return parts.join("\n");
   }
 
@@ -304,7 +333,7 @@ function esc(s: string): string {
 
 // ── Sender ────────────────────────────────────────────────────────────────────
 
-export async function sendEmailDigest(newJobs: Job[], stats: RunStats): Promise<void> {
+export async function sendEmailDigest(newJobs: Job[], stats: RunStats, category?: string): Promise<void> {
   if (process.env.NOTIFY_EMAIL_DIGEST !== "true") return;
 
   const host = process.env.SMTP_HOST ?? "smtp.gmail.com";
@@ -324,7 +353,8 @@ export async function sendEmailDigest(newJobs: Job[], stats: RunStats): Promise<
   }
 
   const metaMap = loadCompanyMetaMap();
-  const subject = formatSubject(newJobs, stats.startedAt);
+  const subject = formatSubject(newJobs, stats.startedAt, category);
+  const catLabel = category ?? "PM/APM";
 
   const transport = nodemailer.createTransport({
     host,
@@ -338,11 +368,11 @@ export async function sendEmailDigest(newJobs: Job[], stats: RunStats): Promise<
       from,
       to,
       subject,
-      html: buildEmailHtml(newJobs, stats, metaMap),
-      text: buildEmailText(newJobs, stats, metaMap),
+      html: buildEmailHtml(newJobs, stats, metaMap, category),
+      text: buildEmailText(newJobs, stats, metaMap, category),
     });
-    console.log(`[email] Digest sent → ${to}`);
+    console.log(`[email] ${catLabel} digest sent → ${to}`);
   } catch (err) {
-    console.error(`[email] Send failed: ${err instanceof Error ? err.message : err}`);
+    console.error(`[email] ${catLabel} send failed: ${err instanceof Error ? err.message : err}`);
   }
 }

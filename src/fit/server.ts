@@ -1089,6 +1089,92 @@ app.get("/fit/:jobId/download/:format", verifyToken, (req: Request, res: Respons
 });
 
 // --------------------------------------------------------------------------- //
+//  Resume Queue: save a job for resume generation
+// --------------------------------------------------------------------------- //
+
+app.get("/resume/queue/:listingId", async (req: Request, res: Response) => {
+  const { listingId } = req.params;
+  const supabase = getSupabaseClient();
+
+  try {
+    // Look up the job listing
+    const { data: listing, error: fetchErr } = await supabase
+      .from("job_listings")
+      .select("id, role_url, title, location_raw, role_category, yoe_min, yoe_max, posted_date, apm_signal, ats_platform, company_id")
+      .eq("id", listingId)
+      .single();
+
+    if (fetchErr || !listing) {
+      res.status(404).send(resumeQueuePage("Job not found", `No listing found with ID ${listingId}.`, false));
+      return;
+    }
+
+    // Get company name
+    const { data: company } = await supabase
+      .from("companies")
+      .select("name")
+      .eq("id", listing.company_id)
+      .single();
+
+    const companyName = company?.name ?? "Unknown";
+
+    // Insert into resume_queue (upsert to handle duplicates gracefully)
+    const { error: insertErr } = await supabase
+      .from("resume_queue")
+      .upsert({
+        listing_id:     listing.id,
+        role_url:       listing.role_url,
+        title:          listing.title,
+        company_name:   companyName,
+        location_raw:   listing.location_raw,
+        role_category:  listing.role_category ?? "PM",
+        yoe_min:        listing.yoe_min,
+        yoe_max:        listing.yoe_max,
+        posted_date:    listing.posted_date,
+        apm_signal:     listing.apm_signal,
+        ats_platform:   listing.ats_platform,
+        requested_at:   new Date().toISOString(),
+      }, { onConflict: "listing_id" });
+
+    if (insertErr) {
+      console.error(`[resume-queue] Insert failed: ${insertErr.message}`);
+      res.status(500).send(resumeQueuePage("Something went wrong", insertErr.message, false));
+      return;
+    }
+
+    console.log(`[resume-queue] Queued: ${listing.title} @ ${companyName}`);
+    res.send(resumeQueuePage(
+      "Resume Queued!",
+      `<strong>${listing.title}</strong> at <strong>${companyName}</strong> has been added to your resume queue.`,
+      true,
+      listing.role_url,
+    ));
+  } catch (err) {
+    console.error(`[resume-queue] Error: ${err instanceof Error ? err.message : err}`);
+    res.status(500).send(resumeQueuePage("Error", "An unexpected error occurred.", false));
+  }
+});
+
+/** Render a simple confirmation/error HTML page. */
+function resumeQueuePage(title: string, message: string, success: boolean, applyUrl?: string): string {
+  const icon = success ? "&#10004;" : "&#10060;";
+  const color = success ? "#22c55e" : "#ef4444";
+  const applyLink = applyUrl
+    ? `<a href="${applyUrl}" style="color:#6366f1;text-decoration:none;font-weight:600;">View Job Listing &rarr;</a>`
+    : "";
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${title}</title></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:80px auto;padding:24px;text-align:center;color:#1f2937;">
+  <div style="font-size:48px;color:${color};margin-bottom:16px;">${icon}</div>
+  <h1 style="font-size:1.4rem;margin:0 0 12px 0;">${title}</h1>
+  <p style="color:#6b7280;font-size:15px;line-height:1.5;">${message}</p>
+  ${applyLink ? `<p style="margin-top:20px;">${applyLink}</p>` : ""}
+  <p style="margin-top:32px;color:#9ca3af;font-size:12px;">You can close this tab.</p>
+</body></html>`;
+}
+
+// --------------------------------------------------------------------------- //
 //  Start server
 // --------------------------------------------------------------------------- //
 

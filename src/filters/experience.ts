@@ -147,12 +147,12 @@ export function extractYoeSignals(description: string): YoeSignals {
   const has_junior_language = JUNIOR_PHRASES_RE.test(description);
 
   // ── Senior language: seniority word describing the ROLE itself ───────────────
-  // Look for "Senior|Staff|Lead|Principal|Director" followed by "Product Manager"
-  // or "PM" (the phrase indicates the ROLE is senior). Suppress if the surrounding
-  // context is clearly about a collaborator, not the applicant.
+  // Look for "Senior|Staff|Lead|Principal|Director" followed by a role title
+  // (Product Manager, PM, Software Engineer, Technical Program Manager).
+  // Suppress if the surrounding context is clearly about a collaborator, not the applicant.
   let has_senior_language = false;
   const seniorPhraseRe =
-    /\b(senior|staff|lead|principal|director)\s+(?:product\s+manager|pm)\b/gi;
+    /\b(senior|staff|lead|principal|director)\s+(?:product\s+manager|pm|software\s+engineer|technical\s+program\s+manager|program\s+manager)\b/gi;
   let match: RegExpExecArray | null;
   while ((match = seniorPhraseRe.exec(description)) !== null) {
     // Grab up to 80 chars before the match to check for collaboration context
@@ -293,10 +293,8 @@ export function filterExperience(
   }
 
   // yoe_min extracted and ≤ 3 — the role accepts someone at the lower bound.
-  // yoe_max may be anything (including > 3): "2–5 years" keeps because yoe_min=2
-  // means the company will hire a 2-year candidate.
-  // Excludes plus-suffix cases (caught as "too senior" below when min > 3, or
-  // no-min cases handled above).
+  // yoe_max may be higher (e.g. "2–5 years" keeps because yoe_min=2 means
+  // the company will hire a 2-year candidate).
   if (yoe_min !== null && yoe_min <= 3 && !has_plus_suffix) {
     enrichment.experience_confidence = "extracted";
     return {

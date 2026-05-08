@@ -5,6 +5,7 @@ import { sendTelegramDigest, RunStats } from "./notify/telegram";
 import { sendEmailDigest } from "./notify/email";
 import { sendHealthAlert, hasHealthIssues, buildHealthAlertText } from "./notify/healthAlert";
 import { buildEmailText } from "./notify/email";
+import { classifyRoleCategory } from "./jobScraper";
 import { appState, Job } from "./state";
 import { detectApmSignal } from "./ranking/apmSignal";
 import { startParserRun, finalizeParserRun, sweepStaleRuns } from "./storage/parserRuns";
@@ -118,6 +119,10 @@ function jobToListingToUpsert(
   });
   job.apmSignal = apmSignal;  // mutate so the notification digest can use it
 
+  // Classify role category and stamp on the job object for notification splitting.
+  const roleCat = classifyRoleCategory(job.title) ?? "PM";
+  job.roleCategory = roleCat;
+
   return {
     job: {
       title:        job.title,
@@ -157,6 +162,7 @@ function jobToListingToUpsert(
     },
     apm_signal: apmSignal,
     ats_platform: job.extractedJD?.extraction_meta.source_ats ?? company.ats,
+    role_category: roleCat,
     ...(job.extractedJD ? { extracted_jd: job.extractedJD } : {}),
   };
 }
@@ -667,21 +673,61 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
       errors,
     };
 
+    // ── Classify role categories ────────────────────────────────────────────
+
+    for (const j of notificationNewJobs) {
+      if (!j.roleCategory) {
+        j.roleCategory = classifyRoleCategory(j.title) ?? "PM";
+      }
+    }
+
+    // NOTIFY_ROLE_CATEGORIES controls which role categories trigger emails.
+    // When unset (default), all categories are notified.
+    // Example: NOTIFY_ROLE_CATEGORIES=SWE  → only SWE email sent
+    //          NOTIFY_ROLE_CATEGORIES=PM,TPM → only PM and TPM emails sent
+    const notifyCats = process.env.NOTIFY_ROLE_CATEGORIES
+      ? new Set(process.env.NOTIFY_ROLE_CATEGORIES.split(",").map((s) => s.trim().toUpperCase()))
+      : null; // null = all categories
+
+    const shouldNotify = (cat: string) => notifyCats === null || notifyCats.has(cat);
+
+    const pmJobs  = shouldNotify("PM")  ? notificationNewJobs.filter((j) => j.roleCategory === "PM")  : [];
+    const tpmJobs = shouldNotify("TPM") ? notificationNewJobs.filter((j) => j.roleCategory === "TPM") : [];
+    const sweJobs = shouldNotify("SWE") ? notificationNewJobs.filter((j) => j.roleCategory === "SWE") : [];
+
+    const jobsToNotify = [...pmJobs, ...tpmJobs, ...sweJobs];
+
     // ── Digest notifications ─────────────────────────────────────────────────
 
     const telegramDigestOn = process.env.NOTIFY_TELEGRAM_DIGEST === "true";
     const emailDigestOn    = process.env.NOTIFY_EMAIL_DIGEST     === "true";
 
-    if (notificationNewJobs.length > 0) {
-      await Promise.allSettled([
-        sendTelegramDigest(notificationNewJobs, runStats),
-        sendEmailDigest(notificationNewJobs, runStats),
-      ]);
+    if (jobsToNotify.length > 0) {
+      const digests: Promise<unknown>[] = [
+        sendTelegramDigest(jobsToNotify, runStats),
+      ];
+
+      // PM roles → PM email
+      if (pmJobs.length > 0) {
+        digests.push(sendEmailDigest(pmJobs, runStats));
+      }
+
+      // TPM roles → separate TPM email
+      if (tpmJobs.length > 0) {
+        digests.push(sendEmailDigest(tpmJobs, runStats, "TPM"));
+      }
+
+      // SWE roles → separate SWE email
+      if (sweJobs.length > 0) {
+        digests.push(sendEmailDigest(sweJobs, runStats, "SWE"));
+      }
+
+      await Promise.allSettled(digests);
 
       // Stdout fallback when all digest channels are disabled
       if (!telegramDigestOn && !emailDigestOn) {
         console.log("\n[scheduler] ── Digest (stdout fallback — no channels enabled) ──");
-        console.log(buildEmailText(notificationNewJobs, runStats));
+        console.log(buildEmailText(jobsToNotify, runStats));
       }
     } else {
       console.log(`[scheduler] Run ${id} complete — no new jobs`);
