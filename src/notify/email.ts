@@ -3,8 +3,8 @@
  *
  * Subject: [New PM/APM Roles] N new jobs found — May 1, 2026 · 2:00 PM PT
  *
- * Body: tier-grouped job cards with company type, location, experience,
- * posted age, APM program badge, tier label.
+ * Body: job cards with company type, location, experience,
+ * posted age, APM program badge.
  *
  * Env vars:
  *   NOTIFY_EMAIL_DIGEST=true

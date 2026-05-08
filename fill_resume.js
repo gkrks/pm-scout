@@ -118,12 +118,14 @@ const WEBSITE = contact.website_url;
 
 const SUMMARY = summaryOverride || data.__summary_override || "Product-minded engineer with experience spanning consumer robotics, mobile apps, fitness tech, and enterprise SaaS. Combines product management (user research, roadmapping, stakeholder alignment) with hands-on engineering (Rust, Python, TypeScript, AWS) to ship end-to-end systems that move business metrics.";
 
+const TITLE = data.__title_override || null;
+
 const exps = data.experiences.slice(0, 4).map(exp => ({
   role: exp.role,
   company: exp.company,
   location: exp.location,
-  dates: fmtDate(exp.start_date) + " \u2013 " + fmtDate(exp.end_date),
-  bullets: longestBullets(exp, 2),
+  dates: fmtDate(exp.start_date) + " - " + fmtDate(exp.end_date),
+  bullets: exp.bullets.map(b => cleanText(b.text)),
 }));
 
 const projEntries = [data.projects[0], data.projects[1]];
@@ -143,14 +145,14 @@ const projs = projEntries.map(p => {
       ? p.description.substring(0, 57) + "..."
       : p.description,
     link: p.url,
-    bullets: usable.slice(0, 2).map(b => cleanText(b.text)),
+    bullets: usable.map(b => cleanText(b.text)),
   };
 });
 
 const edus = data.education.map(e => ({
   degree: e.major ? e.degree + ", " + e.major : e.degree,
   university: e.university,
-  dates: fmtDate(e.start_date) + " \u2013 " + fmtDate(e.end_date),
+  dates: fmtDate(e.start_date) + " - " + fmtDate(e.end_date),
 }));
 
 // Skills: use __skills_override if present (from skills optimizer), else default
@@ -268,6 +270,17 @@ function buildDocx() {
       new TextRun({ text: `${LINKEDIN} | ${GITHUB} | ${WEBSITE}`, font: "Calibri", size: BODY_SIZE }),
     ],
   }));
+
+  // Title (if provided)
+  if (TITLE) {
+    paragraphs.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 20, line: LINE_SPACING, lineRule: "auto" },
+      children: [
+        new TextRun({ text: TITLE, bold: true, font: "Calibri", size: BODY_SIZE }),
+      ],
+    }));
+  }
 
   // Summary
   paragraphs.push(sectionHeading("Summary"));
@@ -507,6 +520,13 @@ function buildPdf() {
   var linksLine = `${LINKEDIN} | ${GITHUB} | ${WEBSITE}`;
   doc.text(linksLine, leftX, y, { width: usableW, align: "center" });
   y += doc.heightOfString(linksLine, { width: usableW }) + 4;
+
+  // --- Title (if provided) ---
+  if (TITLE) {
+    doc.font(FONT_BOLD).fontSize(9.5);
+    doc.text(TITLE, leftX, y, { width: usableW, align: "center" });
+    y += doc.heightOfString(TITLE, { width: usableW }) + 4;
+  }
 
   // --- Summary ---
   drawSectionHeading("Summary");

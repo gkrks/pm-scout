@@ -1,12 +1,11 @@
 /**
  * Phase 3 — Filter pipeline
  *
- * Orchestrates all 7 filter steps + tier ranking for a single RawJob.
+ * Orchestrates all 6 filter steps for a single RawJob.
  *
  * Filter order (per spec):
  *   3.1 title → 3.2 location → 3.4 freshness
  *   → 3.3 experience → 3.5 sponsorship → 3.6 salary
- *   → 3.7 tier
  *
  * Freshness runs before experience/sponsorship/salary because it doesn't need
  * the description, letting us bail out cheaply before description fetches.
@@ -20,7 +19,7 @@
  *     → pass/fail on title + location + freshness only
  *
  *   runFilterPipeline(job, company, config, runStart)
- *     → full pipeline including description-dependent filters + tier
+ *     → full pipeline including description-dependent filters
  *       (safe to call even when job.description is undefined — those filters
  *        keep with confidence = 'unknown')
  */
@@ -37,7 +36,6 @@ import { filterFreshness } from "./freshness";
 import { filterExperience } from "./experience";
 import { filterSponsorship } from "./sponsorship";
 import { filterSalary } from "./salary";
-import { computeTier } from "../ranking/tier";
 import { isUSRawJob } from "../utils/geo";
 
 // ── Ashby-specific pre-filters (cheap, run first) ───────────────────────────
@@ -59,7 +57,7 @@ export function isPMTitle(title: string): boolean {
 
 /**
  * Returns true if the title signals an Associate/entry-level PM role.
- * Used for tier 1 priority in digest emails.
+ * Used for APM priority in digest emails.
  */
 export function isAssociatePM(title: string): boolean {
   const t = (title || "").toLowerCase();
@@ -105,7 +103,7 @@ const DEFAULT_ENRICHMENT: JobEnrichment = {
  * filters (experience, sponsorship, salary) will keep with confidence = 'unknown'.
  *
  * @param job           RawJob from a Phase 2 scraper.
- * @param company       Company record (needed for tier ranking).
+ * @param company       Company record.
  * @param config        FilterConfig loaded from targets.json.
  * @param runStartedAt  Wall-clock start of this scan run (for freshness math).
  */
@@ -122,11 +120,9 @@ export function runFilterPipeline(
   if (!titleResult.kept) {
     return {
       kept: false,
-      tier: null,
       enrichment,
       rejectedBy: "title",
       rejectionReason: titleResult.reason,
-      domainBoosted: false,
     };
   }
   Object.assign(enrichment, titleResult.enrichment);
@@ -136,11 +132,9 @@ export function runFilterPipeline(
   if (!locationResult.kept) {
     return {
       kept: false,
-      tier: null,
       enrichment,
       rejectedBy: "location",
       rejectionReason: locationResult.reason,
-      domainBoosted: false,
     };
   }
   Object.assign(enrichment, locationResult.enrichment);
@@ -150,11 +144,9 @@ export function runFilterPipeline(
   if (!freshnessResult.kept) {
     return {
       kept: false,
-      tier: null,
       enrichment,
       rejectedBy: "freshness",
       rejectionReason: freshnessResult.reason,
-      domainBoosted: false,
     };
   }
   Object.assign(enrichment, freshnessResult.enrichment);
@@ -164,11 +156,9 @@ export function runFilterPipeline(
   if (!experienceResult.kept) {
     return {
       kept: false,
-      tier: null,
       enrichment,
       rejectedBy: "experience",
       rejectionReason: experienceResult.reason,
-      domainBoosted: false,
     };
   }
   Object.assign(enrichment, experienceResult.enrichment);
@@ -178,11 +168,9 @@ export function runFilterPipeline(
   if (!sponsorshipResult.kept) {
     return {
       kept: false,
-      tier: null,
       enrichment,
       rejectedBy: "sponsorship",
       rejectionReason: sponsorshipResult.reason,
-      domainBoosted: false,
     };
   }
   Object.assign(enrichment, sponsorshipResult.enrichment);
@@ -192,26 +180,14 @@ export function runFilterPipeline(
   if (!salaryResult.kept) {
     return {
       kept: false,
-      tier: null,
       enrichment,
       rejectedBy: "salary",
       rejectionReason: salaryResult.reason,
-      domainBoosted: false,
     };
   }
   Object.assign(enrichment, salaryResult.enrichment);
 
-  // ── 3.7 Tier ranking ─────────────────────────────────────────────────────
-  // Tier is a label only — it never rejects. Every job that passes the 6 filters
-  // is kept; tier determines sort order and display priority in the digest.
-  const { tier, domainBoosted } = computeTier(
-    job.title,
-    enrichment,
-    company,
-    config,
-  );
-
-  return { kept: true, tier, enrichment, domainBoosted };
+  return { kept: true, enrichment };
 }
 
 // ── Pre-description phase (title + location + freshness only) ─────────────────

@@ -1,9 +1,8 @@
 /**
- * Phase 5 — Tier-aware digest builder.
+ * Phase 5 — Digest builder.
  *
- * Groups new jobs into Tier 1 (apply today), Tier 2 (apply this week),
- * and Tier 3 (review when convenient). Tier is a label — all three groups
- * are surfaced. Tier 1 always appears first.
+ * Lists new jobs sorted newest-first, with APM program matches
+ * surfaced at the top.
  *
  * Used by both the Telegram sender and the email sender.
  */
@@ -41,12 +40,6 @@ export function fmtDuration(start: Date, end: Date): string {
 /** Escape Telegram MarkdownV2 special characters. */
 export function esc(text: string): string {
   return text.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
-}
-
-/** Resolve a job's PM tier. Falls back to earlyCareer heuristic for legacy jobs. */
-function jobPmTier(j: Job): 1 | 2 | 3 {
-  if (j.pmTier !== undefined) return j.pmTier;
-  return j.earlyCareer ? 1 : 2;
 }
 
 /** Returns true when a job was posted within the last 24 hours. */
@@ -92,37 +85,27 @@ function groupByCompany(jobs: Job[]): Map<string, Job[]> {
 // ── Telegram (MarkdownV2) ─────────────────────────────────────────────────────
 
 /**
- * Build tier-grouped MarkdownV2 messages split at 4 000 chars.
- * Tier 1 (apply today) always appears first so it fits in the first message.
- * All three tiers are surfaced — Tier 3 is not hidden.
+ * Build MarkdownV2 messages split at 4 000 chars.
+ * APM program matches appear first, then all other jobs sorted newest-first.
  *
- * Per-job format (spec 4i):
- *   *Company* · Category · Tag1, Tag2
+ * Per-job format:
+ *   *Company* · Category
  *   • [Title](url)
  *      📍 Location · 💼 Experience · 📅 Xd ago
  *      🎓 APM Program (if active)
  */
-export function buildTierTelegramMessages(
+export function buildTelegramMessages(
   newJobs:  Job[],
   stats:    RunStats,
   metaMap?: CompanyMetaMap,
 ): string[] {
   const map = metaMap ?? new Map();
-  // Sort all jobs: newest-first primary, tier as tiebreak.
-  // APM programs still get their own section at the top.
-  const sorted = [...newJobs].sort((a, b) => {
-    const dateDiff = newestFirst(a, b);
-    if (dateDiff !== 0) return dateDiff;
-    return jobPmTier(a) - jobPmTier(b);
-  });
+  const sorted = [...newJobs].sort(newestFirst);
 
-  // APM-signal buckets (Bug Fix 15e)
+  // APM-signal buckets
   const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
   const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
   const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
-  const tier1 = standard.filter((j) => jobPmTier(j) === 1);
-  const tier2 = standard.filter((j) => jobPmTier(j) === 2);
-  const tier3 = standard.filter((j) => jobPmTier(j) === 3);
 
   const runDate  = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
@@ -133,7 +116,6 @@ export function buildTierTelegramMessages(
     : "";
   const lines: string[] = [
     `🆕 *${esc(String(newJobs.length))} new PM/APM roles* — ${esc(runDate)}${apmLine}`,
-    `🥇 Tier 1: ${esc(String(tier1.length + priorityApm.length + apmCompany.length))} · 🥈 Tier 2: ${esc(String(tier2.length))} · 🥉 Tier 3: ${esc(String(tier3.length))}`,
     "",
   ];
 
@@ -155,7 +137,6 @@ export function buildTierTelegramMessages(
         const posted = formatPostedAgo(j.datePosted, now);
         const apm    = activeApmProgram(meta);
 
-        // Keep posted display short for Telegram: "2d ago" not "2d ago (Apr 29)"
         const postedShort = posted.replace(/\s+\([^)]+\)$/, "");
 
         const newBadge = isPostedToday(j.datePosted) ? "🆕 " : "";
@@ -169,13 +150,11 @@ export function buildTierTelegramMessages(
     }
   }
 
-  // APM priority sections always appear first (Bug Fix 15e)
+  // APM priority sections first
   appendGroup(priorityApm, "*🎯 APM Programs* — your highest\\-priority targets");
   appendGroup(apmCompany,  "*⭐ APM Companies* — these companies run APM programs");
-  // Standard tier sections for non-APM-signal jobs
-  appendGroup(tier1, "*🥇 Apply today* — newest first");
-  appendGroup(tier2, "*🥈 Apply this week* — newest first");
-  appendGroup(tier3, "*🥉 Review when convenient* — newest first");
+  // All other jobs sorted newest-first
+  appendGroup(standard, "*📋 All roles* — newest first");
 
   lines.push(
     `_Run took ${esc(duration)} · ` +
@@ -201,11 +180,8 @@ export function buildTierTelegramMessages(
 
 // ── Email (HTML) ──────────────────────────────────────────────────────────────
 
-export function buildTierEmailHtml(newJobs: Job[], stats: RunStats): string {
+export function buildEmailHtml(newJobs: Job[], stats: RunStats): string {
   const sorted = [...newJobs].sort(newestFirst);
-  const tier1 = sorted.filter((j) => jobPmTier(j) === 1);
-  const tier2 = sorted.filter((j) => jobPmTier(j) === 2);
-  const tier3 = sorted.filter((j) => jobPmTier(j) === 3);
 
   const runDate  = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
@@ -233,9 +209,7 @@ export function buildTierEmailHtml(newJobs: Job[], stats: RunStats): string {
       ${sections}`;
   }
 
-  const tier1Html = renderGroup(tier1, `🥇 Tier 1 — Apply today (${tier1.length}) — newest first`,             "#22c55e");
-  const tier2Html = renderGroup(tier2, `🥈 Tier 2 — Apply this week (${tier2.length}) — newest first`,         "#3b82f6");
-  const tier3Html = renderGroup(tier3, `🥉 Tier 3 — Review when convenient (${tier3.length}) — newest first`, "#9ca3af");
+  const allHtml = renderGroup(sorted, `📋 All roles (${sorted.length}) — newest first`, "#333");
 
   return `<!DOCTYPE html>
 <html>
@@ -250,44 +224,32 @@ export function buildTierEmailHtml(newJobs: Job[], stats: RunStats): string {
   <p style="color:#666;margin-top:-8px;">
     ${runDate} · ${stats.companiesScanned} companies · ${stats.errors} error${stats.errors === 1 ? "" : "s"}
   </p>
-  ${tier1Html}
-  ${tier2Html}
-  ${tier3Html}
+  ${allHtml}
   <hr style="border:none;border-top:1px solid #e0e0e0;margin:28px 0;">
   <p style="color:#888;font-size:12px;">Run duration: ${duration}</p>
 </body>
 </html>`;
 }
 
-export function buildTierEmailText(newJobs: Job[], stats: RunStats): string {
+export function buildEmailText(newJobs: Job[], stats: RunStats): string {
   const sorted = [...newJobs].sort(newestFirst);
-  const tier1 = sorted.filter((j) => jobPmTier(j) === 1);
-  const tier2 = sorted.filter((j) => jobPmTier(j) === 2);
-  const tier3 = sorted.filter((j) => jobPmTier(j) === 3);
   const runDate = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
 
   const lines: string[] = [
     `${newJobs.length} new PM/APM roles — ${runDate}`,
     `${stats.companiesScanned} companies · ${stats.errors} errors`,
     "",
+    "── 📋 All roles — newest first ──",
   ];
 
-  function appendGroup(jobs: Job[], header: string): void {
-    if (jobs.length === 0) return;
-    lines.push(header);
-    const grouped = groupByCompany(jobs);
-    for (const [company, cJobs] of grouped) {
-      lines.push(`\n${company} (${cJobs.length})`);
-      for (const j of cJobs) {
-        lines.push(`  • ${j.title} — ${j.location || "?"}`);
-        lines.push(`    ${j.applyUrl}`);
-      }
+  const grouped = groupByCompany(sorted);
+  for (const [company, cJobs] of grouped) {
+    lines.push(`\n${company} (${cJobs.length})`);
+    for (const j of cJobs) {
+      lines.push(`  • ${j.title} — ${j.location || "?"}`);
+      lines.push(`    ${j.applyUrl}`);
     }
-    lines.push("");
   }
 
-  appendGroup(tier1, "── 🥇 Tier 1 — Apply today — newest first ──");
-  appendGroup(tier2, "── 🥈 Tier 2 — Apply this week — newest first ──");
-  appendGroup(tier3, "── 🥉 Tier 3 — Review when convenient — newest first ──");
   return lines.join("\n");
 }

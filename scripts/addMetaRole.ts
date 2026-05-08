@@ -102,7 +102,6 @@ async function main() {
     yoeMin: 2,
     yoeMax: null,
     description: role.description,
-    pmTier: 1,
     apmSignal: "apm_company",
     category: "Featured: Companies with Dedicated APM / Rotational Programs",
     domainTags: ["Consumer", "AI/ML", "Platform"],

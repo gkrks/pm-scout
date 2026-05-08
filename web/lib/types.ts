@@ -125,7 +125,6 @@ export interface JobListing {
   firstSeenAt: string;
   lastSeenAt: string;
   isActive: boolean;
-  tier: number | null;
   yoeMin: number | null;
   yoeMax: number | null;
   salaryMin: number | null;

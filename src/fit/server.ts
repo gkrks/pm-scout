@@ -155,7 +155,7 @@ app.get("/api/jobs", async (req: Request, res: Response) => {
       .select(`
         id, title, role_url, location_city, location_raw,
         is_remote, is_hybrid, ats_platform, posted_date, first_seen_at,
-        is_active, tier, yoe_min, yoe_max, salary_min, salary_max,
+        is_active, yoe_min, yoe_max, salary_min, salary_max,
         company:companies!inner(name, slug, has_apm_program)
       `)
       .order("first_seen_at", { ascending: false })
@@ -175,7 +175,6 @@ app.get("/api/jobs", async (req: Request, res: Response) => {
       postedDate: l.posted_date,
       firstSeenAt: l.first_seen_at,
       isActive: l.is_active,
-      tier: l.tier,
       yoeMin: l.yoe_min,
       yoeMax: l.yoe_max,
       roleUrl: l.role_url,
@@ -209,7 +208,7 @@ app.get("/api/applications/:id", async (req: Request, res: Response) => {
         listing:job_listings!inner(
           id, title, role_url, location_city, location_raw,
           is_remote, is_hybrid, ats_platform, posted_date, first_seen_at,
-          tier, jd_job_title, jd_company_name,
+          jd_job_title, jd_company_name,
           company:companies!inner(name, slug)
         )
       `)

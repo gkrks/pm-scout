@@ -259,9 +259,6 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted-foreground">{opp.company}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="secondary" className="text-[10px]">
-                      T{opp.tier}
-                    </Badge>
                     <span className="text-xs text-muted-foreground">
                       {opp.daysAgo}d ago
                     </span>

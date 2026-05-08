@@ -59,7 +59,6 @@ export interface BufferedListing {
     salary_max: number | null;
     salary_currency: string | null;
   };
-  tier: 1 | 2 | 3;
 }
 
 export interface PendingRunBuffer {
@@ -210,7 +209,6 @@ async function replayOne(buffered: PendingRunBuffer): Promise<void> {
         has_apm_program: bl.companyHasApmProgram,
       },
       enrichment: bl.enrichment,
-      tier: bl.tier,
     }));
 
     const upserted = await upsertCompanyListings(companyId, listingsToUpsert, runId);

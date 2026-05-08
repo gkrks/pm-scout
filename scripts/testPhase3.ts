@@ -12,7 +12,6 @@ import { filterFreshness } from "../src/filters/freshness";
 import { filterExperience } from "../src/filters/experience";
 import { filterSponsorship } from "../src/filters/sponsorship";
 import { filterSalary } from "../src/filters/salary";
-import { computeTier } from "../src/ranking/tier";
 import { runFilterPipeline, runPreDescriptionFilters } from "../src/filters/pipeline";
 import { loadFilterConfig } from "../src/config/filterConfig";
 import type { FilterConfig, JobEnrichment } from "../src/filters/types";
@@ -75,7 +74,7 @@ const FILTER_CONFIG: FilterConfig = {
     accept_remote_in_allowed_cities: true,
   },
   experience: { reject_above_years: 3 },
-  freshness: { max_posting_age_days: 30, tier_1_max_age_days: 7 },
+  freshness: { max_posting_age_days: 30, freshness_boost_days: 7 },
   sponsorship: { requires_sponsorship: false, reject_if_no_sponsorship_offered: false },
   compensation: { min_base_salary_usd: null },
   preferred_domains: ["AI/ML", "Platform", "Fintech"],
@@ -476,77 +475,6 @@ const FULL_ENRICHMENT: JobEnrichment = {
   salary_currency: null,
 };
 
-{
-  const r = computeTier("Associate Product Manager", FULL_ENRICHMENT, BASE_COMPANY, FILTER_CONFIG);
-  assert("tier 1 base signals — tier 1", r.tier, 1);
-  assert("AI/ML domain boost — domainBoosted", r.domainBoosted, true);
-}
-{
-  // APM boost: active APM program + exact APM title, but stale post
-  const e: JobEnrichment = {
-    ...FULL_ENRICHMENT,
-    posted_within_7_days: false,   // fails base tier 1
-    location_city: null,           // pure remote — fails base tier 1
-    is_remote: true,
-  };
-  const r = computeTier("Associate Product Manager", e, BASE_COMPANY, FILTER_CONFIG);
-  assert("APM boost (exact title + active program) → tier 1", r.tier, 1);
-}
-{
-  // Tier 2: posted ≤30d, explicit yoe_max ≤ 3, PM title, remote US
-  const e: JobEnrichment = {
-    ...FULL_ENRICHMENT,
-    posted_within_7_days: false,
-    location_city: null,
-    is_remote: true,
-    is_new_grad_language: false,
-    yoe_min: 1,
-    yoe_max: 2,
-  };
-  const r = computeTier("Product Manager, Growth", e, BASE_COMPANY, FILTER_CONFIG);
-  assert("tier 2 — remote US PM — tier 2", r.tier, 2);
-}
-{
-  // Tier 3: stale, not remote, not city — passes filters but no T1/T2 signals
-  const e: JobEnrichment = {
-    ...FULL_ENRICHMENT,
-    posted_within_7_days: false,
-    posted_within_30_days: false,
-    location_city: null,
-    is_remote: false,
-  };
-  const r = computeTier("Product Manager", e, BASE_COMPANY, FILTER_CONFIG);
-  assert("tier 3 (no tier 1/2 signals) — review when convenient", r.tier, 3);
-}
-{
-  // Tier 1 with explicit YOE ≤ 2
-  const e: JobEnrichment = {
-    ...FULL_ENRICHMENT,
-    yoe_min: 1,
-    yoe_max: 2,
-    is_new_grad_language: false,
-  };
-  const r = computeTier("Product Manager", e, BASE_COMPANY, FILTER_CONFIG);
-  assert("tier 1 with yoe_max=2 — tier 1", r.tier, 1);
-}
-{
-  // Tier 2: YOE = 3 — should NOT be tier 1, but fine for tier 2
-  const e: JobEnrichment = {
-    ...FULL_ENRICHMENT,
-    yoe_min: 3,
-    yoe_max: 3,
-    is_new_grad_language: false,
-  };
-  const r = computeTier("Product Manager", e, BASE_COMPANY, FILTER_CONFIG);
-  assert("yoe=3 + within_7d + city — tier 1 (yoe_max ≤ 2 fails, but tier 2 accepts yoe ≤ 3)", r.tier, 2);
-}
-{
-  // No domain overlap → not boosted
-  const companyNoDomain: Company = { ...BASE_COMPANY, domain_tags: ["Healthcare"] };
-  const r = computeTier("Associate Product Manager", FULL_ENRICHMENT, companyNoDomain, FILTER_CONFIG);
-  assert("no domain overlap — not boosted", r.domainBoosted, false);
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // Full pipeline — runPreDescriptionFilters
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -585,7 +513,6 @@ section("runFilterPipeline (end-to-end)");
 {
   const r = runFilterPipeline(BASE_JOB, BASE_COMPANY, FILTER_CONFIG, NOW);
   assert("ideal APM job — kept", r.kept, true);
-  assert("ideal APM job — tier 1", r.tier, 1);
   assert("ideal APM job — domainBoosted (AI/ML)", r.domainBoosted, true);
   assert("ideal APM job — location_city", r.enrichment.location_city, "San Francisco");
   assert("ideal APM job — is_new_grad_language", r.enrichment.is_new_grad_language, true);
@@ -600,9 +527,8 @@ section("runFilterPipeline (end-to-end)");
     description: "2-3 years of product experience. We cannot sponsor visas.",
   };
   const r = runFilterPipeline(job2, BASE_COMPANY, FILTER_CONFIG, NOW);
-  assert("tier-2 remote PM — kept", r.kept, true);
-  assert("tier-2 remote PM — tier 2", r.tier, 2);
-  assert("tier-2 remote PM — is_remote", r.enrichment.is_remote, true);
+  assert("remote PM — kept", r.kept, true);
+  assert("remote PM — is_remote", r.enrichment.is_remote, true);
   assert("tier-2 remote PM — sponsorship_offered false (noted, not rejected)", r.enrichment.sponsorship_offered, false);
   assert("tier-2 remote PM — yoe_min 2", r.enrichment.yoe_min, 2);
 }
@@ -641,9 +567,7 @@ section("runFilterPipeline (end-to-end)");
   };
   const companyNoProgram: Company = { ...BASE_COMPANY, has_apm_program: false };
   const r = runFilterPipeline(job6, companyNoProgram, FILTER_CONFIG, NOW);
-  // posted_within_7_days=false, location_city=null → can't be tier 1
-  // But posted_within_30d=true, yoe ok, PM title, is_remote=true → tier 2
-  assert("remote PM 15d — tier 2 (not tier 1, not rejected)", r.tier, 2);
+  assert("remote PM 15d — kept", r.kept, true);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -679,8 +603,8 @@ section("loadFilterConfig (reads config/targets.json)");
     30,
   );
   assert(
-    "freshness.tier_1_max_age_days = 7",
-    cfg.freshness.tier_1_max_age_days,
+    "freshness.freshness_boost_days = 7",
+    cfg.freshness.freshness_boost_days,
     7,
   );
   assert(
@@ -701,7 +625,6 @@ section("loadFilterConfig (reads config/targets.json)");
   // Quick smoke-test: pipeline works with the real config
   const realResult = runFilterPipeline(BASE_JOB, BASE_COMPANY, cfg, NOW);
   assert("pipeline with real config — kept", realResult.kept, true);
-  assert("pipeline with real config — tier 1", realResult.tier, 1);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

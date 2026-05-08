@@ -548,7 +548,7 @@ export function renderDashboardPage(data: DashboardData): string {
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.82rem;">
               <div style="flex:1;">
                 <div style="font-weight:600;color:var(--text-primary);">${s.title}</div>
-                <div style="color:var(--text-muted);font-size:0.75rem;">${s.company} · Tier ${s.tier} · ${s.daysAgo}d ago</div>
+                <div style="color:var(--text-muted);font-size:0.75rem;">${s.company} · ${s.daysAgo}d ago</div>
               </div>
               <a href="${s.roleUrl}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:0.78rem;font-weight:600;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;">View</a>
             </div>
@@ -659,11 +659,6 @@ export function renderDashboardPage(data: DashboardData): string {
         <div class="chart-title"><div class="chart-title-dot" style="background:var(--accent);"></div>Weekly Fit Score Trend</div>
         <div class="chart-hint">Is your resume improving against job requirements?</div>
         ${data.weeklyFitScoreTrend.length > 0 ? '<canvas id="chart-fit-trend"></canvas>' : '<div class="empty-chart">Need more scored jobs over time</div>'}
-      </div>
-      <div class="chart-container">
-        <div class="chart-title"><div class="chart-title-dot" style="background:var(--sky);"></div>Application Quality Trend</div>
-        <div class="chart-hint">Are you applying to higher-tier jobs over time? (Lower = better)</div>
-        ${data.applicationQualityTrend.length > 0 ? '<canvas id="chart-quality-trend"></canvas>' : '<div class="empty-chart">Need more applications over time</div>'}
       </div>
     </div>
 

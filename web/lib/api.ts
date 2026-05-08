@@ -90,7 +90,6 @@ export function fetchJobs(token: string) {
       postedDate: string | null;
       firstSeenAt: string;
       isActive: boolean;
-      tier: number | null;
       yoeMin: number | null;
       yoeMax: number | null;
       roleUrl: string;

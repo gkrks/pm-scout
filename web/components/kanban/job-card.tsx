@@ -80,9 +80,6 @@ export function JobCard({ card, overlay, stageGradient }: JobCardProps) {
             {listing.companyName}
           </p>
         </div>
-        {listing.tier === 1 && (
-          <span className="shrink-0 text-[10px] font-bold text-blue-400/80">T1</span>
-        )}
       </div>
 
       <div className="mt-2.5 flex items-center justify-between text-[11px]">

@@ -27,8 +27,8 @@ export interface ExperienceConfig {
 export interface FreshnessConfig {
   /** Postings older than this are rejected. Default 30. */
   max_posting_age_days: number;
-  /** Postings within this threshold get the tier-1 freshness signal. Default 7. */
-  tier_1_max_age_days: number;
+  /** Postings within this threshold get the freshness boost signal. Default 7. */
+  freshness_boost_days: number;
 }
 
 export interface SponsorshipConfig {
@@ -102,15 +102,8 @@ export interface JobEnrichment {
 
 export interface PipelineResult {
   kept: boolean;
-  /**
-   * 1, 2, or 3 when kept === true (label only, never causes rejection).
-   * null when kept === false (rejected by a filter before tier was computed).
-   */
-  tier: 1 | 2 | 3 | null;
   enrichment: JobEnrichment;
   /** Which filter rejected this job, if kept === false */
   rejectedBy?: string;
   rejectionReason?: string;
-  /** true when company.domain_tags overlaps preferred_domains */
-  domainBoosted: boolean;
 }

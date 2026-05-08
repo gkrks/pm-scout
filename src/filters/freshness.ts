@@ -2,7 +2,7 @@
  * Phase 3.4 — Freshness filter
  *
  * Uses `filters.freshness.max_posting_age_days` (default 30) and
- * `tier_1_max_age_days` (default 7).
+ * `freshness_boost_days` (default 7).
  *
  * Rules:
  *  - posted_date is null   → keep with freshness_confidence = 'unknown'
@@ -29,7 +29,7 @@ const UNKNOWN_ENRICHMENT: Partial<JobEnrichment> = {
  * 3.4 Freshness filter
  *
  * @param postedDate    ISO-8601 date string from the scraper, or null.
- * @param config        Freshness config (max_posting_age_days, tier_1_max_age_days).
+ * @param config        Freshness config (max_posting_age_days, freshness_boost_days).
  * @param runStartedAt  Wall-clock start of this scan run — the reference point
  *                      for all age calculations so the pipeline is deterministic
  *                      even when processing many companies in parallel.
@@ -39,7 +39,7 @@ export function filterFreshness(
   config: Pick<FilterConfig, "freshness">,
   runStartedAt: Date,
 ): FilterResult {
-  const { max_posting_age_days, tier_1_max_age_days } = config.freshness;
+  const { max_posting_age_days, freshness_boost_days } = config.freshness;
 
   if (!postedDate) {
     return {
@@ -76,7 +76,7 @@ export function filterFreshness(
     kept: true,
     enrichment: {
       freshness_confidence: "known",
-      posted_within_7_days: ageDays <= tier_1_max_age_days,
+      posted_within_7_days: ageDays <= freshness_boost_days,
       posted_within_30_days: true, // already know ageDays <= max_posting_age_days
     },
   };

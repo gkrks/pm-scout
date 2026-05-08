@@ -49,7 +49,6 @@ export interface DashboardData {
   // Geography / work type
   locationCounts: { label: string; count: number }[];
   workTypeCounts: { label: string; count: number }[];
-  tierCounts: { label: string; count: number }[];
   companyCategoryCounts: { label: string; count: number }[];
 
   // New metrics
@@ -77,7 +76,7 @@ export interface DashboardData {
   userYoe: number;
 
   // "What should I do today?"
-  staleOpportunities: { title: string; company: string; tier: number; daysAgo: number; roleUrl: string; jobId: string }[];
+  staleOpportunities: { title: string; company: string; daysAgo: number; roleUrl: string; jobId: string }[];
   hotCompanies: { company: string; newRoles: number }[];
 
   // "Pipeline mechanics"
@@ -99,7 +98,6 @@ export interface DashboardData {
 
   // "Getting better?"
   weeklyFitScoreTrend: { week: string; avgScore: number; count: number }[];
-  applicationQualityTrend: { week: string; avgTier: number }[];
   weeklyGapTrend: { week: string; avgGaps: number }[];
 
   // Trends
@@ -182,7 +180,7 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
 
     let listingsQuery = supabase
       .from("job_listings")
-      .select("id, title, location_city, is_remote, is_hybrid, tier, first_seen_at, last_seen_at, is_active, closed_at, jd_extracted_skills, company_id, ats_platform, yoe_min, yoe_max, salary_min, salary_max, role_url")
+      .select("id, title, location_city, is_remote, is_hybrid, first_seen_at, last_seen_at, is_active, closed_at, jd_extracted_skills, company_id, ats_platform, yoe_min, yoe_max, salary_min, salary_max, role_url")
       .order("first_seen_at", { ascending: false })
       .limit(10000);
     if (dateFrom) listingsQuery = listingsQuery.gte("first_seen_at", dateFrom);
@@ -410,17 +408,6 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
       { label: "Hybrid", count: hybridCount },
       { label: "Onsite", count: onsiteCount },
     ].filter((w) => w.count > 0);
-
-    // ── Tier distribution ────────────────────────────────────────────────
-
-    const tierFreq = new Map<number, number>();
-    for (const l of listings) {
-      const tier = l.tier as number;
-      if (tier) tierFreq.set(tier, (tierFreq.get(tier) || 0) + 1);
-    }
-    const tierCounts = [1, 2, 3]
-      .filter((t) => tierFreq.has(t))
-      .map((t) => ({ label: `Tier ${t}`, count: tierFreq.get(t) || 0 }));
 
     // ── Company category distribution ────────────────────────────────────
 
@@ -743,13 +730,12 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
       staleOpportunities.push({
         title: l.title,
         company: company?.name || "Unknown",
-        tier: l.tier as number || 3,
         daysAgo,
         roleUrl: l.role_url || "",
         jobId: l.id,
       });
     }
-    staleOpportunities.sort((a, b) => a.tier - b.tier || b.daysAgo - a.daysAgo);
+    staleOpportunities.sort((a, b) => b.daysAgo - a.daysAgo);
     const staleTop = staleOpportunities.slice(0, 20);
 
     // Hot companies: 2+ new listings in last 7 days
@@ -930,23 +916,6 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([week, { sum, count }]) => ({ week, avgScore: Math.round(sum / count), count }));
 
-    // Application quality trend (avg tier by week)
-    const weekTiers = new Map<string, { sum: number; count: number }>();
-    for (const a of appliedApps) {
-      const listing = listingLookup.get(a.listing_id);
-      if (!listing || !listing.tier) continue;
-      const dateStr = a.applied_date || (a.created_at ? a.created_at.split("T")[0] : null);
-      if (!dateStr) continue;
-      const week = isoWeek(dateStr);
-      const entry = weekTiers.get(week) || { sum: 0, count: 0 };
-      entry.sum += listing.tier as number;
-      entry.count++;
-      weekTiers.set(week, entry);
-    }
-    const applicationQualityTrend = [...weekTiers.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([week, { sum, count }]) => ({ week, avgTier: Math.round(sum / count * 10) / 10 }));
-
     // Weekly gap trend (avg number of gaps per scored job)
     const weekGaps = new Map<string, { sum: number; count: number }>();
     for (const fc of fitCache) {
@@ -982,7 +951,6 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
       topReusedBullets,
       locationCounts,
       workTypeCounts,
-      tierCounts,
       companyCategoryCounts,
       topHiringCompanies,
       atsPlatformCounts,
@@ -1018,7 +986,6 @@ export async function handleDashboard(req: Request, res: Response): Promise<void
       avgSalaryMax,
       jobsWithSalary,
       weeklyFitScoreTrend,
-      applicationQualityTrend,
       weeklyGapTrend,
       newJobsPerWeek,
       marketVelocity,

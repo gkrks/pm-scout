@@ -34,7 +34,7 @@ const RawExperienceSchema = z
 const RawFreshnessSchema = z
   .object({
     max_posting_age_days: z.number().optional(),
-    tier_1_max_age_days: z.number().optional(),
+    freshness_boost_days: z.number().optional(),
   })
   .passthrough();
 
@@ -84,7 +84,7 @@ function normalise(raw: z.infer<typeof RawFiltersSchema>): FilterConfig {
     },
     freshness: {
       max_posting_age_days: raw.freshness.max_posting_age_days ?? 30,
-      tier_1_max_age_days: raw.freshness.tier_1_max_age_days ?? 7,
+      freshness_boost_days: raw.freshness.freshness_boost_days ?? 7,
     },
     sponsorship: {
       requires_sponsorship: raw.sponsorship.requires_sponsorship ?? false,

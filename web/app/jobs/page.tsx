@@ -14,7 +14,7 @@ import { fetchJobs } from "@/lib/api";
 
 const DASHBOARD_TOKEN = process.env.NEXT_PUBLIC_DASHBOARD_TOKEN || "";
 
-type SortKey = "firstSeenAt" | "title" | "companyName" | "tier";
+type SortKey = "firstSeenAt" | "title" | "companyName";
 type SortDir = "asc" | "desc";
 
 function daysAgo(dateStr: string | null): string {
@@ -27,21 +27,6 @@ function daysAgo(dateStr: string | null): string {
   return `${diff}d`;
 }
 
-function tierBadge(tier: number | null) {
-  if (!tier) return null;
-  const color =
-    tier === 1
-      ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-300"
-      : tier === 2
-      ? "bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-300"
-      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
-  return (
-    <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0", color)}>
-      T{tier}
-    </Badge>
-  );
-}
-
 export default function JobsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["jobs-list"],
@@ -52,7 +37,6 @@ export default function JobsPage() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("firstSeenAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [filterTier, setFilterTier] = useState<number | null>(null);
   const [filterApm, setFilterApm] = useState(false);
   const [filterActive, setFilterActive] = useState(true);
 
@@ -70,7 +54,6 @@ export default function JobsPage() {
       );
     }
 
-    if (filterTier !== null) result = result.filter((j) => j.tier === filterTier);
     if (filterApm) result = result.filter((j) => j.hasApmProgram);
     if (filterActive) result = result.filter((j) => j.isActive);
 
@@ -82,14 +65,12 @@ export default function JobsPage() {
         cmp = a.title.localeCompare(b.title);
       } else if (sortKey === "companyName") {
         cmp = a.companyName.localeCompare(b.companyName);
-      } else if (sortKey === "tier") {
-        cmp = (a.tier || 9) - (b.tier || 9);
       }
       return sortDir === "desc" ? -cmp : cmp;
     });
 
     return result;
-  }, [jobs, search, sortKey, sortDir, filterTier, filterApm, filterActive]);
+  }, [jobs, search, sortKey, sortDir, filterApm, filterActive]);
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -123,20 +104,6 @@ export default function JobsPage() {
         </div>
         <div className="flex items-center gap-1.5">
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-          {[1, 2, 3].map((t) => (
-            <button
-              key={t}
-              onClick={() => setFilterTier(filterTier === t ? null : t)}
-              className={cn(
-                "rounded-md border px-2 py-1 text-xs font-medium transition-colors",
-                filterTier === t
-                  ? "border-indigo-400 bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400"
-                  : "border-border text-muted-foreground hover:bg-accent"
-              )}
-            >
-              Tier {t}
-            </button>
-          ))}
           <button
             onClick={() => setFilterApm(!filterApm)}
             className={cn(
@@ -178,7 +145,6 @@ export default function JobsPage() {
                   ["title", "Title"],
                   ["companyName", "Company"],
                   ["firstSeenAt", "Discovered"],
-                  ["tier", "Tier"],
                 ] as [SortKey, string][]).map(([key, label]) => (
                   <th
                     key={key}
@@ -218,7 +184,6 @@ export default function JobsPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1">
-                      {tierBadge(job.tier)}
                       {job.hasApmProgram && (
                         <Badge
                           variant="outline"

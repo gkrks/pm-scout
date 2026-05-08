@@ -155,7 +155,6 @@ function jobToListingToUpsert(
       salary_max:                   null,
       salary_currency:              null,
     },
-    tier:       (job.pmTier ?? (job.earlyCareer ? 1 : 2)) as 1 | 2 | 3,
     apm_signal: apmSignal,
     ats_platform: job.extractedJD?.extraction_meta.source_ats ?? company.ats,
     ...(job.extractedJD ? { extracted_jd: job.extractedJD } : {}),
@@ -298,7 +297,6 @@ function buildPendingBuffer(
       companyHasApmProgram: false,
       job:                  l.job,
       enrichment:           l.enrichment,
-      tier:                 l.tier,
     });
   }
 

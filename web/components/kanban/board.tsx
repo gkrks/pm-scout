@@ -27,10 +27,9 @@ interface BoardProps {
   onMoveCard: (card: KanbanCard, toColumn: KanbanColumnId) => void;
 }
 
-type FilterChip = "tier1" | "apm" | "scored" | "remote" | "recent";
+type FilterChip = "apm" | "scored" | "remote" | "recent";
 
 const FILTER_LABELS: Record<FilterChip, string> = {
-  tier1: "Tier 1",
   apm: "APM",
   scored: "Has Score",
   remote: "Remote",
@@ -66,7 +65,6 @@ export function Board({ cards, onMoveCard }: BoardProps) {
     // Filter chips
     if (activeFilters.size > 0) {
       result = result.filter((c) => {
-        if (activeFilters.has("tier1") && c.listing.tier !== 1) return false;
         if (activeFilters.has("apm") && !c.listing.hasApmProgram) return false;
         if (activeFilters.has("scored") && c.fitScore === null) return false;
         if (activeFilters.has("remote") && !c.listing.isRemote) return false;

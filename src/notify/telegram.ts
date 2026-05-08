@@ -1,13 +1,13 @@
 /**
  * Telegram digest sender.
  *
- * Uses the tier-aware message builder from digest.ts.
+ * Uses the message builder from digest.ts.
  * `buildTelegramMessages` is kept as a named export so existing callers
  * (tests, scripts) continue to work unchanged.
  */
 
 import { Job } from "../state";
-import { buildTierTelegramMessages } from "./digest";
+import { buildTelegramMessages as buildDigestMessages } from "./digest";
 import { loadCompanyMetaMap } from "./labels";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -20,14 +20,14 @@ export interface RunStats {
   errors:           number;
 }
 
-// ── Public message builder (delegates to tier-aware implementation) ────────────
+// ── Public message builder ──────────────────────────────────────────────────
 
 /**
  * Build a list of MarkdownV2 message strings split at 4 000 chars.
- * Tier 1 (early-career / APM) appears before Tier 2.
+ * APM programs appear first, then all roles sorted newest-first.
  */
 export function buildTelegramMessages(newJobs: Job[], stats: RunStats): string[] {
-  return buildTierTelegramMessages(newJobs, stats);
+  return buildDigestMessages(newJobs, stats);
 }
 
 /**
@@ -35,7 +35,7 @@ export function buildTelegramMessages(newJobs: Job[], stats: RunStats): string[]
  * Used by sendTelegramDigest — loads config at send time.
  */
 export function buildTelegramMessagesRich(newJobs: Job[], stats: RunStats): string[] {
-  return buildTierTelegramMessages(newJobs, stats, loadCompanyMetaMap());
+  return buildDigestMessages(newJobs, stats, loadCompanyMetaMap());
 }
 
 // ── Sender ────────────────────────────────────────────────────────────────────

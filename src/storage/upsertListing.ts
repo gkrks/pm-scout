@@ -24,8 +24,7 @@ export interface ListingToUpsert {
   /** company.id must be present — it's the FK into public.companies */
   company: Required<Pick<Company, "id">> & Company;
   enrichment: JobEnrichment;
-  tier: 1 | 2 | 3;
-  /** APM priority signal — written to the apm_signal column (Bug Fix 15) */
+  /** APM priority signal — written to the apm_signal column */
   apm_signal?: "priority_apm" | "apm_company" | "none";
   /** Structured JD extraction result (populated for new/reactivated listings) */
   extracted_jd?: ExtractedJD;
@@ -185,7 +184,7 @@ function isValidApplyUrl(url: string): boolean {
 }
 
 function buildRow(item: ListingToUpsert): Record<string, unknown> {
-  const { job, company, enrichment, tier } = item;
+  const { job, company, enrichment } = item;
   const meta = job.source_meta ?? {};
 
   // Clamp posted_date to today if it's in the future.
@@ -214,7 +213,6 @@ function buildRow(item: ListingToUpsert): Record<string, unknown> {
     ...(enrichment.yoe_min != null ? { yoe_min: enrichment.yoe_min } : {}),
     ...(enrichment.yoe_max != null ? { yoe_max: enrichment.yoe_max } : {}),
     ...(enrichment.yoe_raw != null ? { yoe_raw: enrichment.yoe_raw } : {}),
-    tier,
     salary_min: enrichment.salary_min ?? null,
     salary_max: enrichment.salary_max ?? null,
     salary_currency: enrichment.salary_currency ?? "USD",
