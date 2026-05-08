@@ -133,7 +133,9 @@ export async function orchestrateRun(
   // SCAN_POOL env var controls which ATS companies to scan in this run.
   //   "ashby"      → only Ashby companies
   //   "greenhouse" → only Greenhouse companies
-  //   "other"      → everything except Ashby and Greenhouse
+  //   "lever"      → only Lever companies
+  //   "workday"    → only Workday companies
+  //   "other"      → everything except Ashby, Greenhouse, Lever, and Workday
   //   "all"        → all companies (default)
   const scanPool = (process.env.SCAN_POOL || "all").toLowerCase();
   let enabled = scanPool === "all"
@@ -142,8 +144,12 @@ export async function orchestrateRun(
     ? allEnabled.filter((c) => c.ats === "ashby")
     : scanPool === "greenhouse"
     ? allEnabled.filter((c) => c.ats === "greenhouse")
+    : scanPool === "lever"
+    ? allEnabled.filter((c) => c.ats === "lever")
+    : scanPool === "workday"
+    ? allEnabled.filter((c) => c.ats === "workday")
     : scanPool === "other"
-    ? allEnabled.filter((c) => c.ats !== "ashby" && c.ats !== "greenhouse")
+    ? allEnabled.filter((c) => c.ats !== "ashby" && c.ats !== "greenhouse" && c.ats !== "lever" && c.ats !== "workday")
     : allEnabled;
 
   // Skip custom-playwright companies without selectors — they launch Chromium

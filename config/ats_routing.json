@@ -11887,6 +11887,540 @@
       "slug": "zenoti",
       "_discovery_method": "greenhouse-product-pipeline",
       "_discovered_at": "2026-05-06T23:24:43.348264+00:00"
+    },
+    "3eco": {
+      "ats": "lever",
+      "slug": "3eco"
+    },
+    "3pillarglobal": {
+      "ats": "lever",
+      "slug": "3pillarglobal"
+    },
+    "abovelending": {
+      "ats": "lever",
+      "slug": "abovelending"
+    },
+    "acceldata": {
+      "ats": "lever",
+      "slug": "acceldata"
+    },
+    "actian": {
+      "ats": "lever",
+      "slug": "actian"
+    },
+    "activecampaign": {
+      "ats": "lever",
+      "slug": "activecampaign"
+    },
+    "additionwealth": {
+      "ats": "lever",
+      "slug": "additionwealth"
+    },
+    "adhoclabs": {
+      "ats": "lever",
+      "slug": "adhoclabs"
+    },
+    "adverum": {
+      "ats": "lever",
+      "slug": "adverum"
+    },
+    "advocate": {
+      "ats": "lever",
+      "slug": "advocate"
+    },
+    "aerostrat": {
+      "ats": "lever",
+      "slug": "aerostrat"
+    },
+    "aeratechnology": {
+      "ats": "lever",
+      "slug": "aeratechnology"
+    },
+    "aeva": {
+      "ats": "lever",
+      "slug": "aeva"
+    },
+    "agatesoftware": {
+      "ats": "lever",
+      "slug": "agatesoftware"
+    },
+    "agiloft": {
+      "ats": "lever",
+      "slug": "agiloft"
+    },
+    "agile-defense": {
+      "ats": "lever",
+      "slug": "agile-defense"
+    },
+    "aircall": {
+      "ats": "lever",
+      "slug": "aircall"
+    },
+    "aledade": {
+      "ats": "lever",
+      "slug": "aledade"
+    },
+    "alertus": {
+      "ats": "lever",
+      "slug": "alertus"
+    },
+    "alluxio": {
+      "ats": "lever",
+      "slug": "alluxio"
+    },
+    "altarum": {
+      "ats": "lever",
+      "slug": "altarum"
+    },
+    "analyticpartners": {
+      "ats": "lever",
+      "slug": "analyticpartners"
+    },
+    "anchorage": {
+      "ats": "lever",
+      "slug": "anchorage"
+    },
+    "angellist": {
+      "ats": "lever",
+      "slug": "angellist"
+    },
+    "anavationllc": {
+      "ats": "lever",
+      "slug": "anavationllc"
+    },
+    "appzen": {
+      "ats": "lever",
+      "slug": "appzen"
+    },
+    "aofl": {
+      "ats": "lever",
+      "slug": "aofl"
+    },
+    "arable": {
+      "ats": "lever",
+      "slug": "arable"
+    },
+    "arcadiascience": {
+      "ats": "lever",
+      "slug": "arcadiascience"
+    },
+    "arcteryx.com": {
+      "ats": "lever",
+      "slug": "arcteryx.com"
+    },
+    "arrivelogistics": {
+      "ats": "lever",
+      "slug": "arrivelogistics"
+    },
+    "arsiem": {
+      "ats": "lever",
+      "slug": "arsiem"
+    },
+    "avante": {
+      "ats": "lever",
+      "slug": "avante"
+    },
+    "aventon": {
+      "ats": "lever",
+      "slug": "aventon"
+    },
+    "balbix": {
+      "ats": "lever",
+      "slug": "balbix"
+    },
+    "bazaarvoice": {
+      "ats": "lever",
+      "slug": "bazaarvoice"
+    },
+    "bellese": {
+      "ats": "lever",
+      "slug": "bellese"
+    },
+    "bellotalabs": {
+      "ats": "lever",
+      "slug": "bellotalabs"
+    },
+    "betr": {
+      "ats": "lever",
+      "slug": "betr"
+    },
+    "bhhc": {
+      "ats": "lever",
+      "slug": "bhhc"
+    },
+    "bioagilytix": {
+      "ats": "lever",
+      "slug": "bioagilytix"
+    },
+    "bisnow": {
+      "ats": "lever",
+      "slug": "bisnow"
+    },
+    "blencorp": {
+      "ats": "lever",
+      "slug": "blencorp"
+    },
+    "bluecatnetworks": {
+      "ats": "lever",
+      "slug": "bluecatnetworks"
+    },
+    "boston-materials": {
+      "ats": "lever",
+      "slug": "boston-materials"
+    },
+    "bounteous": {
+      "ats": "lever",
+      "slug": "bounteous"
+    },
+    "certifid": {
+      "ats": "lever",
+      "slug": "certifid"
+    },
+    "cyngn": {
+      "ats": "lever",
+      "slug": "cyngn"
+    },
+    "findem": {
+      "ats": "lever",
+      "slug": "findem"
+    },
+    "fevo": {
+      "ats": "lever",
+      "slug": "fevo"
+    },
+    "findigs": {
+      "ats": "lever",
+      "slug": "findigs"
+    },
+    "gohighlevel": {
+      "ats": "lever",
+      "slug": "gohighlevel"
+    },
+    "hophr": {
+      "ats": "lever",
+      "slug": "hophr"
+    },
+    "hive": {
+      "ats": "lever",
+      "slug": "hive"
+    },
+    "kiddom": {
+      "ats": "lever",
+      "slug": "kiddom"
+    },
+    "merklescience": {
+      "ats": "lever",
+      "slug": "merklescience"
+    },
+    "metaprise.ai": {
+      "ats": "lever",
+      "slug": "metaprise.ai"
+    },
+    "oowlish": {
+      "ats": "lever",
+      "slug": "oowlish"
+    },
+    "playonsports": {
+      "ats": "lever",
+      "slug": "playonsports"
+    },
+    "project-healthy-minds": {
+      "ats": "lever",
+      "slug": "project-healthy-minds"
+    },
+    "regalvoice": {
+      "ats": "lever",
+      "slug": "regalvoice"
+    },
+    "rightsideup": {
+      "ats": "lever",
+      "slug": "rightsideup"
+    },
+    "sambatv": {
+      "ats": "lever",
+      "slug": "sambatv"
+    },
+    "shieldai": {
+      "ats": "lever",
+      "slug": "shieldai"
+    },
+    "sonarsource": {
+      "ats": "lever",
+      "slug": "sonarsource"
+    },
+    "system1": {
+      "ats": "lever",
+      "slug": "system1"
+    },
+    "tandems": {
+      "ats": "lever",
+      "slug": "tandems"
+    },
+    "wellfit": {
+      "ats": "lever",
+      "slug": "wellfit"
+    },
+    "watchguard": {
+      "ats": "lever",
+      "slug": "watchguard"
+    },
+    "3m": {
+      "ats": "workday",
+      "host": "3m.wd1.myworkdayjobs.com",
+      "tenant": "3m",
+      "site": "search"
+    },
+    "abbott": {
+      "ats": "workday",
+      "host": "abbott.wd5.myworkdayjobs.com",
+      "tenant": "abbott",
+      "site": "abbottcareers"
+    },
+    "amfam": {
+      "ats": "workday",
+      "host": "amfam.wd1.myworkdayjobs.com",
+      "tenant": "amfam",
+      "site": "careers"
+    },
+    "amplify": {
+      "ats": "workday",
+      "host": "amplify.wd1.myworkdayjobs.com",
+      "tenant": "amplify",
+      "site": "Amplify_Careers"
+    },
+    "analogdevices": {
+      "ats": "workday",
+      "host": "analogdevices.wd1.myworkdayjobs.com",
+      "tenant": "analogdevices",
+      "site": "External"
+    },
+    "astrazeneca": {
+      "ats": "workday",
+      "host": "astrazeneca.wd3.myworkdayjobs.com",
+      "tenant": "astrazeneca",
+      "site": "careers"
+    },
+    "aveva": {
+      "ats": "workday",
+      "host": "aveva.wd3.myworkdayjobs.com",
+      "tenant": "aveva",
+      "site": "Aveva_Careers"
+    },
+    "blackbaud": {
+      "ats": "workday",
+      "host": "blackbaud.wd1.myworkdayjobs.com",
+      "tenant": "blackbaud",
+      "site": "externalcareers"
+    },
+    "blueorigin": {
+      "ats": "workday",
+      "host": "blueorigin.wd5.myworkdayjobs.com",
+      "tenant": "blueorigin",
+      "site": "blueorigin"
+    },
+    "broadcom": {
+      "ats": "workday",
+      "host": "broadcom.wd1.myworkdayjobs.com",
+      "tenant": "broadcom",
+      "site": "External_Career"
+    },
+    "ciena": {
+      "ats": "workday",
+      "host": "ciena.wd5.myworkdayjobs.com",
+      "tenant": "ciena",
+      "site": "careers"
+    },
+    "cloudera": {
+      "ats": "workday",
+      "host": "cloudera.wd5.myworkdayjobs.com",
+      "tenant": "cloudera",
+      "site": "External_Career"
+    },
+    "comcast": {
+      "ats": "workday",
+      "host": "comcast.wd5.myworkdayjobs.com",
+      "tenant": "comcast",
+      "site": "Comcast_Careers"
+    },
+    "costar": {
+      "ats": "workday",
+      "host": "costar.wd1.myworkdayjobs.com",
+      "tenant": "costar",
+      "site": "costarcareers"
+    },
+    "expedia": {
+      "ats": "workday",
+      "host": "expedia.wd108.myworkdayjobs.com",
+      "tenant": "expedia",
+      "site": "search"
+    },
+    "fico": {
+      "ats": "workday",
+      "host": "fico.wd1.myworkdayjobs.com",
+      "tenant": "fico",
+      "site": "External"
+    },
+    "healthfirst": {
+      "ats": "workday",
+      "host": "healthfirst.wd1.myworkdayjobs.com",
+      "tenant": "healthfirst",
+      "site": "healthfirst"
+    },
+    "healthcare": {
+      "ats": "workday",
+      "host": "healthcare.wd1.myworkdayjobs.com",
+      "tenant": "healthcare",
+      "site": "search"
+    },
+    "iff": {
+      "ats": "workday",
+      "host": "iff.wd5.myworkdayjobs.com",
+      "tenant": "iff",
+      "site": "Iff_Careers"
+    },
+    "iqvia": {
+      "ats": "workday",
+      "host": "iqvia.wd1.myworkdayjobs.com",
+      "tenant": "iqvia",
+      "site": "iqvia"
+    },
+    "labcorp": {
+      "ats": "workday",
+      "host": "labcorp.wd1.myworkdayjobs.com",
+      "tenant": "labcorp",
+      "site": "External"
+    },
+    "lendingclub": {
+      "ats": "workday",
+      "host": "lendingclub.wd1.myworkdayjobs.com",
+      "tenant": "lendingclub",
+      "site": "External"
+    },
+    "kiongroup": {
+      "ats": "workday",
+      "host": "kiongroup.wd3.myworkdayjobs.com",
+      "tenant": "kiongroup",
+      "site": "kiongroup"
+    },
+    "livanova": {
+      "ats": "workday",
+      "host": "livanova.wd5.myworkdayjobs.com",
+      "tenant": "livanova",
+      "site": "search"
+    },
+    "lseg": {
+      "ats": "workday",
+      "host": "lseg.wd3.myworkdayjobs.com",
+      "tenant": "lseg",
+      "site": "careers"
+    },
+    "medtronic": {
+      "ats": "workday",
+      "host": "medtronic.wd1.myworkdayjobs.com",
+      "tenant": "medtronic",
+      "site": "medtroniccareers"
+    },
+    "motorolasolutions": {
+      "ats": "workday",
+      "host": "motorolasolutions.wd5.myworkdayjobs.com",
+      "tenant": "motorolasolutions",
+      "site": "careers"
+    },
+    "msd": {
+      "ats": "workday",
+      "host": "msd.wd5.myworkdayjobs.com",
+      "tenant": "msd",
+      "site": "SearchJobs"
+    },
+    "nxp": {
+      "ats": "workday",
+      "host": "nxp.wd3.myworkdayjobs.com",
+      "tenant": "nxp",
+      "site": "careers"
+    },
+    "ouryahoo": {
+      "ats": "workday",
+      "host": "ouryahoo.wd5.myworkdayjobs.com",
+      "tenant": "ouryahoo",
+      "site": "careers"
+    },
+    "pluralsight": {
+      "ats": "workday",
+      "host": "pluralsight.wd1.myworkdayjobs.com",
+      "tenant": "pluralsight",
+      "site": "careers"
+    },
+    "relx": {
+      "ats": "workday",
+      "host": "relx.wd3.myworkdayjobs.com",
+      "tenant": "relx",
+      "site": "relx"
+    },
+    "remitly": {
+      "ats": "workday",
+      "host": "remitly.wd5.myworkdayjobs.com",
+      "tenant": "remitly",
+      "site": "Remitly_Careers"
+    },
+    "sailpoint": {
+      "ats": "workday",
+      "host": "sailpoint.wd1.myworkdayjobs.com",
+      "tenant": "sailpoint",
+      "site": "sailpoint"
+    },
+    "spgi": {
+      "ats": "workday",
+      "host": "spgi.wd5.myworkdayjobs.com",
+      "tenant": "spgi",
+      "site": "Spgi_Careers"
+    },
+    "stryker": {
+      "ats": "workday",
+      "host": "stryker.wd1.myworkdayjobs.com",
+      "tenant": "stryker",
+      "site": "strykercareers"
+    },
+    "tempus": {
+      "ats": "workday",
+      "host": "tempus.wd5.myworkdayjobs.com",
+      "tenant": "tempus",
+      "site": "Tempus_Careers"
+    },
+    "thales": {
+      "ats": "workday",
+      "host": "thales.wd3.myworkdayjobs.com",
+      "tenant": "thales",
+      "site": "careers"
+    },
+    "ultradent": {
+      "ats": "workday",
+      "host": "ultradent.wd1.myworkdayjobs.com",
+      "tenant": "ultradent",
+      "site": "careers"
+    },
+    "uchicago": {
+      "ats": "workday",
+      "host": "uchicago.wd5.myworkdayjobs.com",
+      "tenant": "uchicago",
+      "site": "External"
+    },
+    "wexinc": {
+      "ats": "workday",
+      "host": "wexinc.wd5.myworkdayjobs.com",
+      "tenant": "wexinc",
+      "site": "wexinc"
+    },
+    "workiva": {
+      "ats": "workday",
+      "host": "workiva.wd503.myworkdayjobs.com",
+      "tenant": "workiva",
+      "site": "careers"
+    },
+    "zeissgroup": {
+      "ats": "workday",
+      "host": "zeissgroup.wd3.myworkdayjobs.com",
+      "tenant": "zeissgroup",
+      "site": "External"
     }
   },
   "unmapped_default": "custom-playwright"
