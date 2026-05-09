@@ -53,6 +53,7 @@ function isTPMTitle(title: string): boolean {
 function isSWETitle(title: string): boolean {
   const t = title.toLowerCase();
   if (!t.includes("software") || !t.includes("engineer")) return false;
+  if (SWE_EXCLUDE.some((re) => re.test(title))) return false;
   return !SENIORITY_EXCLUDE.some((re) => re.test(title));
 }
 
@@ -61,6 +62,12 @@ const SENIORITY_EXCLUDE = [
   /\bsenior\b/i, /\bsr\.?\b/i, /\blead\b/i, /\bprincipal\b/i,
   /\bdirector\b/i, /\bhead\b/i, /\bvp\b/i, /\bvice\s+president\b/i,
   /\bstaff\b/i, /\bdistinguished\b/i,
+];
+
+/** SWE-specific excludes: intern and manager roles are not SWE. */
+const SWE_EXCLUDE = [
+  /\bintern\b/i,
+  /\bmanager\b/i,
 ];
 
 /**

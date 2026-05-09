@@ -114,7 +114,7 @@
       "notes": "Roles with 4+ YOE required should be rejected. 'New grad' / 'entry level' / 'university grad' language flags tier 1 even without explicit YOE."
     },
     "freshness": {
-      "max_posting_age_days": 30,
+      "max_posting_age_days": 60,
       "tier_1_max_age_days": 7,
       "tier_2_max_age_days": 30,
       "notes": "0-7 days = tier 1 (newly opened). 7-30 days = tier 2 (currently open). >30 days = skip."
