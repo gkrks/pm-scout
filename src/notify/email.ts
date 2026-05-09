@@ -178,8 +178,8 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
     if (isApm) {
       const apmType = j.apmSignal === "priority_apm" ? "priority_apm" : "apm_company";
       const apmTag = apmType === "priority_apm"
-        ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;letter-spacing:0.3px;">APM PROGRAM</span>`
-        : `<span style="background:linear-gradient(135deg,#0891b2,#22d3ee);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;letter-spacing:0.3px;">APM COMPANY</span>`;
+        ? `<span style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;letter-spacing:0.3px;">EARLY CAREER PROGRAM</span>`
+        : `<span style="background:linear-gradient(135deg,#0891b2,#22d3ee);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;letter-spacing:0.3px;">EARLY CAREER COMPANY</span>`;
       const bgColor    = apmType === "priority_apm" ? "#faf5ff" : "#ecfeff";
       const borderColor = apmType === "priority_apm" ? "#7c3aed" : "#0891b2";
       const btnColor    = apmType === "priority_apm" ? "#7c3aed" : "#0891b2";
@@ -234,9 +234,9 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
   ${submitJobUrl() ? `<div style="margin-bottom:24px;text-align:center;">
     <a href="${submitJobUrl()}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.3);">Check Any Job</a>
   </div>` : ""}
+  ${section(priorityApm, "🎯 Early Career Program roles",                      "#7c3aed", true)}
+  ${section(apmCompany,  "⭐ Early Career Company roles",                       "#0891b2", true)}
   ${section(standard,    "📋 New roles — newest first",                        "#22c55e")}
-  ${section(priorityApm, "🎯 APM Program roles",                                "#7c3aed", true)}
-  ${section(apmCompany,  "⭐ APM Company roles — these companies run APM programs", "#0891b2", true)}
   ${submitJobUrl() ? `<div style="margin-top:32px;text-align:center;">
     <a href="${submitJobUrl()}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.3);">Check Any Job</a>
   </div>` : ""}
@@ -309,9 +309,9 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     }
   }
 
+  appendSection(priorityApm, "Early Career Program roles");
+  appendSection(apmCompany,  "Early Career Company roles");
   appendSection(standard,    "New roles — newest first");
-  appendSection(priorityApm, "APM Program roles");
-  appendSection(apmCompany,  "APM Company roles");
 
   const dashUrl = dashboardUrl();
   if (dashUrl) lines.push("", "Analytics Dashboard: " + dashUrl);
