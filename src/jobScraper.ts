@@ -144,32 +144,60 @@ function isEarlyCareer(title: string, description: string): boolean {
 
 // ── Location filters ──────────────────────────────────────────────────────────
 
-const NON_US_TOKENS = [
-  "canada", "ontario", "british columbia", "toronto", "vancouver", "montreal", "calgary",
-  "united kingdom", "uk", "london", "manchester", "edinburgh", "cambridge",
-  "india", "bangalore", "bengaluru", "hyderabad", "delhi", "mumbai", "pune", "chennai",
-  "germany", "berlin", "munich", "hamburg",
-  "france", "paris", "lyon",
-  "netherlands", "amsterdam",
-  "australia", "sydney", "melbourne",
-  "singapore", "hong kong", "japan", "tokyo",
-  "south korea", "korea", "seoul", "busan", "incheon",
-  "taiwan", "taipei",
-  "china", "beijing", "shanghai", "shenzhen",
-  "brazil", "são paulo", "sao paulo",
-  "mexico", "mexico city",
-  "sweden", "stockholm",
-  "israel", "tel aviv",
-  "ireland", "dublin",
-  "poland", "warsaw",
-  "emea", "apac", "latam", "international", "global",
-  "europe", "asia",
-];
+// ── US location allowlist (positive match only) ──────────────────────────────
 
+/** Two-letter US state abbreviations. */
+const US_STATE_CODES_RE =
+  /\b(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)\b/;
+
+/** Common US city names that don't always appear with a state code. */
+const US_CITY_TOKENS = new Set([
+  "san francisco", "new york", "nyc", "los angeles", "seattle", "austin",
+  "boston", "chicago", "denver", "atlanta", "portland", "miami", "dallas",
+  "houston", "phoenix", "san jose", "mountain view", "palo alto", "sunnyvale",
+  "menlo park", "cupertino", "redmond", "san diego", "san mateo", "san carlos",
+  "redwood city", "santa clara", "santa monica", "irvine", "bellevue",
+  "kirkland", "pittsburgh", "philadelphia", "detroit", "minneapolis",
+  "salt lake city", "raleigh", "durham", "chapel hill", "charlotte",
+  "nashville", "columbus", "indianapolis", "st. louis", "kansas city",
+  "milwaukee", "madison", "ann arbor", "boulder", "scottsdale", "tempe",
+  "plano", "arlington", "jersey city", "hoboken", "stamford", "hartford",
+  "providence", "burlington", "cambridge", "somerville", "oakland",
+  "berkeley", "fremont", "pasadena", "culver city", "el segundo",
+  "thousand oaks", "foster city", "south san francisco", "hayward",
+  "sf bay", "bay area", "silicon valley", "research triangle",
+]);
+
+/** Country-level US tokens. */
+const US_COUNTRY_TOKENS = ["united states", "usa", "u.s.", "u.s.a."];
+
+/**
+ * Positive-match US location filter. Returns true only if the location string
+ * can be confirmed as US. Blank/ambiguous locations like "2 Locations" return false.
+ */
 function isUsLocation(loc: string): boolean {
-  if (!loc.trim()) return true; // blank location = don't exclude
-  const lower = loc.toLowerCase();
-  return !NON_US_TOKENS.some((token) => lower.includes(token));
+  const trimmed = loc.trim();
+  if (!trimmed || trimmed === "—") return false; // blank/unknown = reject
+
+  const lower = trimmed.toLowerCase();
+
+  // "Remote" alone or "Remote (US)" / "US Remote" = accept
+  if (/^remote$/i.test(trimmed)) return true;
+  if (/remote.*(?:us|united states|usa)|(?:us|united states|usa).*remote/i.test(lower)) return true;
+
+  // Explicit US country token
+  if (US_COUNTRY_TOKENS.some((t) => lower.includes(t))) return true;
+
+  // Contains a two-letter US state code (e.g. "San Francisco, CA" or "Remote, CA")
+  if (US_STATE_CODES_RE.test(trimmed)) return true;
+
+  // Known US city name
+  if ([...US_CITY_TOKENS].some((city) => lower.includes(city))) return true;
+
+  // Standalone "US" as a word (not part of another word)
+  if (/\bus\b/i.test(trimmed)) return true;
+
+  return false;
 }
 
 // ── Experience cap (≤ 3 years) ────────────────────────────────────────────────
