@@ -652,10 +652,10 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
         })
       : newJobs; // local diff fallback
 
-    // Filter: only include jobs where yoe_min <= 3 or NULL (early-career/junior roles)
+    // Filter: reject jobs with 4+ years experience; keep ≤ 3 or unknown
     const notificationNewJobs = notificationNewJobsRaw.filter((j) => {
-      if (j.yoeMin == null) return true;  // NULL = unknown, include
-      return j.yoeMin <= 3;
+      if (j.yoeMin != null && j.yoeMin > 3) return false;  // too senior
+      return true;  // NULL = unknown, include
     });
 
     // ── Finalise app status ──────────────────────────────────────────────────

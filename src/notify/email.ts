@@ -135,10 +135,27 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats, metaMap?: Compan
   // Sort all jobs strictly by most recent posted date first.
   const sorted = [...newJobs].sort(newestFirst);
 
-  // Separate APM roles into their own sections.
+  // ── Early career program sections (top) ────────────────────────────────────
   const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
   const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
   const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
+
+  // ── Experience + freshness buckets (within standard jobs) ──────────────────
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const isRecent = (j: Job) => {
+    const d = j.datePosted && j.datePosted !== "—" ? new Date(j.datePosted).getTime() : 0;
+    return d > 0 && (now.getTime() - d) <= THREE_DAYS_MS;
+  };
+  const yoeMin = (j: Job) => j.yoeMin ?? null;
+  const is0to2 = (j: Job) => { const y = yoeMin(j); return y !== null && y <= 2; };
+  const is2plus = (j: Job) => { const y = yoeMin(j); return y !== null && y > 2; };
+  const isUnknown = (j: Job) => yoeMin(j) === null;
+
+  const std0to2Fresh  = standard.filter((j) => is0to2(j) && isRecent(j));
+  const std0to2Older  = standard.filter((j) => is0to2(j) && !isRecent(j));
+  const std2plusFresh = standard.filter((j) => is2plus(j) && isRecent(j));
+  const std2plusOlder = standard.filter((j) => is2plus(j) && !isRecent(j));
+  const stdUnknown    = standard.filter((j) => isUnknown(j));
 
   const duration  = fmtDuration(stats.startedAt, stats.completedAt);
   const runLine   = `${runFmt.format(now)} · ${stats.companiesScanned} companies scanned · ${stats.errors} error${stats.errors === 1 ? "" : "s"} · ${duration}`;
@@ -234,9 +251,13 @@ ${jobs.map((j) => card(j, accentColor, isApm)).join("")}`;
   ${submitJobUrl() ? `<div style="margin-bottom:24px;text-align:center;">
     <a href="${submitJobUrl()}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.3);">Check Any Job</a>
   </div>` : ""}
-  ${section(priorityApm, "🎯 Early Career Program roles",                      "#7c3aed", true)}
-  ${section(apmCompany,  "⭐ Early Career Company roles",                       "#0891b2", true)}
-  ${section(standard,    "📋 New roles — newest first",                        "#22c55e")}
+  ${section(priorityApm,  "🎯 Early Career Program roles",                      "#7c3aed", true)}
+  ${section(apmCompany,   "⭐ Early Career Company roles",                      "#0891b2", true)}
+  ${section(std0to2Fresh, "🟢 0–2 YOE — fresh (last 3 days)",                  "#22c55e")}
+  ${section(std0to2Older, "🟡 0–2 YOE — recent",                               "#eab308")}
+  ${section(std2plusFresh,"🔵 2+ YOE — fresh (last 3 days)",                    "#3b82f6")}
+  ${section(std2plusOlder,"🔵 2+ YOE — recent",                                 "#6b7280")}
+  ${section(stdUnknown,   "⚪ Experience not specified",                         "#9ca3af")}
   ${submitJobUrl() ? `<div style="margin-top:32px;text-align:center;">
     <a href="${submitJobUrl()}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;box-shadow:0 2px 8px rgba(99,102,241,0.3);">Check Any Job</a>
   </div>` : ""}
@@ -269,6 +290,23 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
   const priorityApm = sorted.filter((j) => j.apmSignal === "priority_apm");
   const apmCompany  = sorted.filter((j) => j.apmSignal === "apm_company");
   const standard    = sorted.filter((j) => !j.apmSignal || j.apmSignal === "none");
+
+  // Experience + freshness buckets
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const isRecent = (j: Job) => {
+    const d = j.datePosted && j.datePosted !== "—" ? new Date(j.datePosted).getTime() : 0;
+    return d > 0 && (now.getTime() - d) <= THREE_DAYS_MS;
+  };
+  const yoeMin = (j: Job) => j.yoeMin ?? null;
+  const is0to2 = (j: Job) => { const y = yoeMin(j); return y !== null && y <= 2; };
+  const is2plus = (j: Job) => { const y = yoeMin(j); return y !== null && y > 2; };
+  const isUnknown = (j: Job) => yoeMin(j) === null;
+
+  const std0to2Fresh  = standard.filter((j) => is0to2(j) && isRecent(j));
+  const std0to2Older  = standard.filter((j) => is0to2(j) && !isRecent(j));
+  const std2plusFresh = standard.filter((j) => is2plus(j) && isRecent(j));
+  const std2plusOlder = standard.filter((j) => is2plus(j) && !isRecent(j));
+  const stdUnknown    = standard.filter((j) => isUnknown(j));
 
   const duration = fmtDuration(stats.startedAt, stats.completedAt);
   const runLine  = `Run: ${runFmt.format(now)} · ${stats.companiesScanned} companies · ${stats.errors} errors · ${duration}`;
@@ -309,9 +347,13 @@ export function buildEmailText(newJobs: Job[], stats: RunStats, metaMap?: Compan
     }
   }
 
-  appendSection(priorityApm, "Early Career Program roles");
-  appendSection(apmCompany,  "Early Career Company roles");
-  appendSection(standard,    "New roles — newest first");
+  appendSection(priorityApm,  "Early Career Program roles");
+  appendSection(apmCompany,   "Early Career Company roles");
+  appendSection(std0to2Fresh, "0–2 YOE — fresh (last 3 days)");
+  appendSection(std0to2Older, "0–2 YOE — recent");
+  appendSection(std2plusFresh, "2+ YOE — fresh (last 3 days)");
+  appendSection(std2plusOlder, "2+ YOE — recent");
+  appendSection(stdUnknown,    "Experience not specified");
 
   const dashUrl = dashboardUrl();
   if (dashUrl) lines.push("", "Analytics Dashboard: " + dashUrl);
