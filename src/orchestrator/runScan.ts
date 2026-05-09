@@ -137,20 +137,19 @@ export async function orchestrateRun(
   //   "workday"    → only Workday companies
   //   "other"      → everything except Ashby, Greenhouse, Lever, and Workday
   //   "all"        → all companies (default)
-  const scanPool = (process.env.SCAN_POOL || "all").toLowerCase();
-  let enabled = scanPool === "all"
+  //   Comma-separated: "lever,workday,other" → union of those pools
+  const scanPoolRaw = (process.env.SCAN_POOL || "all").toLowerCase();
+  const pools = scanPoolRaw.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const BIG_FOUR = new Set(["ashby", "greenhouse", "lever", "workday"]);
+  const filterByPool = (pool: string) =>
+    pool === "all"    ? allEnabled
+    : pool === "other" ? allEnabled.filter((c) => !BIG_FOUR.has(c.ats))
+    : allEnabled.filter((c) => c.ats === pool);
+
+  let enabled = pools.includes("all")
     ? allEnabled
-    : scanPool === "ashby"
-    ? allEnabled.filter((c) => c.ats === "ashby")
-    : scanPool === "greenhouse"
-    ? allEnabled.filter((c) => c.ats === "greenhouse")
-    : scanPool === "lever"
-    ? allEnabled.filter((c) => c.ats === "lever")
-    : scanPool === "workday"
-    ? allEnabled.filter((c) => c.ats === "workday")
-    : scanPool === "other"
-    ? allEnabled.filter((c) => c.ats !== "ashby" && c.ats !== "greenhouse" && c.ats !== "lever" && c.ats !== "workday")
-    : allEnabled;
+    : [...new Map(pools.flatMap((p) => filterByPool(p).map((c) => [c.name, c] as const))).values()];
 
   // Skip custom-playwright companies without selectors — they launch Chromium
   // for a generic heuristic that almost never finds results, wasting ~10-15s each.
@@ -168,10 +167,10 @@ export async function orchestrateRun(
   // Guard: catch the 121-company regression immediately at run start.
   if (enabled.length === 0) {
     throw new Error(
-      `[orchestrator] Loaded zero enabled companies for pool="${scanPool}" — check TARGETS_CONFIG_PATH and targets.json`,
+      `[orchestrator] Loaded zero enabled companies for pool="${scanPoolRaw}" — check TARGETS_CONFIG_PATH and targets.json`,
     );
   }
-  console.log(`[orchestrator] pool=${scanPool} companies_configured=${enabled.length} (of ${allEnabled.length} total)`);
+  console.log(`[orchestrator] pool=${scanPoolRaw} companies_configured=${enabled.length} (of ${allEnabled.length} total)`);
 
   // Callback invoked by each pool worker after every company finishes
   const onResult = (r: CompanyResult): void => {

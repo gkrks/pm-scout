@@ -1,9 +1,8 @@
-name: "Scan: Other ATS"
+name: "Scan: Lever + Workday + Other"
 
 on:
   schedule:
-    # Every 3 hours, offset by 2 hours from Ashby
-    # UTC hours: 2,5,8,11,14,17,20,23
+    # Every 3 hours, offset by 2h from Ashby (0h) and Greenhouse (1h)
     - cron: "0 2,5,8,11,14,17,20,23 * * *"
 
   workflow_dispatch:
@@ -14,7 +13,7 @@ on:
         default: false
 
 concurrency:
-  group: scan-other
+  group: scan-lever-workday-other
   cancel-in-progress: false
 
 jobs:
@@ -58,10 +57,10 @@ jobs:
       - name: Sync companies to Supabase
         run: npx ts-node scripts/syncCompanies.ts
 
-      - name: Run Other ATS scanner
+      - name: Run Lever + Workday + Other scanner
         run: npx ts-node scripts/runScan.ts
         env:
-          SCAN_POOL:               other
+          SCAN_POOL:               lever,workday,other
           IGNORE_BLACKOUT:         'true'
           DISPLAY_TIMEZONE:        America/Los_Angeles
           NOTIFY_ROLE_CATEGORIES:  PM,TPM
@@ -72,7 +71,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: scan-other-logs-${{ github.run_id }}
+          name: scan-lever-workday-other-logs-${{ github.run_id }}
           path: data/pending-supabase.json
           retention-days: 7
           if-no-files-found: ignore
