@@ -181,8 +181,8 @@ function isUsLocation(loc: string): boolean {
 
   const lower = trimmed.toLowerCase();
 
-  // "Remote" alone or "Remote (US)" / "US Remote" = accept
-  if (/^remote$/i.test(trimmed)) return true;
+  // "Remote (US)" / "US Remote" / "Remote - United States" = accept
+  // Bare "Remote" without US qualifier is rejected — could be anywhere
   if (/remote.*(?:us|united states|usa)|(?:us|united states|usa).*remote/i.test(lower)) return true;
 
   // Explicit US country token
