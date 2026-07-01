@@ -20,7 +20,7 @@ export interface LocationConfig {
 }
 
 export interface ExperienceConfig {
-  /** Jobs with yoe_min > this are rejected. Default 3. */
+  /** Jobs with yoe_min > this are rejected. Default 1. */
   reject_above_years: number;
 }
 
@@ -43,7 +43,7 @@ export interface CompensationConfig {
   min_base_salary_usd: number | null;
 }
 
-export type RoleCategory = "PM" | "TPM" | "SWE";
+export type RoleCategory = "SWE" | "DE" | "DA" | "PM" | "TPM";
 
 export interface RoleCategoryConfig {
   id: RoleCategory;

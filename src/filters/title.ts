@@ -74,7 +74,7 @@ export function filterTitle(
 ): FilterResult {
   const normalised = normaliseTitle(rawTitle);
 
-  // ── Try TPM / SWE categories first (more specific required_words matching) ─
+  // ── Try role categories with required_words first (more specific matching) ──
   const categories = config.role_categories ?? [];
   for (const cat of categories) {
     if (!cat.required_words || cat.required_words.length === 0) continue;
@@ -95,7 +95,7 @@ export function filterTitle(
     }
   }
 
-  // ── PM: original include/exclude logic ────────────────────────────────────
+  // ── SWE/DE/DA: include/exclude keyword logic ──────────────────────────────
   const included = config.title_include_keywords.some((kw) =>
     normalised.includes(kw.toLowerCase()),
   );
@@ -119,5 +119,5 @@ export function filterTitle(
     }
   }
 
-  return { kept: true, enrichment: { role_category: "PM" as RoleCategory } };
+  return { kept: true, enrichment: { role_category: "SWE" as RoleCategory } };
 }

@@ -250,7 +250,7 @@ export function filterExperience(
 
   // ── Explicit REJECT conditions ───────────────────────────────────────────────
 
-  if (yoe_min !== null && yoe_min > 3) {
+  if (yoe_min !== null && yoe_min > 1) {
     console.warn(
       `[experience] REJECT experience-too-senior — yoe_min=${yoe_min}, raw="${yoe_raw}"`,
     );
@@ -258,9 +258,9 @@ export function filterExperience(
   }
 
   // Only reject on yoe_max when there is no yoe_min set (e.g. "up to 5 years").
-  // For explicit ranges like "2–5 years", yoe_min=2 ≤ 3 means the role accepts
-  // junior candidates — the upper end is a preference, not a floor.
-  if (yoe_min === null && yoe_max !== null && yoe_max > 3) {
+  // For explicit ranges like "1–3 years", yoe_min=1 ≤ 1 means the role accepts
+  // new grads — the upper end is a preference, not a floor.
+  if (yoe_min === null && yoe_max !== null && yoe_max > 1) {
     console.warn(
       `[experience] REJECT experience-too-senior — yoe_max=${yoe_max} (no lower bound), raw="${yoe_raw}"`,
     );
@@ -282,24 +282,22 @@ export function filterExperience(
     return { kept: true, reason: "Junior language detected", enrichment };
   }
 
-  // "up to N years" pattern: yoe_min is null, yoe_max extracted and ≤ 3
-  if (yoe_min === null && yoe_max !== null && yoe_max <= 3) {
+  // "up to N years" pattern: yoe_min is null, yoe_max extracted and ≤ 1
+  if (yoe_min === null && yoe_max !== null && yoe_max <= 1) {
     enrichment.experience_confidence = "extracted";
     return {
       kept: true,
-      reason: `YOE up-to ${yoe_max} within 0–3`,
+      reason: `YOE up-to ${yoe_max} within 0–1`,
       enrichment,
     };
   }
 
-  // yoe_min extracted and ≤ 3 — the role accepts someone at the lower bound.
-  // yoe_max may be higher (e.g. "2–5 years" keeps because yoe_min=2 means
-  // the company will hire a 2-year candidate).
-  if (yoe_min !== null && yoe_min <= 3 && !has_plus_suffix) {
+  // yoe_min extracted and ≤ 1 — the role accepts new grads / entry-level.
+  if (yoe_min !== null && yoe_min <= 1 && !has_plus_suffix) {
     enrichment.experience_confidence = "extracted";
     return {
       kept: true,
-      reason: `YOE lower bound ${yoe_min} ≤ 3`,
+      reason: `YOE lower bound ${yoe_min} ≤ 1`,
       enrichment,
     };
   }

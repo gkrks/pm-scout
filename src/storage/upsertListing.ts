@@ -30,8 +30,8 @@ export interface ListingToUpsert {
   extracted_jd?: ExtractedJD;
   /** ATS platform that sourced this listing */
   ats_platform?: string;
-  /** Role category: PM, TPM, or SWE */
-  role_category?: "PM" | "TPM" | "SWE";
+  /** Role category: SWE (includes DE/DA/ML), PM, or TPM */
+  role_category?: "SWE" | "DE" | "DA" | "PM" | "TPM";
 }
 
 export type SeenState = "new" | "existing" | "reactivated";

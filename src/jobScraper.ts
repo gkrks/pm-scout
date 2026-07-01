@@ -9,6 +9,8 @@ import { workdayScraper } from "./scrapers/workday";
 import { smartRecruitersScraper } from "./scrapers/smartrecruiters";
 import { workableScraper } from "./scrapers/workable";
 import { bambooHRScraper } from "./scrapers/bamboohr";
+import { scrapeLeverHtml, LEVER_PRIORITY_SLUGS } from "./scrapers/leverPlaywright";
+import { normalizeRoleUrl } from "./lib/normalizeUrl";
 
 const UA = "Mozilla/5.0 (compatible; JobSearchBot/1.0)";
 const FETCH_TIMEOUT_MS = 15_000;
@@ -17,83 +19,70 @@ const FETCH_TIMEOUT_MS = 15_000;
 
 // ── Role category definitions ────────────────────────────────────────────────
 
-type RoleCategory = "PM" | "TPM" | "SWE";
+type RoleCategory = "SWE" | "DE" | "DA" | "PM" | "TPM";
 
-const PM_INCLUDE = [
-  /associate\s+product\s+manager/i,
-  // APM only when it stands alone or is clearly the role title (not e.g. "APM Retrieval")
-  /^apm$/i,
-  /^associate\s+pm$/i,
-  /product\s+manager\s+(i|1)\b/i,
-  /\bproduct\s+manager\b/i,
+/** Title patterns that match new grad SWE / DE / DA / ML roles. */
+const SWE_INCLUDE = [
+  /\bsoftware\s+engineer/i,
+  /\bsoftware\s+developer/i,
+  /\bdata\s+engineer/i,
+  /\bdata\s+analyst/i,
+  /\bbusiness\s+analyst/i,
+  /\bmachine\s+learning\s+engineer/i,
+  /\bml\s+engineer/i,
+  /\bai\s+engineer/i,
+  /\bbackend\s+engineer/i,
+  /\bfrontend\s+engineer/i,
+  /\bfront[\s-]end\s+engineer/i,
+  /\bfull[\s-]?stack\s+engineer/i,
+  /\bplatform\s+engineer/i,
+  /\binfrastructure\s+engineer/i,
+  /\bsite\s+reliability/i,
+  /\bsre\b/i,
+  /\bdevops\s+engineer/i,
+  /\bsystems\s+engineer/i,
+  /\bapplication\s+engineer/i,
+  /\bsolutions\s+engineer/i,
+  /\bnew\s+grad/i,
+  /\buniversity\s+grad/i,
+  /\bearly[\s-]career/i,
 ];
 
-const PM_EXCLUDE = [
-  /\bsenior\b/i, /\bsr\.?\b/i, /\blead\b/i, /\bprincipal\b/i,
-  /\bdirector\b/i, /\bhead\b/i, /\bvp\b/i, /\bvice\s+president\b/i,
-  /\bstaff\b/i, /\bgroup\s+pm\b/i, /\bgroup\s+product\b/i,
-  /\bmanager,\s+product\s+management\b/i,
-  /\bengineering\s+manager\b/i,
-];
-
-/**
- * TPM: title must contain all three words "technical", "program", "manager".
- * Excludes senior/staff/lead/principal/director/VP titles.
- */
-function isTPMTitle(title: string): boolean {
-  const t = title.toLowerCase();
-  if (!t.includes("technical") || !t.includes("program") || !t.includes("manager")) return false;
-  return !SENIORITY_EXCLUDE.some((re) => re.test(title));
-}
-
-/**
- * SWE: title must contain both words "software" and "engineer".
- * Excludes senior/staff/lead/principal/director/VP/manager titles.
- */
-function isSWETitle(title: string): boolean {
-  const t = title.toLowerCase();
-  if (!t.includes("software") || !t.includes("engineer")) return false;
-  if (SWE_EXCLUDE.some((re) => re.test(title))) return false;
-  return !SENIORITY_EXCLUDE.some((re) => re.test(title));
-}
-
-/** Shared seniority excludes for TPM and SWE roles (0–3 YOE only). */
+/** Seniority excludes — reject anything above entry-level / new grad. */
 const SENIORITY_EXCLUDE = [
   /\bsenior\b/i, /\bsr\.?\b/i, /\blead\b/i, /\bprincipal\b/i,
   /\bdirector\b/i, /\bhead\b/i, /\bvp\b/i, /\bvice\s+president\b/i,
-  /\bstaff\b/i, /\bdistinguished\b/i,
+  /\bstaff\b/i, /\bdistinguished\b/i, /\barchitect\b/i,
 ];
 
-/** SWE-specific excludes: intern and manager roles are not SWE. */
-const SWE_EXCLUDE = [
+/** Non-engineering roles that share keywords but aren't target roles. */
+const ROLE_EXCLUDE = [
   /\bintern\b/i,
+  /\bco[\s-]?op\b/i,
+  /\bcontractor\b/i,
   /\bmanager\b/i,
 ];
 
 /**
  * Classify a job title into a role category.
- * Checks TPM first (more specific — contains "manager" which overlaps PM),
- * then PM, then SWE. Returns null if no category matches.
+ * All new grad SWE / DE / DA / ML roles are combined under "SWE".
+ * Returns null if no category matches.
  */
 function classifyRole(title: string, roles: string[]): RoleCategory | null {
-  // TPM check first — "Technical Program Manager" contains "manager" so must precede PM
-  if (isTPMTitle(title)) return "TPM";
+  // Check include patterns
+  const matchesInclude = SWE_INCLUDE.some((re) => re.test(title));
 
-  // PM check (original logic)
-  const pmExcluded = PM_EXCLUDE.some((re) => re.test(title));
-  if (!pmExcluded) {
-    if (roles.length === 0) {
-      if (PM_INCLUDE.some((re) => re.test(title))) return "PM";
-    } else {
-      const matchesRole = roles.some((r) => title.toLowerCase().includes(r.toLowerCase()));
-      if (matchesRole || PM_INCLUDE.some((re) => re.test(title))) return "PM";
-    }
-  }
+  // Also check per-company target_roles from config
+  const matchesCompanyRole = roles.length > 0 &&
+    roles.some((r) => title.toLowerCase().includes(r.toLowerCase()));
 
-  // SWE check
-  if (isSWETitle(title)) return "SWE";
+  if (!matchesInclude && !matchesCompanyRole) return null;
 
-  return null;
+  // Reject senior / non-target titles
+  if (SENIORITY_EXCLUDE.some((re) => re.test(title))) return null;
+  if (ROLE_EXCLUDE.some((re) => re.test(title))) return null;
+
+  return "SWE";
 }
 
 function isPmRole(title: string): boolean {
@@ -102,8 +91,8 @@ function isPmRole(title: string): boolean {
 
 /**
  * Title filter that incorporates a per-company role allow-list from targets.json.
- * A job is kept when its title matches any role category (PM, TPM, or SWE).
- * An empty roles array falls back to the standard PM filter + TPM/SWE checks.
+ * A job is kept when its title matches any target role category (SWE/DE/DA/ML).
+ * An empty roles array falls back to the standard include patterns.
  */
 function isPmRoleForConfig(title: string, roles: string[]): boolean {
   return classifyRole(title, roles) !== null;
@@ -123,14 +112,14 @@ function sleep(ms: number): Promise<void> {
 // ── Early-career detection ────────────────────────────────────────────────────
 
 const EARLY_CAREER_TITLE = [
-  /associate\s+product\s+manager/i,
-  /\bapm\b/i,
   /\bjunior\b/i,
   /\bentry[\s-]level\b/i,
   /\bnew\s+grad(uate)?\b/i,
   /\buniversity\s+grad(uate)?\b/i,
   /\bearly[\s-]career\b/i,
   /\brotational\b/i,
+  /\b(i|1)\s*$/i,              // "Software Engineer I" or "Engineer 1"
+  /\bassociate\s+engineer/i,
 ];
 
 const EARLY_CAREER_BODY = [
@@ -210,7 +199,7 @@ function isUsLocation(loc: string): boolean {
 // ── Experience cap (≤ 3 years) ────────────────────────────────────────────────
 
 // Ranges like "2-5 years" or "2 to 5 years" — both bounds matter.
-// Spec: reject if upper bound > 3 (e.g. "2-5 years", "3-6 years").
+// Spec: reject if upper bound > 1 (only new grad / 0-1 year roles).
 const EXP_RANGE_RE = /(\d+)\s*(?:-|–|to)\s*(\d+)\+?\s*years?/gi;
 // Single values like "4+ years", "5 years of experience".
 const EXP_SINGLE_RE = /(\d+)\+?\s*years?(?:\s+of)?(?:\s+(?:relevant|related|prior|professional)\s+)?(?:\s*experience)?/gi;
@@ -218,22 +207,22 @@ const EXP_SINGLE_RE = /(\d+)\+?\s*years?(?:\s+of)?(?:\s+(?:relevant|related|prio
 function passesExperienceFilter(text: string): boolean {
   const clean = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
-  // Check ranges first; reject if upper bound exceeds 3.
+  // Check ranges first; reject if upper bound exceeds 1.
   for (const m of clean.matchAll(EXP_RANGE_RE)) {
     const lo = parseInt(m[1], 10);
     const hi = parseInt(m[2], 10);
     if (lo > 1900 && lo < 2100) continue; // calendar year, not duration
-    if (hi > 3) return false;
+    if (hi > 1) return false;
   }
 
   // Remove matched ranges so the single-value pass doesn't re-examine them.
   const noRanges = clean.replace(/(\d+)\s*(?:-|–|to)\s*(\d+)\+?\s*years?/gi, "");
 
-  // Check single values; reject if value exceeds 3.
+  // Check single values; reject if value exceeds 1.
   for (const m of noRanges.matchAll(EXP_SINGLE_RE)) {
     const yrs = parseInt(m[1], 10);
     if (yrs > 1900 && yrs < 2100) continue; // calendar year, not duration
-    if (yrs > 3) return false;
+    if (yrs > 1) return false;
   }
 
   return true;
@@ -1115,6 +1104,52 @@ export async function scrapeCompany(
   );
 }
 
+// ── Lever HTML fallback merge ─────────────────────────────────────────────────
+
+/**
+ * Merge API results with Playwright HTML results. API jobs take precedence
+ * (they have descriptions + posted dates). HTML-only jobs are new discoveries
+ * that the API hasn't surfaced yet.
+ */
+function mergeLeverResults(
+  apiJobs: Job[],
+  htmlRaw: import("./scrapers/types").RawJob[],
+  companyName: string,
+  slug: string,
+  careersUrl: string,
+  roles: string[],
+): Job[] {
+  const apiUrls = new Set(apiJobs.map((j) => normalizeRoleUrl(j.applyUrl)));
+
+  const newFromHtml: Job[] = [];
+  for (const raw of htmlRaw) {
+    if (apiUrls.has(normalizeRoleUrl(raw.role_url))) continue; // already have from API
+    if (!isPmRoleForConfig(raw.title, roles)) continue;
+    if (!isUsLocation(raw.location_raw)) continue;
+    // Skip experience filter — no description available from HTML listing
+
+    newFromHtml.push({
+      id:          makeId(companyName, raw.role_url.split("/").pop() ?? ""),
+      company:     companyName,
+      title:       raw.title,
+      location:    raw.location_raw,
+      workType:    workTypeFrom(raw.location_raw),
+      datePosted:  "—",
+      applyUrl:    raw.role_url,
+      careersUrl,
+      earlyCareer: isEarlyCareer(raw.title, ""),
+      description: "",
+      sourceLabel: "lever-html-fallback",
+    });
+  }
+
+  if (newFromHtml.length > 0) {
+    console.log(`[lever-pw] ${companyName}: ${newFromHtml.length} jobs found in HTML but not yet in API`);
+  }
+
+  return [...apiJobs, ...newFromHtml];
+}
+
 /** Extended result from scrapeCompanyByConfig — carries Ashby staleness data */
 export interface ScrapeCompanyResult {
   jobs: Job[];
@@ -1134,7 +1169,22 @@ export async function scrapeCompanyByConfig(company: CompanyConfig): Promise<Scr
     const ghSlug = routing?.slug ?? company.slug!;
     return { jobs: await scrapeGreenhouse(company.name, ghSlug, company.careersUrl, roles) };
   }
-  if (company.ats === "lever")             return { jobs: await scrapeLever(company.name, company.slug!, company.careersUrl, roles) };
+  if (company.ats === "lever") {
+    const apiJobs = await scrapeLever(company.name, company.slug!, company.careersUrl, roles);
+
+    // Playwright fallback for priority companies — catches jobs the API hasn't surfaced yet
+    if (LEVER_PRIORITY_SLUGS.has(company.slug!)) {
+      try {
+        const htmlRaw = await scrapeLeverHtml(company.slug!);
+        const merged = mergeLeverResults(apiJobs, htmlRaw, company.name, company.slug!, company.careersUrl, roles);
+        return { jobs: merged };
+      } catch (err) {
+        console.warn(`[lever-pw] ${company.name}: fallback failed: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+
+    return { jobs: apiJobs };
+  }
   if (company.ats === "ashby")             return scrapeAshbyWithStaleness(company, roles);
   if (company.ats === "workday")           return { jobs: await scrapeWorkdayCompany(company) };
   if (company.ats === "smartrecruiters")   return { jobs: await scrapeSmartRecruitersCompany(company) };

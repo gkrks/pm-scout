@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "title": "US Tech & AI Companies Hiring PMs/APMs",
+    "title": "US Tech & AI Companies Hiring New Grad SWE/DE/DA Roles",
     "version": "3.0.0",
     "schema_version": "3.0.0",
     "generated_at": "2026-05-06T23:24:43.348281+00:00",
@@ -16,83 +16,76 @@
   },
   "filters": {
     "target_roles": [
-      "Product Manager",
-      "Associate Product Manager",
-      "Forward Deployed Product Manager",
-      "Associate Forward Deployed Product Manager"
+      "Software Engineer",
+      "Software Developer",
+      "Data Engineer",
+      "Data Analyst",
+      "Business Analyst",
+      "Machine Learning Engineer",
+      "AI Engineer",
+      "Backend Engineer",
+      "Frontend Engineer",
+      "Full Stack Engineer",
+      "Platform Engineer",
+      "Infrastructure Engineer",
+      "Site Reliability Engineer",
+      "DevOps Engineer",
+      "Systems Engineer",
+      "Application Engineer",
+      "Solutions Engineer"
     ],
     "title_include_keywords": [
-      "Product Manager"
+      "software engineer",
+      "software developer",
+      "data engineer",
+      "data analyst",
+      "business analyst",
+      "machine learning engineer",
+      "ml engineer",
+      "ai engineer",
+      "backend engineer",
+      "frontend engineer",
+      "front end engineer",
+      "full stack engineer",
+      "fullstack engineer",
+      "platform engineer",
+      "infrastructure engineer",
+      "site reliability",
+      "sre",
+      "devops engineer",
+      "systems engineer",
+      "application engineer",
+      "solutions engineer",
+      "new grad",
+      "new graduate",
+      "university grad",
+      "early career"
     ],
     "title_exclude_keywords": [
-      "Product Marketing Manager",
-      "Program Manager",
-      "Operations Manager",
-      "Project Manager",
-      "Product Owner",
-      "Product Designer",
-      "Product Engineer",
-      "Engineering Manager",
-      "Group Product Manager",
+      "Senior",
+      "Sr.",
+      "Sr ",
+      "Staff",
+      "Principal",
+      "Lead",
+      "Distinguished",
       "Director",
       "Head of",
       "VP ",
       "Vice President",
-      "Lead Product Manager",
-      "Principal Product Manager",
-      "Senior Product Manager",
-      "Sr. Product Manager",
-      "Sr Product Manager",
-      "Staff Product Manager",
-      "Technical Product Manager",
-      "Data Product Manager"
+      "Engineering Manager",
+      "Manager",
+      "Architect",
+      "Intern",
+      "Co-op",
+      "Contractor"
     ],
     "role_categories": [
       {
-        "id": "PM",
-        "label": "PM/APM",
-        "notes": "Default Product Manager roles — uses title_include_keywords and title_exclude_keywords above"
-      },
-      {
-        "id": "TPM",
-        "label": "Technical Program Manager",
-        "required_words": ["technical", "program", "manager"],
-        "title_exclude_keywords": [
-          "Senior Technical Program Manager",
-          "Sr. Technical Program Manager",
-          "Sr Technical Program Manager",
-          "Staff Technical Program Manager",
-          "Principal Technical Program Manager",
-          "Lead Technical Program Manager",
-          "Director",
-          "Head of",
-          "VP ",
-          "Vice President"
-        ],
-        "experience": { "min_years": 0, "max_years": 3 },
-        "notes": "Entry-level / new grad TPM roles (0–3 YOE). Title must contain all three words: technical, program, manager."
-      },
-      {
         "id": "SWE",
-        "label": "Software Engineer",
-        "required_words": ["software", "engineer"],
-        "title_exclude_keywords": [
-          "Senior Software Engineer",
-          "Sr. Software Engineer",
-          "Sr Software Engineer",
-          "Staff Software Engineer",
-          "Principal Software Engineer",
-          "Lead Software Engineer",
-          "Distinguished Software Engineer",
-          "Director",
-          "Head of",
-          "VP ",
-          "Vice President",
-          "Engineering Manager",
-          "Software Engineering Manager"
-        ],
-        "experience": { "min_years": 0, "max_years": 3 },
-        "notes": "Entry-level / new grad SWE roles (0–3 YOE). Title must contain both words: software, engineer."
+        "label": "Software / Data / ML Engineer (New Grad)",
+        "notes": "Primary category — all new grad technical roles (SWE, DE, DA, ML, etc.) with ≤1 YOE and CS background. Uses title_include_keywords and title_exclude_keywords above.",
+        "experience": { "min_years": 0, "max_years": 1 }
       }
     ],
     "location": {
@@ -106,12 +99,12 @@
     },
     "experience": {
       "min_years": 0,
-      "max_years": 3,
-      "preferred_max_years": 2,
-      "preferred_label": "0-2 years (top of list)",
-      "acceptable_label": "3 years (acceptable)",
-      "reject_above_years": 3,
-      "notes": "Roles with 4+ YOE required should be rejected. 'New grad' / 'entry level' / 'university grad' language flags tier 1 even without explicit YOE."
+      "max_years": 1,
+      "preferred_max_years": 1,
+      "preferred_label": "0-1 years (new grad / entry-level)",
+      "acceptable_label": "1 year (maximum)",
+      "reject_above_years": 1,
+      "notes": "Roles with 2+ YOE required should be rejected. Only new grad / entry-level roles (0-1 years). 'New grad' / 'entry level' / 'university grad' language flags tier 1 even without explicit YOE."
     },
     "freshness": {
       "max_posting_age_days": 60,

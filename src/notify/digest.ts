@@ -115,7 +115,7 @@ export function buildTelegramMessages(
     ? ` · 🎯 ${esc(String(priorityApm.length))} APM Program${priorityApm.length === 1 ? "" : "s"}`
     : "";
   const lines: string[] = [
-    `🆕 *${esc(String(newJobs.length))} new PM/APM roles* — ${esc(runDate)}${apmLine}`,
+    `🆕 *${esc(String(newJobs.length))} new grad tech roles* — ${esc(runDate)}${apmLine}`,
     "",
   ];
 
@@ -219,7 +219,7 @@ export function buildEmailHtml(newJobs: Job[], stats: RunStats): string {
 </head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#333;background:#fff;">
   <h1 style="font-size:1.25rem;margin-top:0;color:#333;">
-    ${newJobs.length} new PM/APM role${newJobs.length === 1 ? "" : "s"}
+    ${newJobs.length} new grad tech role${newJobs.length === 1 ? "" : "s"}
   </h1>
   <p style="color:#666;margin-top:-8px;">
     ${runDate} · ${stats.companiesScanned} companies · ${stats.errors} error${stats.errors === 1 ? "" : "s"}
@@ -236,7 +236,7 @@ export function buildEmailText(newJobs: Job[], stats: RunStats): string {
   const runDate = stats.completedAt.toISOString().slice(0, 16).replace("T", " ") + " UTC";
 
   const lines: string[] = [
-    `${newJobs.length} new PM/APM roles — ${runDate}`,
+    `${newJobs.length} new grad tech roles — ${runDate}`,
     `${stats.companiesScanned} companies · ${stats.errors} errors`,
     "",
     "── 📋 All roles — newest first ──",

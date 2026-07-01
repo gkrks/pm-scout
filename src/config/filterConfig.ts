@@ -96,7 +96,7 @@ function normalise(raw: z.infer<typeof RawFiltersSchema>): FilterConfig {
     },
     experience: {
       reject_above_years:
-        raw.experience.reject_above_years ?? raw.experience.max_years ?? 3,
+        raw.experience.reject_above_years ?? raw.experience.max_years ?? 1,
     },
     freshness: {
       max_posting_age_days: raw.freshness.max_posting_age_days ?? 30,

@@ -97,9 +97,8 @@ function trackerUrl(): string {
 
 /** Category label configuration for email subjects and headers. */
 const CATEGORY_LABELS: Record<string, { tag: string; heading: string }> = {
-  default: { tag: "New PM/APM Roles",                    heading: "PM/APM" },
-  "TPM":   { tag: "New Technical Program Manager Roles", heading: "Technical Program Manager" },
-  "SWE":   { tag: "New Software Engineer Roles",         heading: "Software Engineer" },
+  default: { tag: "New Grad Tech Roles",                  heading: "SWE/DE/DA" },
+  "SWE":   { tag: "New Grad Tech Roles",                 heading: "SWE/DE/DA" },
 };
 
 function formatSubject(newJobs: Job[], runStartedAt: Date, category?: string): string {
@@ -407,7 +406,7 @@ export async function sendEmailDigest(newJobs: Job[], stats: RunStats, category?
 
   const metaMap = loadCompanyMetaMap();
   const subject = formatSubject(newJobs, stats.startedAt, category);
-  const catLabel = category ?? "PM/APM";
+  const catLabel = category ?? "SWE/DE/DA";
 
   const transport = nodemailer.createTransport({
     host,

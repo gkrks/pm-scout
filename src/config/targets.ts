@@ -59,7 +59,7 @@ export const CompanyConfigSchema = z.object({
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 export const DefaultsSchema = z.object({
-  maxExperienceYears: z.number().default(3),
+  maxExperienceYears: z.number().default(1),
   locationFilter:     z.string().default("US"),
   dateCutoffDays:     z.number().default(30),
 });

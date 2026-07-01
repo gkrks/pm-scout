@@ -120,7 +120,7 @@ function jobToListingToUpsert(
   job.apmSignal = apmSignal;  // mutate so the notification digest can use it
 
   // Classify role category and stamp on the job object for notification splitting.
-  const roleCat = classifyRoleCategory(job.title) ?? "PM";
+  const roleCat = classifyRoleCategory(job.title) ?? "SWE";
   job.roleCategory = roleCat;
 
   return {
@@ -652,9 +652,9 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
         })
       : newJobs; // local diff fallback
 
-    // Filter: reject jobs with 4+ years experience; keep ≤ 3 or unknown
+    // Filter: reject jobs with 2+ years experience; keep ≤ 1 or unknown
     const notificationNewJobs = notificationNewJobsRaw.filter((j) => {
-      if (j.yoeMin != null && j.yoeMin > 3) return false;  // too senior
+      if (j.yoeMin != null && j.yoeMin > 1) return false;  // too senior
       return true;  // NULL = unknown, include
     });
 
@@ -677,7 +677,7 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
 
     for (const j of notificationNewJobs) {
       if (!j.roleCategory) {
-        j.roleCategory = classifyRoleCategory(j.title) ?? "PM";
+        j.roleCategory = classifyRoleCategory(j.title) ?? "SWE";
       }
     }
 
@@ -691,11 +691,9 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
 
     const shouldNotify = (cat: string) => notifyCats === null || notifyCats.has(cat);
 
-    const pmJobs  = shouldNotify("PM")  ? notificationNewJobs.filter((j) => j.roleCategory === "PM")  : [];
-    const tpmJobs = shouldNotify("TPM") ? notificationNewJobs.filter((j) => j.roleCategory === "TPM") : [];
     const sweJobs = shouldNotify("SWE") ? notificationNewJobs.filter((j) => j.roleCategory === "SWE") : [];
 
-    const jobsToNotify = [...pmJobs, ...tpmJobs, ...sweJobs];
+    const jobsToNotify = [...sweJobs];
 
     // ── Digest notifications ─────────────────────────────────────────────────
 
@@ -707,17 +705,7 @@ export async function runScanOnce(runId?: string): Promise<ScanRunResult> {
         sendTelegramDigest(jobsToNotify, runStats),
       ];
 
-      // PM roles → PM email
-      if (pmJobs.length > 0) {
-        digests.push(sendEmailDigest(pmJobs, runStats));
-      }
-
-      // TPM roles → separate TPM email
-      if (tpmJobs.length > 0) {
-        digests.push(sendEmailDigest(tpmJobs, runStats, "TPM"));
-      }
-
-      // SWE roles → separate SWE email
+      // All new grad tech roles → single email digest
       if (sweJobs.length > 0) {
         digests.push(sendEmailDigest(sweJobs, runStats, "SWE"));
       }
